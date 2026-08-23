@@ -90,73 +90,27 @@ func (s *CommandService) SendMessage(ctx context.Context, req *connect.Request[v
 	parsedMentions := s.parseContentMentions(ctx, convID, req.Msg.Content)
 	mentions := mergeMentions(parsedMentions, req.Msg.Mentions)
 
-	// Atomically bump conversation.version and write the user message with that
-	// room_version. This is the single source of truth for the room cursor. When
-	// as_task is set, the same tx also inserts the task row (status TODO).
-	var msg *store.ChatMessage
-	if req.Msg.AsTask {
-		msg, _, err = s.store.CreateTaskMessageBumpVersion(ctx, &store.ChatMessage{
-			ConversationID:  convID,
-			PrincipalID:     user.ID,
-			PrincipalName:   user.Name,
-			PrincipalHandle: user.Handle,
-			Role:            1, // USER
-			Content:         req.Msg.Content,
-			SenderType:      store.SenderTypeUser,
-			Mentions:        mentions,
-			Attachments:     attachments,
-		})
-	} else {
-		msg, _, err = s.store.CreateChatMessageBumpVersion(ctx, &store.ChatMessage{
-			ConversationID:      convID,
-			PrincipalID:         user.ID,
-			PrincipalName:       user.Name,
-			PrincipalHandle:     user.Handle,
-			Role:                1, // USER
-			Content:             req.Msg.Content,
-			SenderType:          store.SenderTypeUser,
-			Mentions:            mentions,
-			Attachments:         attachments,
-			ThreadRootMessageID: threadRoot,
-		})
-	}
+	msg, _, err := s.createMessage(ctx, createMessageInput{
+		convID:          convID,
+		content:         req.Msg.Content,
+		attachments:     attachments,
+		mentions:        mentions,
+		threadRoot:      threadRoot,
+		asTask:          req.Msg.AsTask,
+		principalID:     user.ID,
+		principalName:   user.Name,
+		principalHandle: user.Handle,
+		role:            1, // USER
+		senderType:      store.SenderTypeUser,
+		posterUserID:    &user.ID,
+	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, errors.Wrapf(err, "failed to create message"))
+		return nil, err
 	}
 
 	if req.Msg.AsTask {
 		s.postTaskSystemNotification(ctx, convID, fmt.Sprintf("📋 %s created task #%d %q", user.Name, msg.TaskInfo.TaskNumber, truncateContent(req.Msg.Content)))
 	}
-
-	if threadRoot.Valid {
-		// Thread reply: subscribe any @mentioned agents (idempotent) and wake
-		// every subscriber of this thread — subscription is persistent, so a
-		// subscriber is woken on every reply even without a fresh @mention. The
-		// user sender has no agent id, so all subscribers are woken. The posting
-		// user and any @mentioned users are subscribed via user_thread_participant
-		// so they get THREAD activity on subsequent replies.
-		s.subscribeAndNotifyThread(ctx, convID, threadRoot.UUID, msg.RoomVersion, mentions, nil, &user.ID)
-	} else {
-		// Agent-first: the manager never dispatches work on a user message. It
-		// only notifies every agent member of the conversation that new messages
-		// are available; each agent's autonomous drain loop then decides whether
-		// and how to respond. (Agents are conversation policy members of their
-		// direct conversations too, so this covers 1:1 chats.)
-		s.notifyConversationAgents(ctx, convID, msg.RoomVersion, nil)
-	}
-
-	// Generate per-user activity for this message (mention/task/reminder/thread).
-	// Best-effort: failures are logged, never fatal. A top-level as_task message
-	// is a task root; a thread reply rooted at a task/reminder carries that kind.
-	rootIsTask := req.Msg.AsTask
-	rootIsReminder := false
-	if threadRoot.Valid {
-		rootIsTask, rootIsReminder, err = s.store.RootMessageKinds(ctx, threadRoot.UUID)
-		if err != nil {
-			slog.Warn("failed to resolve thread root kinds for activity", "rootID", threadRoot.UUID, "error", err)
-		}
-	}
-	s.store.GenerateActivityForMessage(msg, rootIsTask, rootIsReminder)
 
 	return connect.NewResponse(storeToV1ChatMessage(msg)), nil
 }

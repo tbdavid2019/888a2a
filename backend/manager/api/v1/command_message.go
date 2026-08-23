@@ -452,36 +452,22 @@ func (s *CommandService) PostMessage(ctx context.Context, req *connect.Request[v
 		// the message and drive thread subscription / wake routing below.
 		mentions := s.parseContentMentions(ctx, convUUID, req.Msg.Content)
 
-		msg, newVersion, createErr := s.store.CreateChatMessageBumpVersion(ctx, &store.ChatMessage{
-			ConversationID:      convUUID,
-			PrincipalID:         principalID,
-			PrincipalHandle:     resolveUserHandle(ctx, s.store, principalID),
-			SenderAgentID:       toNullInt32(int32(agent.ID)),
-			Role:                2,
-			Content:             req.Msg.Content,
-			CommandID:           commandID,
-			SenderType:          store.SenderTypeAgent,
-			Attachments:         attachments,
-			Mentions:            mentions,
-			ThreadRootMessageID: threadRoot,
+		msg, newVersion, createErr := s.createMessage(ctx, createMessageInput{
+			convID:          convUUID,
+			content:         req.Msg.Content,
+			attachments:     attachments,
+			mentions:        mentions,
+			threadRoot:      threadRoot,
+			commandID:       commandID,
+			principalID:     principalID,
+			principalHandle: resolveUserHandle(ctx, s.store, principalID),
+			senderAgentID:   toNullInt32(int32(agent.ID)),
+			role:            2,
+			senderType:      store.SenderTypeAgent,
+			exceptAgentID:   &agent.ID,
 		})
 		if createErr != nil {
-			return nil, connect.NewError(connect.CodeInternal, errors.Wrapf(createErr, "failed to create assistant message"))
-		}
-
-		if threadRoot.Valid {
-			// Thread reply: subscribe the posting agent and any @mentioned
-			// agents, then wake every subscriber except the poster. The poster
-			// is excluded so its own reply does not re-wake itself. There is no
-			// posting user here, so posterUserID is nil — user_thread_participant
-			// subscriptions come only from the parsed @mentions of users.
-			s.subscribeAndNotifyThread(ctx, convUUID, threadRoot.UUID, newVersion, mentions, &agent.ID, nil)
-		} else {
-			// Agent-first: wake every OTHER agent member of this conversation so
-			// they can pull this agent's reply. The posting agent is excluded (it
-			// just acked past its own post and must not re-wake itself). This is
-			// the single change that enables agent→agent conversation.
-			s.notifyConversationAgents(ctx, convUUID, newVersion, &agent.ID)
+			return nil, createErr
 		}
 
 		// The posting agent has produced this message, so it has processed up to
@@ -493,18 +479,6 @@ func (s *CommandService) PostMessage(ctx context.Context, req *connect.Request[v
 		if _, err := s.store.UpsertCursor(ctx, agent.ID, convUUID, newVersion); err != nil {
 			slog.Warn("failed to advance posting agent cursor", "agentID", agent.ID, "conversationID", convUUID, "version", newVersion, "error", err)
 		}
-
-		// Generate per-user activity (mention/thread; agents carry no TASK/REMINDER
-		// root kind here — task/reminder root messages are created via their own
-		// handlers). A thread reply inherits the root's task/reminder kind.
-		rootIsTask, rootIsReminder := false, false
-		if threadRoot.Valid {
-			rootIsTask, rootIsReminder, err = s.store.RootMessageKinds(ctx, threadRoot.UUID)
-			if err != nil {
-				slog.Warn("failed to resolve thread root kinds for activity", "rootID", threadRoot.UUID, "error", err)
-			}
-		}
-		s.store.GenerateActivityForMessage(msg, rootIsTask, rootIsReminder)
 
 		return connect.NewResponse(&v1pb.PostMessageResponse{
 			Committed:      true,

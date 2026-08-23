@@ -58,67 +58,50 @@ func (s *MachineService) RevokeMachineToken(ctx context.Context, req *connect.Re
 	return connect.NewResponse(&v1pb.RevokeMachineTokenResponse{}), nil
 }
 func (s *MachineService) RefreshMachineToken(ctx context.Context, req *connect.Request[v1pb.RefreshMachineTokenRequest]) (*connect.Response[v1pb.RefreshMachineTokenResponse], error) {
-	refreshTokenStr := req.Msg.RefreshToken
-	if refreshTokenStr == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("refresh token is required"))
-	}
-
-	claims, err := auth.ParseMachineToken(refreshTokenStr, s.secret)
+	principal, stored, err := validateRefreshToken(
+		ctx,
+		req.Msg.RefreshToken,
+		req.Msg.Fingerprint,
+		s.secret,
+		func(token string) (int, string, error) {
+			claims, err := auth.ParseMachineToken(token, s.secret)
+			if err != nil {
+				return 0, "", err
+			}
+			return int(claims.TokenVersion), claims.TokenType, nil
+		},
+		func(hash string) (refreshStoredToken, error) {
+			t, err := s.store.GetMachineTokenByHash(ctx, hash)
+			if err != nil {
+				return refreshStoredToken{}, err
+			}
+			if t == nil {
+				return refreshStoredToken{}, nil
+			}
+			return refreshStoredToken{ID: t.ID, PrincipalID: t.MachineID, Family: t.TokenFamily, State: int32(t.State), ExpiresAt: t.ExpiresAt, Fingerprint: t.Fingerprint}, nil
+		},
+		func(state int32) refreshAction {
+			return machineRefreshReuseAction(storepb.MachineTokenState(state))
+		},
+		func(family string) error {
+			return s.store.RevokeMachineTokenFamily(ctx, family)
+		},
+		func(id int) (refreshPrincipal, error) {
+			machine, err := s.store.GetMachine(ctx, id)
+			if err != nil {
+				return refreshPrincipal{}, err
+			}
+			if machine == nil {
+				return refreshPrincipal{Deleted: true}, nil
+			}
+			return refreshPrincipal{ID: machine.ID, Name: machine.Name, ResourceID: machine.ResourceID, TokenVersion: machine.TokenVersion, Deleted: machine.Deleted}, nil
+		},
+	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.Wrap(err, "invalid refresh token"))
-	}
-	if claims.TokenType != auth.TokenTypeRefresh {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.Errorf("expected refresh token, got %s", claims.TokenType))
+		return nil, err
 	}
 
-	tokenHash := hashToken(refreshTokenStr)
-	storedToken, err := s.store.GetMachineTokenByHash(ctx, tokenHash)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, errors.Errorf("failed to look up refresh token, error: %v", err))
-	}
-	if storedToken == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid refresh token"))
-	}
-
-	switch action := machineRefreshReuseAction(storedToken.State); action {
-	case refreshActionProceed:
-	case refreshActionRevokeFamily:
-		// A CONSUMED or REVOKED refresh token being presented again. The
-		// multi-use flow never consumes a refresh token, so reaching here means
-		// either an artifact of the old single-use flow, an admin
-		// Revoke/RotateMachineToken, or genuine theft — revoke the family and
-		// reject in all cases.
-		if err := s.store.RevokeMachineTokenFamily(ctx, storedToken.TokenFamily); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, errors.Errorf("failed to revoke token family, error: %v", err))
-		}
-		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("refresh token reuse detected, token family revoked"))
-	default:
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid refresh token state"))
-	}
-
-	if time.Now().After(storedToken.ExpiresAt) {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("refresh token expired"))
-	}
-
-	if req.Msg.Fingerprint != "" && storedToken.Fingerprint != "" && req.Msg.Fingerprint != storedToken.Fingerprint {
-		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("fingerprint mismatch, possible token theft detected"))
-	}
-
-	machine, err := s.store.GetMachine(ctx, storedToken.MachineID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, errors.Errorf("failed to get machine, error: %v", err))
-	}
-	if machine == nil || machine.Deleted {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("machine not found or deactivated"))
-	}
-	if claims.TokenVersion != machine.TokenVersion {
-		if err := s.store.RevokeMachineTokenFamily(ctx, storedToken.TokenFamily); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, errors.Errorf("failed to revoke stale token family, error: %v", err))
-		}
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("refresh token version mismatch"))
-	}
-
-	accessToken, err := auth.GenerateMachineTokenWithSession(machine.Name, machine.ResourceID, machine.TokenVersion, auth.TokenTypeAccess, "", s.profile.Mode, s.secret, accessTokenDuration)
+	accessToken, err := auth.GenerateMachineTokenWithSession(principal.Name, principal.ResourceID, principal.TokenVersion, auth.TokenTypeAccess, "", s.profile.Mode, s.secret, accessTokenDuration)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.Errorf("failed to generate access token, error: %v", err))
 	}
@@ -131,16 +114,16 @@ func (s *MachineService) RefreshMachineToken(ctx context.Context, req *connect.R
 	// the window (a pre-renewal thief is bounded by it); it is not consumed, so
 	// a lost renewal response is safely retryable.
 	newRefreshToken := ""
-	if time.Until(storedToken.ExpiresAt) < machineRefreshRotateWindow {
-		newRefreshToken, err = auth.GenerateMachineTokenWithSession(machine.Name, machine.ResourceID, machine.TokenVersion, auth.TokenTypeRefresh, "", s.profile.Mode, s.secret, machineRefreshTokenDuration)
+	if time.Until(stored.ExpiresAt) < machineRefreshRotateWindow {
+		newRefreshToken, err = auth.GenerateMachineTokenWithSession(principal.Name, principal.ResourceID, principal.TokenVersion, auth.TokenTypeRefresh, "", s.profile.Mode, s.secret, machineRefreshTokenDuration)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, errors.Errorf("failed to generate refresh token, error: %v", err))
 		}
 		if err := s.store.CreateMachineToken(ctx, &store.MachineTokenMessage{
-			MachineID:   machine.ID,
+			MachineID:   principal.ID,
 			TokenHash:   hashToken(newRefreshToken),
 			TokenType:   storepb.MachineTokenType_MACHINE_REFRESH,
-			TokenFamily: storedToken.TokenFamily,
+			TokenFamily: stored.Family,
 			State:       storepb.MachineTokenState_MACHINE_TOKEN_ACTIVE,
 			Fingerprint: req.Msg.Fingerprint,
 			ExpiresAt:   time.Now().Add(machineRefreshTokenDuration),
