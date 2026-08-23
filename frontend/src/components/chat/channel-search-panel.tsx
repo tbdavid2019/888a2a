@@ -144,6 +144,7 @@ export function ChannelSearchPanel({
               size="sm"
               onClick={loadMore}
               disabled={loadingMore}
+              className="h-11 w-full touch-manipulation sm:h-7 sm:w-auto"
             >
               {t("channelSearch.load-more")}
             </Button>

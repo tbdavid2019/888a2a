@@ -77,7 +77,7 @@ type ChatSearchResult struct {
 // caller's readable conversations (membership, owner-follow for agents, or
 // workspace-scope read) are searched.
 func (s *Store) SearchChatMessages(ctx context.Context, caller ChatSearchCaller, opts ChatSearchOptions) ([]*ChatSearchResult, error) {
-	if opts.Limit <= 0 || opts.Limit > 50 {
+	if opts.Limit <= 0 {
 		opts.Limit = 10
 	}
 	if opts.Offset < 0 {
