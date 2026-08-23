@@ -26,7 +26,6 @@ import (
 
 	"github.com/Ranxy/laelia/backend/common"
 	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/manager/component/state"
 	"github.com/Ranxy/laelia/backend/manager/config"
 	"github.com/Ranxy/laelia/backend/manager/store"
 )
@@ -58,26 +57,57 @@ const (
 	TokenTypeRefresh   = "REFRESH"
 )
 
+// UserStore is the subset of *store.Store needed to authenticate user tokens.
+type UserStore interface {
+	GetUserByID(ctx context.Context, id int) (*store.UserMessage, error)
+}
+
+// AgentStore is the subset of *store.Store needed to authenticate agent tokens
+// and resolve declared agents.
+type AgentStore interface {
+	GetAgentByResourceID(ctx context.Context, resourceID string) (*store.AgentMessage, error)
+}
+
+// MachineStore is the subset of *store.Store needed to authenticate machine tokens.
+type MachineStore interface {
+	GetMachineByResourceID(ctx context.Context, resourceID string) (*store.MachineMessage, error)
+}
+
+// Store is the auth package's view of the manager store. Keeping it to the
+// three lookups above (instead of *store.Store) lets tests substitute a small
+// fake without mocking the whole store.
+type Store interface {
+	UserStore
+	AgentStore
+	MachineStore
+}
+
+// TokenExpireCache is the subset of *state.State used to reject revoked/expired
+// tokens before JWT verification.
+type TokenExpireCache interface {
+	Get(key string) (bool, bool)
+}
+
 // APIAuthInterceptor is the auth interceptor for gRPC server.
 type APIAuthInterceptor struct {
-	store    *store.Store
-	secret   string
-	stateCfg *state.State
-	profile  *config.Profile
+	store            Store
+	tokenExpireCache TokenExpireCache
+	secret           string
+	profile          *config.Profile
 }
 
 // New returns a new API auth interceptor.
 func New(
-	store *store.Store,
+	store Store,
 	secret string,
-	stateCfg *state.State,
+	tokenExpireCache TokenExpireCache,
 	profile *config.Profile,
 ) *APIAuthInterceptor {
 	return &APIAuthInterceptor{
-		store:    store,
-		secret:   secret,
-		stateCfg: stateCfg,
-		profile:  profile,
+		store:            store,
+		tokenExpireCache: tokenExpireCache,
+		secret:           secret,
+		profile:          profile,
 	}
 }
 
@@ -91,48 +121,9 @@ type authResult struct {
 // WrapUnary implements the ConnectRPC interceptor interface for unary RPCs.
 func (in *APIAuthInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-		sourceIP := extractSourceIP(req.Header(), peerRemoteAddr(req.Peer()), in.profile.TrustProxy)
-		ctx = context.WithValue(ctx, common.SourceIPContextKey, sourceIP)
-
-		accessTokenStr, err := GetTokenFromHeaders(req.Header())
-		if err != nil {
-			return nil, connect.NewError(connect.CodeUnauthenticated, err)
-		}
-
-		authContext, err := getAuthContext(req.Spec().Procedure)
+		ctx, err := in.authenticate(ctx, req.Header(), req.Peer(), req.Spec().Procedure)
 		if err != nil {
 			return nil, err
-		}
-		ctx = context.WithValue(ctx, common.AuthContextKey, authContext)
-
-		result, err := in.getUserOrAgentConnect(ctx, accessTokenStr)
-		if err != nil {
-			if IsAuthenticationAllowed(req.Spec().Procedure, authContext, in.profile.Mode == common.ReleaseModeDev) {
-				return next(ctx, req)
-			}
-			return nil, err
-		}
-
-		if result.user != nil {
-			ctx = context.WithValue(ctx, common.UserContextKey, result.user)
-		}
-		if result.agent != nil {
-			ctx = context.WithValue(ctx, common.AgentContextKey, result.agent)
-		}
-		if result.machine != nil {
-			ctx = context.WithValue(ctx, common.MachineContextKey, result.machine)
-			// A machine may act on behalf of an agent declared via the
-			// X-Laelia-Agent header; resolve + ownership-check it here so
-			// existing agent-callable handlers see the agent via
-			// GetAgentFromContext unchanged.
-			if declared, derr := in.resolveDeclaredAgent(ctx, result.machine, req.Header()); derr != nil {
-				return nil, derr
-			} else if declared != nil {
-				ctx = context.WithValue(ctx, common.AgentContextKey, declared)
-			}
-		}
-		if result.accessTokenExpiresAt > 0 {
-			ctx = context.WithValue(ctx, common.AccessTokenExpiresAtContextKey, result.accessTokenExpiresAt)
 		}
 		return next(ctx, req)
 	}
@@ -148,48 +139,80 @@ func (*APIAuthInterceptor) WrapStreamingClient(next connect.StreamingClientFunc)
 // WrapStreamingHandler implements the ConnectRPC interceptor interface for streaming handlers.
 func (in *APIAuthInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
 	return func(ctx context.Context, conn connect.StreamingHandlerConn) error {
-		sourceIP := extractSourceIP(conn.RequestHeader(), peerRemoteAddr(conn.Peer()), in.profile.TrustProxy)
-		ctx = context.WithValue(ctx, common.SourceIPContextKey, sourceIP)
-
-		accessTokenStr, err := GetTokenFromHeaders(conn.RequestHeader())
-		if err != nil {
-			return connect.NewError(connect.CodeUnauthenticated, err)
-		}
-
-		authContext, err := getAuthContext(conn.Spec().Procedure)
+		ctx, err := in.authenticate(ctx, conn.RequestHeader(), conn.Peer(), conn.Spec().Procedure)
 		if err != nil {
 			return err
 		}
-		ctx = context.WithValue(ctx, common.AuthContextKey, authContext)
-
-		result, err := in.getUserOrAgentConnect(ctx, accessTokenStr)
-		if err != nil {
-			if IsAuthenticationAllowed(conn.Spec().Procedure, authContext, in.profile.Mode == common.ReleaseModeDev) {
-				return next(ctx, conn)
-			}
-			return err
-		}
-
-		if result.user != nil {
-			ctx = context.WithValue(ctx, common.UserContextKey, result.user)
-		}
-		if result.agent != nil {
-			ctx = context.WithValue(ctx, common.AgentContextKey, result.agent)
-		}
-		if result.machine != nil {
-			ctx = context.WithValue(ctx, common.MachineContextKey, result.machine)
-			if declared, derr := in.resolveDeclaredAgent(ctx, result.machine, conn.RequestHeader()); derr != nil {
-				return derr
-			} else if declared != nil {
-				ctx = context.WithValue(ctx, common.AgentContextKey, declared)
-			}
-		}
-		if result.accessTokenExpiresAt > 0 {
-			ctx = context.WithValue(ctx, common.AccessTokenExpiresAtContextKey, result.accessTokenExpiresAt)
-		}
-
 		return next(ctx, conn)
 	}
+}
+
+// authenticate performs the shared Connect RPC authentication flow: it
+// extracts the source IP, reads the bearer token, resolves the per-procedure
+// auth context, authenticates the caller, and injects the resolved identity
+// into the returned context. Unary and streaming handlers only adapt the
+// result to their respective next functions.
+func (in *APIAuthInterceptor) authenticate(
+	ctx context.Context,
+	header http.Header,
+	peer connect.Peer,
+	procedure string,
+) (context.Context, error) {
+	sourceIP := extractSourceIP(header, peerRemoteAddr(peer), in.profile.TrustProxy)
+	ctx = context.WithValue(ctx, common.SourceIPContextKey, sourceIP)
+
+	accessTokenStr, err := GetTokenFromHeaders(header)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	}
+
+	authContext, err := getAuthContext(procedure)
+	if err != nil {
+		return nil, err
+	}
+	ctx = context.WithValue(ctx, common.AuthContextKey, authContext)
+
+	result, err := in.getUserOrAgentConnect(ctx, accessTokenStr)
+	if err != nil {
+		if IsAuthenticationAllowed(procedure, authContext, in.profile.Mode == common.ReleaseModeDev) {
+			return ctx, nil
+		}
+		return nil, err
+	}
+
+	return in.injectAuthResult(ctx, result, header)
+}
+
+// injectAuthResult puts the authenticated user/agent/machine (and, for a
+// machine caller, the declared agent) into ctx. It is shared by the Connect
+// interceptors and AuthenticateHTTP.
+func (in *APIAuthInterceptor) injectAuthResult(
+	ctx context.Context,
+	result *authResult,
+	header http.Header,
+) (context.Context, error) {
+	if result.user != nil {
+		ctx = context.WithValue(ctx, common.UserContextKey, result.user)
+	}
+	if result.agent != nil {
+		ctx = context.WithValue(ctx, common.AgentContextKey, result.agent)
+	}
+	if result.machine != nil {
+		ctx = context.WithValue(ctx, common.MachineContextKey, result.machine)
+		// A machine may act on behalf of an agent declared via the
+		// X-Laelia-Agent header; resolve + ownership-check it here so
+		// existing agent-callable handlers see the agent via
+		// GetAgentFromContext unchanged.
+		if declared, derr := in.resolveDeclaredAgent(ctx, result.machine, header); derr != nil {
+			return nil, derr
+		} else if declared != nil {
+			ctx = context.WithValue(ctx, common.AgentContextKey, declared)
+		}
+	}
+	if result.accessTokenExpiresAt > 0 {
+		ctx = context.WithValue(ctx, common.AccessTokenExpiresAtContextKey, result.accessTokenExpiresAt)
+	}
+	return ctx, nil
 }
 
 // AuthenticateHTTP authenticates a plain HTTP request (used by browser-facing
@@ -215,24 +238,7 @@ func (in *APIAuthInterceptor) AuthenticateHTTP(
 		return nil, err
 	}
 
-	if result.user != nil {
-		ctx = context.WithValue(ctx, common.UserContextKey, result.user)
-	}
-	if result.agent != nil {
-		ctx = context.WithValue(ctx, common.AgentContextKey, result.agent)
-	}
-	if result.machine != nil {
-		ctx = context.WithValue(ctx, common.MachineContextKey, result.machine)
-		if declared, derr := in.resolveDeclaredAgent(ctx, result.machine, header); derr != nil {
-			return nil, derr
-		} else if declared != nil {
-			ctx = context.WithValue(ctx, common.AgentContextKey, declared)
-		}
-	}
-	if result.accessTokenExpiresAt > 0 {
-		ctx = context.WithValue(ctx, common.AccessTokenExpiresAtContextKey, result.accessTokenExpiresAt)
-	}
-	return ctx, nil
+	return in.injectAuthResult(ctx, result, header)
 }
 
 // invalidTokenError reports an invalid bearer token. The token can be
@@ -249,7 +255,7 @@ func (in *APIAuthInterceptor) getUserOrAgentConnect(ctx context.Context, accessT
 	if accessTokenStr == "" {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errs.New("access token not found"))
 	}
-	if _, ok := in.stateCfg.TokenExpireCache.Get(accessTokenStr); ok {
+	if _, ok := in.tokenExpireCache.Get(accessTokenStr); ok {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errs.New("access token expired"))
 	}
 

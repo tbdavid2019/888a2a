@@ -13,6 +13,17 @@ type State struct {
 	HeartbeatBuffer  *HeartbeatBuffer
 }
 
+// Get reports whether key is present in the token expire cache. It lets *State
+// satisfy the auth package's TokenExpireCache interface directly, so callers
+// can keep passing *State to auth.New while the interceptor itself only
+// depends on this one lookup.
+func (s *State) Get(key string) (bool, bool) {
+	if s.TokenExpireCache == nil {
+		return false, false
+	}
+	return s.TokenExpireCache.Get(key)
+}
+
 func New() (*State, error) {
 	expireCache, err := lru.New[string, bool](128)
 	if err != nil {
