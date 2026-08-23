@@ -214,12 +214,10 @@ type Dispatcher struct {
 	graceMu sync.Mutex
 	grace   map[int]map[string]context.CancelFunc
 
-	// pendingDiscovers maps a DiscoverProviders request_id to the channel that
-	// the matching ProvidersDiscovered reply will resolve. Used by the unary
-	// RefreshAgentProviders RPC to do a request/response round trip over the
-	// bidi command stream.
-	discoverMu       sync.Mutex
-	pendingDiscovers map[string]chan *v1pb.ProvidersDiscovered
+	// pendingDiscovers correlates DiscoverProviders request/response round trips
+	// over the bidi command stream. Used by the unary RefreshAgentProviders RPC
+	// to do a request/response round trip over the bidi command stream.
+	pendingDiscovers *pendingReplies[*v1pb.ProvidersDiscovered]
 
 	// pendingWorkspace* correlate the workspace request/response round trips
 	// over the per-agent and machine control bidi streams to their waiting
@@ -247,7 +245,7 @@ func New(s *store.Store) *Dispatcher {
 		pingInterval:          15 * time.Second,
 		pingTimeout:           45 * time.Second,
 		grace:                 make(map[int]map[string]context.CancelFunc),
-		pendingDiscovers:      make(map[string]chan *v1pb.ProvidersDiscovered),
+		pendingDiscovers:      newPendingReplies[*v1pb.ProvidersDiscovered](),
 		pendingWorkspaceLists: newPendingReplies[*v1pb.WorkspaceListResponse](),
 		pendingWorkspaceReads: newPendingReplies[*v1pb.WorkspaceReadResponse](),
 		pendingMachineScans:   newPendingReplies[*v1pb.MachineWorkspaceScanResponse](),
@@ -449,17 +447,37 @@ func (d *Dispatcher) IsMachineConnected(machineID int) bool {
 	return ok
 }
 
-// SendAgentAssignment pushes a new agent assignment to the machine so it opens
-// an AgentChannel for that agent. Best-effort: if the machine is offline the
-// agent is picked up from the assigned_agents list on the next ConnectMachine.
-func (d *Dispatcher) SendAgentAssignment(machineID int, assignment *v1pb.AgentAssignment) error {
+// sendToMachine is the single machine-session send path: look up the connected
+// machine session and deliver a control message, returning an error when the
+// machine is offline.
+func (d *Dispatcher) sendToMachine(machineID int, msg *v1pb.ManagerMachineStreamMessage) error {
 	d.mu.RLock()
 	sess, ok := d.machines[machineID]
 	d.mu.RUnlock()
 	if !ok {
 		return errors.New("machine is not connected")
 	}
-	return sess.Send(&v1pb.ManagerMachineStreamMessage{
+	return sess.Send(msg)
+}
+
+// sendToAgent is the single agent-session send path: look up the connected
+// agent session and deliver a control message, returning an error when the
+// agent is offline.
+func (d *Dispatcher) sendToAgent(agentID int, msg *v1pb.ManagerStreamMessage) error {
+	d.mu.RLock()
+	sess, ok := d.sessions[agentID]
+	d.mu.RUnlock()
+	if !ok {
+		return errors.New("agent is not connected")
+	}
+	return sess.Send(msg)
+}
+
+// SendAgentAssignment pushes a new agent assignment to the machine so it opens
+// an AgentChannel for that agent. Best-effort: if the machine is offline the
+// agent is picked up from the assigned_agents list on the next ConnectMachine.
+func (d *Dispatcher) SendAgentAssignment(machineID int, assignment *v1pb.AgentAssignment) error {
+	return d.sendToMachine(machineID, &v1pb.ManagerMachineStreamMessage{
 		Message: &v1pb.ManagerMachineStreamMessage_AgentAssignment{
 			AgentAssignment: assignment,
 		},
@@ -469,13 +487,7 @@ func (d *Dispatcher) SendAgentAssignment(machineID int, assignment *v1pb.AgentAs
 // SendAgentConfigUpdate hot-reloads an agent's ACP config on its runner without
 // restarting it (picked up at the next BeginSession).
 func (d *Dispatcher) SendAgentConfigUpdate(machineID int, agentName string, cfg *v1pb.AgentACPConfig) error {
-	d.mu.RLock()
-	sess, ok := d.machines[machineID]
-	d.mu.RUnlock()
-	if !ok {
-		return errors.New("machine is not connected")
-	}
-	return sess.Send(&v1pb.ManagerMachineStreamMessage{
+	return d.sendToMachine(machineID, &v1pb.ManagerMachineStreamMessage{
 		Message: &v1pb.ManagerMachineStreamMessage_AgentConfigUpdate{
 			AgentConfigUpdate: &v1pb.AgentConfigUpdate{
 				AgentName: agentName,
@@ -488,13 +500,7 @@ func (d *Dispatcher) SendAgentConfigUpdate(machineID int, agentName string, cfg 
 // SendRemoveAgent tears down an agent's runner on the machine (used on
 // DeleteAgent).
 func (d *Dispatcher) SendRemoveAgent(machineID int, agentName string) error {
-	d.mu.RLock()
-	sess, ok := d.machines[machineID]
-	d.mu.RUnlock()
-	if !ok {
-		return errors.New("machine is not connected")
-	}
-	return sess.Send(&v1pb.ManagerMachineStreamMessage{
+	return d.sendToMachine(machineID, &v1pb.ManagerMachineStreamMessage{
 		Message: &v1pb.ManagerMachineStreamMessage_RemoveAgent{
 			RemoveAgent: &v1pb.RemoveAgent{AgentName: agentName},
 		},
@@ -504,13 +510,7 @@ func (d *Dispatcher) SendRemoveAgent(machineID int, agentName string) error {
 // SendReloadAgentAssignment re-syncs a single agent's full assignment (used
 // after a display-name or config change to re-establish a runner).
 func (d *Dispatcher) SendReloadAgentAssignment(machineID int, reload *v1pb.ReloadAgentAssignment) error {
-	d.mu.RLock()
-	sess, ok := d.machines[machineID]
-	d.mu.RUnlock()
-	if !ok {
-		return errors.New("machine is not connected")
-	}
-	return sess.Send(&v1pb.ManagerMachineStreamMessage{
+	return d.sendToMachine(machineID, &v1pb.ManagerMachineStreamMessage{
 		Message: &v1pb.ManagerMachineStreamMessage_ReloadAgentAssignment{
 			ReloadAgentAssignment: reload,
 		},
@@ -522,13 +522,7 @@ func (d *Dispatcher) SendReloadAgentAssignment(machineID int, reload *v1pb.Reloa
 // discover registered via RegisterPendingDiscover (requestID is globally
 // unique, so the existing agent-scoped pending map is reused).
 func (d *Dispatcher) SendDiscoverProvidersToMachine(machineID int, requestID string) error {
-	d.mu.RLock()
-	sess, ok := d.machines[machineID]
-	d.mu.RUnlock()
-	if !ok {
-		return errors.New("machine is not connected")
-	}
-	return sess.Send(&v1pb.ManagerMachineStreamMessage{
+	return d.sendToMachine(machineID, &v1pb.ManagerMachineStreamMessage{
 		Message: &v1pb.ManagerMachineStreamMessage_DiscoverProviders{
 			DiscoverProviders: &v1pb.DiscoverProviders{RequestId: requestID},
 		},
@@ -549,13 +543,7 @@ func (d *Dispatcher) HandleMachinePing(machineID int, _ *v1pb.Ping) {
 
 // SendPongToMachine replies to a machine Ping on its control stream.
 func (d *Dispatcher) SendPongToMachine(machineID int) error {
-	d.mu.RLock()
-	sess, ok := d.machines[machineID]
-	d.mu.RUnlock()
-	if !ok {
-		return errors.New("machine is not connected")
-	}
-	return sess.Send(&v1pb.ManagerMachineStreamMessage{
+	return d.sendToMachine(machineID, &v1pb.ManagerMachineStreamMessage{
 		Message: &v1pb.ManagerMachineStreamMessage_Pong{
 			Pong: &v1pb.Pong{},
 		},
@@ -568,20 +556,14 @@ func (d *Dispatcher) SendPongToMachine(machineID int) error {
 // for the ProvidersDiscovered reply. CancelPendingDiscover must be called if
 // the caller gives up waiting, to avoid leaking the entry.
 func (d *Dispatcher) RegisterPendingDiscover(requestID string) chan *v1pb.ProvidersDiscovered {
-	ch := make(chan *v1pb.ProvidersDiscovered, 1)
-	d.discoverMu.Lock()
-	d.pendingDiscovers[requestID] = ch
-	d.discoverMu.Unlock()
-	return ch
+	return d.pendingDiscovers.register(requestID)
 }
 
 // CancelPendingDiscover removes a pending discover entry without delivering a
 // result. Safe to call after the reply arrived (it is a no-op in that case
 // since the entry was already removed).
 func (d *Dispatcher) CancelPendingDiscover(requestID string) {
-	d.discoverMu.Lock()
-	delete(d.pendingDiscovers, requestID)
-	d.discoverMu.Unlock()
+	d.pendingDiscovers.cancel(requestID)
 }
 
 // CompletePendingDiscover delivers a ProvidersDiscovered reply to the waiting
@@ -592,18 +574,7 @@ func (d *Dispatcher) CompletePendingDiscover(msg *v1pb.ProvidersDiscovered) {
 	if msg == nil {
 		return
 	}
-	d.discoverMu.Lock()
-	ch, ok := d.pendingDiscovers[msg.RequestId]
-	if ok {
-		delete(d.pendingDiscovers, msg.RequestId)
-	}
-	d.discoverMu.Unlock()
-	if ok {
-		select {
-		case ch <- msg:
-		default:
-		}
-	}
+	d.pendingDiscovers.complete(msg.RequestId, msg)
 }
 
 // SendUpgradeRequest pushes a self-upgrade command to a connected machine's
@@ -611,13 +582,7 @@ func (d *Dispatcher) CompletePendingDiscover(msg *v1pb.ProvidersDiscovered) {
 // manager, installs it, and restarts; progress flows back as UpgradeProgress
 // messages recorded via RecordMachineUpgrade.
 func (d *Dispatcher) SendUpgradeRequest(machineID int, req *v1pb.UpgradeRequest) error {
-	d.mu.RLock()
-	sess, ok := d.machines[machineID]
-	d.mu.RUnlock()
-	if !ok {
-		return errors.New("machine is not connected")
-	}
-	return sess.Send(&v1pb.ManagerMachineStreamMessage{
+	return d.sendToMachine(machineID, &v1pb.ManagerMachineStreamMessage{
 		Message: &v1pb.ManagerMachineStreamMessage_UpgradeRequest{
 			UpgradeRequest: req,
 		},
@@ -646,13 +611,7 @@ func (d *Dispatcher) MachineUpgradeStatus(machineID int) *v1pb.UpgradeProgress {
 // agent's active bidi stream. Returns an error if the agent has no active
 // session (the frontend should show "agent offline").
 func (d *Dispatcher) SendDiscoverProviders(agentID int, requestID string) error {
-	d.mu.RLock()
-	sess, ok := d.sessions[agentID]
-	d.mu.RUnlock()
-	if !ok {
-		return errors.New("agent is not connected")
-	}
-	return sess.Send(&v1pb.ManagerStreamMessage{
+	return d.sendToAgent(agentID, &v1pb.ManagerStreamMessage{
 		Message: &v1pb.ManagerStreamMessage_DiscoverProviders{
 			DiscoverProviders: &v1pb.DiscoverProviders{RequestId: requestID},
 		},
@@ -663,13 +622,7 @@ func (d *Dispatcher) SendDiscoverProviders(agentID int, requestID string) error 
 // its workspace. The reply resolves a pending entry registered via
 // RegisterPendingWorkspaceList.
 func (d *Dispatcher) SendWorkspaceListRequest(agentID int, requestID, dirPath string, includeHidden bool) error {
-	d.mu.RLock()
-	sess, ok := d.sessions[agentID]
-	d.mu.RUnlock()
-	if !ok {
-		return errors.New("agent is not connected")
-	}
-	return sess.Send(&v1pb.ManagerStreamMessage{
+	return d.sendToAgent(agentID, &v1pb.ManagerStreamMessage{
 		Message: &v1pb.ManagerStreamMessage_WorkspaceListRequest{
 			WorkspaceListRequest: &v1pb.WorkspaceListRequest{
 				RequestId:     requestID,
@@ -684,13 +637,7 @@ func (d *Dispatcher) SendWorkspaceListRequest(agentID int, requestID, dirPath st
 // preview. The reply resolves a pending entry registered via
 // RegisterPendingWorkspaceRead.
 func (d *Dispatcher) SendWorkspaceReadRequest(agentID int, requestID, path string) error {
-	d.mu.RLock()
-	sess, ok := d.sessions[agentID]
-	d.mu.RUnlock()
-	if !ok {
-		return errors.New("agent is not connected")
-	}
-	return sess.Send(&v1pb.ManagerStreamMessage{
+	return d.sendToAgent(agentID, &v1pb.ManagerStreamMessage{
 		Message: &v1pb.ManagerStreamMessage_WorkspaceReadRequest{
 			WorkspaceReadRequest: &v1pb.WorkspaceReadRequest{
 				RequestId: requestID,
@@ -704,13 +651,7 @@ func (d *Dispatcher) SendWorkspaceReadRequest(agentID int, requestID, path strin
 // per-agent workspace directory. The reply resolves a pending entry registered
 // via RegisterPendingMachineWorkspaceScan.
 func (d *Dispatcher) SendMachineWorkspaceScan(machineID int, requestID string) error {
-	d.mu.RLock()
-	sess, ok := d.machines[machineID]
-	d.mu.RUnlock()
-	if !ok {
-		return errors.New("machine is not connected")
-	}
-	return sess.Send(&v1pb.ManagerMachineStreamMessage{
+	return d.sendToMachine(machineID, &v1pb.ManagerMachineStreamMessage{
 		Message: &v1pb.ManagerMachineStreamMessage_MachineWorkspaceScanRequest{
 			MachineWorkspaceScanRequest: &v1pb.MachineWorkspaceScanRequest{RequestId: requestID},
 		},
@@ -1663,13 +1604,7 @@ func marshalEventPayload(event *v1pb.CommandEvent) ([]byte, error) {
 // machine that is offline misses the push, and the workspace is not reclaimed
 // until a later explicit delete while the machine is connected.
 func (d *Dispatcher) SendDeleteAgentWorkspace(machineID int, agentName string) error {
-	d.mu.RLock()
-	sess, ok := d.machines[machineID]
-	d.mu.RUnlock()
-	if !ok {
-		return errors.New("machine is not connected")
-	}
-	return sess.Send(&v1pb.ManagerMachineStreamMessage{
+	return d.sendToMachine(machineID, &v1pb.ManagerMachineStreamMessage{
 		Message: &v1pb.ManagerMachineStreamMessage_DeleteAgentWorkspace{
 			DeleteAgentWorkspace: &v1pb.DeleteAgentWorkspace{AgentName: agentName},
 		},
