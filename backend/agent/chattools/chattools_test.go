@@ -72,6 +72,14 @@ func TestLocalError(t *testing.T) {
 	assert.Equal(t, "no command", e.Error())
 }
 
+func TestErrorRender(t *testing.T) {
+	assert.Equal(t, "Error: boom\nCode: SERVER_5XX\nNext action: retry\n",
+		(&Error{Code: "SERVER_5XX", Message: "boom", NextAction: "retry"}).Render())
+	assert.Equal(t, "Error: boom\nCode: SERVER_5XX\n",
+		(&Error{Code: "SERVER_5XX", Message: "boom"}).Render())
+	assert.Equal(t, "", (*Error)(nil).Render())
+}
+
 func TestGetConversationMessagesRequiresConversation(t *testing.T) {
 	// No client call is made when the conversation is missing; this is a local
 	// bootstrap error surfaced as MISSING_CONVERSATION.

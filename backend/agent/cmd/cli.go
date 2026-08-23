@@ -14,6 +14,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/Ranxy/laelia/backend/agent/chattools"
 	daemonsrv "github.com/Ranxy/laelia/backend/agent/daemon"
 )
 
@@ -123,12 +124,11 @@ func call(endpoint string, req daemonsrv.Request) bool {
 	return true
 }
 
-// printError writes the canonical failure block to stderr.
+// printError writes the canonical failure block to stderr. The block format is
+// owned by chattools.Error.Render so the CLI does not re-implement the
+// Error:/Code:/Next action: rendering that the prompt contract specifies.
 func printError(code, message, nextAction string) {
-	_, _ = fmt.Fprintf(os.Stderr, "Error: %s\nCode: %s\n", message, code)
-	if nextAction != "" {
-		_, _ = fmt.Fprintf(os.Stderr, "Next action: %s\n", nextAction)
-	}
+	_, _ = fmt.Fprint(os.Stderr, (&chattools.Error{Code: code, Message: message, NextAction: nextAction}).Render())
 }
 
 // readContentFlag resolves a --content value: "-" means read the full message

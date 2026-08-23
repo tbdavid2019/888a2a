@@ -46,6 +46,21 @@ type Error struct {
 
 func (e *Error) Error() string { return e.Message }
 
+// Render returns the canonical human-readable failure block that CLI callers
+// print to stderr. Keeping the exact format here (rather than in the CLI)
+// makes chattools the single owner of both the error envelope and its text
+// rendering; the CLI only parses arguments and forwards the envelope.
+func (e *Error) Render() string {
+	if e == nil {
+		return ""
+	}
+	out := fmt.Sprintf("Error: %s\nCode: %s\n", e.Message, e.Code)
+	if e.NextAction != "" {
+		out += fmt.Sprintf("Next action: %s\n", e.NextAction)
+	}
+	return out
+}
+
 // wrapManagerError maps a Connect error returned by the manager into a stable
 // *Error. 4xx failures become *_FAILED; 5xx / transport failures become
 // SERVER_5XX.
