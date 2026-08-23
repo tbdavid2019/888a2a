@@ -2,15 +2,18 @@ import { create } from "@bufbuild/protobuf";
 import { TimestampSchema } from "@bufbuild/protobuf/wkt";
 import {
   CalendarClock,
+  ChevronDown,
   Loader2,
   Search,
   SearchX,
+  SlidersHorizontal,
   User as UserIcon,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { useIsDesktop } from "@/lib/use-is-desktop";
 import { Avatar } from "@/components/chat/avatar";
 import { SearchResultList } from "@/components/chat/search-result-list";
 import { EmptyState, LoadingState } from "@/components/chat/states";
@@ -198,10 +201,12 @@ function FromSenderPicker({
   value,
   onChange,
   placeholder,
+  fullWidth = false,
 }: {
   value: FromSender | null;
   onChange: (value: FromSender | null) => void;
   placeholder: string;
+  fullWidth?: boolean;
 }) {
   const agents = useAppStore((s) => s.agents);
   const agentsLoading = useAppStore((s) => s.agentsLoading);
@@ -323,7 +328,10 @@ function FromSenderPicker({
   const showDropdown = open && query.trim().length > 0;
 
   return (
-    <div ref={containerRef} className="relative">
+    <div
+      ref={containerRef}
+      className={cn("relative", fullWidth && "w-full")}
+    >
       <div className="flex items-center gap-1.5 rounded-md border border-control-border px-2 py-1">
         <UserIcon className="size-3.5 shrink-0 text-control-light" />
         <Input
@@ -345,7 +353,10 @@ function FromSenderPicker({
           placeholder={placeholder}
           autoComplete="off"
           spellCheck={false}
-          className="h-6 w-32 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
+          className={cn(
+            "h-6 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0",
+            fullWidth ? "w-full min-w-0" : "w-32"
+          )}
         />
         {(value || query) && (
           <button
@@ -398,6 +409,7 @@ function FromSenderPicker({
 export function GlobalSearchPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const isDesktop = useIsDesktop();
   const myChannels = useAppStore((s) => s.myChannels);
   const fetchChannels = useAppStore((s) => s.fetchChannels);
 
@@ -410,6 +422,7 @@ export function GlobalSearchPage() {
   const [scope, setScope] = useState<SearchScope>(SearchScope.UNSPECIFIED);
   const [channel, setChannel] = useState("");
   const [timeRange, setTimeRange] = useState<TimeRange>("any");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [results, setResults] =
     useState<SearchChatHistoryEntry[]>(EMPTY_RESULTS);
@@ -566,94 +579,203 @@ export function GlobalSearchPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("globalSearch.placeholder")}
-            className="h-10 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+            className="h-10 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0 lg:h-11"
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label={t("globalSearch.clear")}
+              className="shrink-0 rounded p-1.5 text-control-light transition-colors hover:bg-control-bg hover:text-main lg:hidden"
+            >
+              <X className="size-4" />
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setQuery("")}
-            className="shrink-0 rounded border border-control-border px-1.5 py-0.5 text-[10px] text-control-light transition-colors hover:bg-control-bg hover:text-main"
+            className="hidden shrink-0 rounded border border-control-border px-1.5 py-0.5 text-[10px] text-control-light transition-colors hover:bg-control-bg hover:text-main lg:inline-flex"
           >
             ESC
           </button>
         </div>
       </div>
 
-      {/* Filter toolbar */}
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-control-border px-4 py-2">
-        <FromSenderPicker
-          value={fromSender}
-          onChange={setFromSender}
-          placeholder={t("globalSearch.from")}
-        />
+      {isDesktop ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-control-border px-4 py-2">
+          <FromSenderPicker
+            value={fromSender}
+            onChange={setFromSender}
+            placeholder={t("globalSearch.from")}
+          />
 
-        <Select
-          value={String(scope)}
-          onValueChange={(v) => setScope(Number(v) as SearchScope)}
-        >
-          <SelectTrigger size="sm" className="gap-1">
-            <SelectValue>
-              {(value) =>
-                Number(value) === SearchScope.MESSAGES
-                  ? t("globalSearch.scope-messages")
-                  : Number(value) === SearchScope.FILES
-                    ? t("globalSearch.scope-files")
-                    : t("globalSearch.scope-all")
-              }
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={String(SearchScope.UNSPECIFIED)}>
-              {t("globalSearch.scope-all")}
-            </SelectItem>
-            <SelectItem value={String(SearchScope.MESSAGES)}>
-              {t("globalSearch.scope-messages")}
-            </SelectItem>
-            <SelectItem value={String(SearchScope.FILES)}>
-              {t("globalSearch.scope-files")}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select value={channel} onValueChange={(v) => setChannel(v ?? "")}>
-          <SelectTrigger size="sm" className="max-w-48">
-            <SelectValue>
-              {(value) =>
-                value
-                  ? (myChannels.find((c) => c.name === value)?.title ??
-                    t("globalSearch.channel"))
-                  : t("globalSearch.all-channels")
-              }
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">{t("globalSearch.all-channels")}</SelectItem>
-            {myChannels.map((c) => (
-              <SelectItem key={c.name} value={c.name ?? ""}>
-                {c.title || c.address || c.name}
+          <Select
+            value={String(scope)}
+            onValueChange={(v) => setScope(Number(v) as SearchScope)}
+          >
+            <SelectTrigger size="sm" className="gap-1">
+              <SelectValue>
+                {(value) =>
+                  Number(value) === SearchScope.MESSAGES
+                    ? t("globalSearch.scope-messages")
+                    : Number(value) === SearchScope.FILES
+                      ? t("globalSearch.scope-files")
+                      : t("globalSearch.scope-all")
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={String(SearchScope.UNSPECIFIED)}>
+                {t("globalSearch.scope-all")}
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={timeRange}
-          onValueChange={(v) => setTimeRange((v ?? "any") as TimeRange)}
-        >
-          <SelectTrigger size="sm" className="gap-1">
-            <CalendarClock className="size-3.5 text-control-light" />
-            <SelectValue>
-              {(value) => t(timeLabelKey(String(value)))}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {TIME_RANGES.map((r) => (
-              <SelectItem key={r.value} value={r.value}>
-                {t(timeLabelKey(r.value))}
+              <SelectItem value={String(SearchScope.MESSAGES)}>
+                {t("globalSearch.scope-messages")}
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+              <SelectItem value={String(SearchScope.FILES)}>
+                {t("globalSearch.scope-files")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={channel} onValueChange={(v) => setChannel(v ?? "")}>
+            <SelectTrigger size="sm" className="max-w-48">
+              <SelectValue>
+                {(value) =>
+                  value
+                    ? (myChannels.find((c) => c.name === value)?.title ??
+                      t("globalSearch.channel"))
+                    : t("globalSearch.all-channels")
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">{t("globalSearch.all-channels")}</SelectItem>
+              {myChannels.map((c) => (
+                <SelectItem key={c.name} value={c.name ?? ""}>
+                  {c.title || c.address || c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={timeRange}
+            onValueChange={(v) => setTimeRange((v ?? "any") as TimeRange)}
+          >
+            <SelectTrigger size="sm" className="gap-1">
+              <CalendarClock className="size-3.5 text-control-light" />
+              <SelectValue>
+                {(value) => t(timeLabelKey(String(value)))}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {TIME_RANGES.map((r) => (
+                <SelectItem key={r.value} value={r.value}>
+                  {t(timeLabelKey(r.value))}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : (
+        <div className="shrink-0 border-b border-control-border">
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((v) => !v)}
+            aria-expanded={filtersOpen}
+            className="flex w-full items-center gap-2 px-4 py-3 text-sm text-control transition-colors hover:bg-control-bg"
+          >
+            <SlidersHorizontal className="size-4 shrink-0 text-control-light" />
+            <span>{t("globalSearch.filters")}</span>
+            <ChevronDown
+              className={cn(
+                "ml-auto size-4 shrink-0 text-control-light transition-transform",
+                filtersOpen && "rotate-180"
+              )}
+            />
+          </button>
+          {filtersOpen && (
+            <div className="flex flex-col gap-3 px-4 pb-3">
+              <FromSenderPicker
+                fullWidth
+                value={fromSender}
+                onChange={setFromSender}
+                placeholder={t("globalSearch.from")}
+              />
+
+              <Select
+                value={String(scope)}
+                onValueChange={(v) => setScope(Number(v) as SearchScope)}
+              >
+                <SelectTrigger size="md" className="w-full">
+                  <SelectValue>
+                    {(value) =>
+                      value
+                        ? Number(value) === SearchScope.MESSAGES
+                          ? t("globalSearch.scope-messages")
+                          : Number(value) === SearchScope.FILES
+                            ? t("globalSearch.scope-files")
+                            : t("globalSearch.scope-all")
+                        : t("globalSearch.scope-all")
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={String(SearchScope.UNSPECIFIED)}>
+                    {t("globalSearch.scope-all")}
+                  </SelectItem>
+                  <SelectItem value={String(SearchScope.MESSAGES)}>
+                    {t("globalSearch.scope-messages")}
+                  </SelectItem>
+                  <SelectItem value={String(SearchScope.FILES)}>
+                    {t("globalSearch.scope-files")}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={channel} onValueChange={(v) => setChannel(v ?? "")}>
+                <SelectTrigger size="md" className="w-full">
+                  <SelectValue>
+                    {(value) =>
+                      value
+                        ? (myChannels.find((c) => c.name === value)?.title ??
+                          t("globalSearch.channel"))
+                        : t("globalSearch.all-channels")
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">{t("globalSearch.all-channels")}</SelectItem>
+                  {myChannels.map((c) => (
+                    <SelectItem key={c.name} value={c.name ?? ""}>
+                      {c.title || c.address || c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={timeRange}
+                onValueChange={(v) => setTimeRange((v ?? "any") as TimeRange)}
+              >
+                <SelectTrigger size="md" className="w-full">
+                  <CalendarClock className="size-4 shrink-0 text-control-light" />
+                  <SelectValue>
+                    {(value) => t(timeLabelKey(String(value)))}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {TIME_RANGES.map((r) => (
+                    <SelectItem key={r.value} value={r.value}>
+                      {t(timeLabelKey(r.value))}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Results / empty state */}
       <div className="min-h-0 flex-1 overflow-y-auto">{body}</div>

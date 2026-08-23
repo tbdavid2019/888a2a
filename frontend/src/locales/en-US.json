@@ -528,7 +528,9 @@
   "globalSearch": {
     "all-channels": "All conversations",
     "channel": "Channel",
+    "clear": "Clear",
     "empty": "Search channels, DMs, messages and files",
+    "filters": "Filters",
     "from": "From",
     "load-more": "Load more",
     "no-results": "No results match “{{query}}”",

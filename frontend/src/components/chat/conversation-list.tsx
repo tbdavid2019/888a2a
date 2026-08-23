@@ -1,5 +1,5 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { Hash, Loader2, Pin, PinOff, Plus, X } from "lucide-react";
+import { Hash, Loader2, Pin, PinOff, Plus, Search, X } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -137,14 +137,24 @@ export function ConversationList() {
         </Button>
       </div>
 
-      {/* Search */}
+      {/* Search: desktop keeps the local conversation-list filter; mobile
+          turns the field into an entry point to the global /search page. */}
       <div className="shrink-0 px-2 py-2 lg:px-3">
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("chat.search-placeholder")}
-          className="h-8 rounded-full text-sm"
+          className="hidden h-8 rounded-full text-sm lg:block"
         />
+        <button
+          type="button"
+          onClick={() => navigate("/search")}
+          aria-label={t("globalSearch.placeholder")}
+          className="flex h-10 w-full items-center gap-2 rounded-full border border-control-border bg-background px-3 text-left text-sm text-control-placeholder transition-colors hover:bg-control-bg lg:hidden"
+        >
+          <Search className="size-4 shrink-0" />
+          <span className="truncate">{t("globalSearch.placeholder")}</span>
+        </button>
       </div>
 
       {/* List */}

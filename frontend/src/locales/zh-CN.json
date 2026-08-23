@@ -528,7 +528,9 @@
   "globalSearch": {
     "all-channels": "全部会话",
     "channel": "频道",
+    "clear": "清空",
     "empty": "搜索频道、私信、消息与文件",
+    "filters": "筛选",
     "from": "发送者",
     "load-more": "加载更多",
     "no-results": "没有匹配“{{query}}”的结果",
