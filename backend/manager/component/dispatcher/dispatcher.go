@@ -3,18 +3,11 @@ package dispatcher
 import (
 	"context"
 	"log/slog"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
 	"github.com/Ranxy/laelia/backend/manager/store"
@@ -26,87 +19,11 @@ const (
 	watcherBufSize = 256
 )
 
-// watcher is one subscribed consumer of a command's live stream. dropped
-// counts messages discarded because the consumer was slower than the producer
-// (buffer full); it is only mutated via atomics, so broadcast can update it
-// while holding the dispatcher's read lock.
-type watcher[T any] struct {
-	ch      chan T
-	dropped atomic.Int64
-}
-
-// drop records one dropped message and reports whether this drop should be
-// logged: the first drop and every doubling after it, so a flood of drops
-// costs a logarithmic number of log lines.
-func (w *watcher[T]) drop() (total int64, log bool) {
-	n := w.dropped.Add(1)
-	return n, n&(n-1) == 0
-}
-
-// watcherDroppedTotal counts live-stream messages dropped because a watcher's
-// buffer was full. Exposed at /metrics via the default registry (folded in
-// echo_routes). kind: "output" | "event".
-var watcherDroppedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-	Name: "laelia_watcher_dropped_total",
-	Help: "Live command stream messages dropped because a watcher's buffer was full.",
-}, []string{"kind"})
-
 type SendFunc func(*v1pb.ManagerStreamMessage) error
 
 // MachineSendFunc is the raw send function for a machine's MachineChannel
 // control stream (manager→machine direction).
 type MachineSendFunc func(*v1pb.ManagerMachineStreamMessage) error
-
-// pendingReplies correlates request/response round trips over the bidi streams:
-// a unary RPC registers a buffered channel keyed by request_id, the matching
-// stream reply is delivered into it, and the unary RPC unblocks. Each pending
-// set is typed, so a late or duplicated reply can never resolve the wrong RPC.
-type pendingReplies[T proto.Message] struct {
-	mu sync.Mutex
-	m  map[string]chan T
-}
-
-func newPendingReplies[T proto.Message]() *pendingReplies[T] {
-	return &pendingReplies[T]{m: make(map[string]chan T)}
-}
-
-// register creates a response channel keyed by requestID for an in-flight
-// round trip. cancel must be called if the caller gives up waiting, to avoid
-// leaking the entry.
-func (p *pendingReplies[T]) register(requestID string) chan T {
-	ch := make(chan T, 1)
-	p.mu.Lock()
-	p.m[requestID] = ch
-	p.mu.Unlock()
-	return ch
-}
-
-// cancel removes a pending entry without delivering a result. Safe to call
-// after the reply arrived (it is a no-op in that case).
-func (p *pendingReplies[T]) cancel(requestID string) {
-	p.mu.Lock()
-	delete(p.m, requestID)
-	p.mu.Unlock()
-}
-
-// complete delivers a reply to the waiting caller and removes the pending
-// entry. Called from the bidi receive loops when the machine app replies.
-// Unknown request ids (late replies, already-cancelled callers) are dropped
-// silently.
-func (p *pendingReplies[T]) complete(requestID string, msg T) {
-	p.mu.Lock()
-	ch, ok := p.m[requestID]
-	if ok {
-		delete(p.m, requestID)
-	}
-	p.mu.Unlock()
-	if ok {
-		select {
-		case ch <- msg:
-		default:
-		}
-	}
-}
 
 type AgentSession struct {
 	agentID         int
@@ -188,15 +105,19 @@ func (s *AgentSession) ClearCurrentCommand(commandID string) {
 	}
 }
 
+// Dispatcher routes control messages to connected agents/machines and fans
+// out live command output/events. It must be constructed via New; the zero
+// value is not usable because the registry, bus, and activity aggregator are
+// nil until New initializes them.
 type Dispatcher struct {
-	store         *store.Store
-	mu            sync.RWMutex
-	sessions      map[int]*AgentSession
-	machines      map[int]*MachineSession
-	watchers      map[string]map[*watcher[*v1pb.CommandOutput]]struct{}
-	eventWatchers map[string]map[*watcher[*v1pb.CommandEvent]]struct{}
-	pingInterval  time.Duration
-	pingTimeout   time.Duration
+	store    *store.Store
+	registry *sessionRegistry
+	bus      *commandBus
+	activity *activityAggregator
+	// pingInterval/pingTimeout are kept on the facade until the liveness
+	// monitor is extracted alongside the session registry.
+	pingInterval time.Duration
+	pingTimeout  time.Duration
 
 	// lifecycleCtx is the parent context for the ping monitor and the
 	// grace-period goroutines. Stop cancels it and waits on wg, so shutdown
@@ -205,6 +126,10 @@ type Dispatcher struct {
 	lifecycleCtx    context.Context
 	lifecycleCancel context.CancelFunc
 	wg              sync.WaitGroup
+	// wgMu serializes wg.Add against wg.Wait. Stop may call Wait while a
+	// stream teardown is concurrently arming a grace goroutine; guarding both
+	// operations avoids the WaitGroup "Add concurrent with Wait" misuse.
+	wgMu sync.Mutex
 
 	// grace tracks in-flight grace-period timers keyed by agent then command,
 	// so a reconnect can cancel a pending "mark FAILED" timer for that agent
@@ -236,12 +161,11 @@ type Dispatcher struct {
 
 func New(s *store.Store) *Dispatcher {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Dispatcher{
+	registry := newSessionRegistry()
+	d := &Dispatcher{
 		store:                 s,
-		sessions:              make(map[int]*AgentSession),
-		machines:              make(map[int]*MachineSession),
-		watchers:              make(map[string]map[*watcher[*v1pb.CommandOutput]]struct{}),
-		eventWatchers:         make(map[string]map[*watcher[*v1pb.CommandEvent]]struct{}),
+		registry:              registry,
+		bus:                   newCommandBus(),
 		pingInterval:          15 * time.Second,
 		pingTimeout:           45 * time.Second,
 		grace:                 make(map[int]map[string]context.CancelFunc),
@@ -253,224 +177,22 @@ func New(s *store.Store) *Dispatcher {
 		lifecycleCtx:          ctx,
 		lifecycleCancel:       cancel,
 	}
-}
-
-func (d *Dispatcher) RegisterAgent(_ context.Context, agentID int, machineID int, agentResourceID string, send SendFunc) *AgentSession {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if old, ok := d.sessions[agentID]; ok {
-		slog.Info("replacing existing agent session", "agentID", agentID)
-		// Invalidate the previous session's send so in-flight deliver calls
-		// error out instead of writing to the torn-down stream. The atomic
-		// store is race-free against concurrent deliver readers.
-		old.send.Store(nil)
-	}
-
-	// The agent reconnected: cancel any pending grace-period "mark FAILED"
-	// timers for its in-flight commands. The reconnect path (handleAgentReady)
-	// reaps stale RUNNING commands itself, so a dangling 60s timer is redundant
-	// and racy (it could mark a command FAILED out from under the new session).
-	d.cancelGraceForAgent(agentID)
-
-	sess := &AgentSession{
-		agentID:         agentID,
-		agentResourceID: agentResourceID,
-		machineID:       machineID,
-		connectedAt:     time.Now(),
-		lastPingAt:      time.Now(),
-	}
-	fn := send
-	sess.send.Store(&fn)
-
-	d.sessions[agentID] = sess
-	slog.Info("agent registered for command dispatch", "agentID", agentID, "machineID", machineID)
-
-	// The agent drives its own work via BeginSession; the manager no longer
-	// pushes commands on connect. The agent sends AgentReady (handled in the
-	// bidi loop) and then its drain loop calls BeginSession as needed.
-	return sess
-}
-
-func (d *Dispatcher) UnregisterAgent(agentID int) {
-	d.mu.Lock()
-	sess, ok := d.sessions[agentID]
-	if !ok {
-		d.mu.Unlock()
-		return
-	}
-	delete(d.sessions, agentID)
-	d.mu.Unlock()
-	d.teardownAgentSession(sess)
-}
-
-// UnregisterAgentIf tears down the agent session only if sess is still the one
-// registered for agentID. The AgentChannel handler uses this for its deferred
-// cleanup so that, when a reconnect has replaced the session in the map, the
-// old stream's teardown does not delete the new (live) session nor arm a grace
-// timer against its in-flight command.
-func (d *Dispatcher) UnregisterAgentIf(agentID int, sess *AgentSession) {
-	d.mu.Lock()
-	current, ok := d.sessions[agentID]
-	if !ok || current != sess {
-		d.mu.Unlock()
-		return
-	}
-	delete(d.sessions, agentID)
-	d.mu.Unlock()
-	d.teardownAgentSession(sess)
-}
-
-func (d *Dispatcher) teardownAgentSession(sess *AgentSession) {
-	sess.mu.Lock()
-	cmdID := sess.currentCmdID
-	sess.mu.Unlock()
-	// Invalidate send so any concurrent deliver returns "agent session
-	// invalidated" rather than writing to the closed stream.
-	sess.send.Store(nil)
-
-	slog.Info("agent unregistered from command dispatch", "agentID", sess.agentID)
-
-	if cmdID != "" {
-		d.startGracePeriod(sess.agentID, cmdID)
-	}
-}
-
-func (d *Dispatcher) IsAgentConnected(agentID int) bool {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	_, ok := d.sessions[agentID]
-	return ok
-}
-
-// RegisterMachine registers a machine's MachineChannel control stream. A
-// machine authenticates once and holds this stream for its lifetime; each of
-// its agents opens a separate AgentChannel (registered via RegisterAgent with
-// the matching machineID). Returns the session so the stream handler can wire
-// up its receive loop.
-func (d *Dispatcher) RegisterMachine(machineID int, machineResourceID string, send MachineSendFunc) *MachineSession {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if old, ok := d.machines[machineID]; ok {
-		slog.Info("replacing existing machine session", "machineID", machineID)
-		old.send.Store(nil)
-	}
-
-	sess := &MachineSession{
-		machineID:         machineID,
-		machineResourceID: machineResourceID,
-		connectedAt:       time.Now(),
-		lastPingAt:        time.Now(),
-	}
-	fn := send
-	sess.send.Store(&fn)
-
-	d.machines[machineID] = sess
-	// A (re)connect ends any previously reported upgrade: the machine either
-	// just came back on the new version or never finished the old attempt.
-	d.upgradeMu.Lock()
-	delete(d.machineUpgrades, machineID)
-	d.upgradeMu.Unlock()
-	slog.Info("machine registered for control dispatch", "machineID", machineID)
-	return sess
-}
-
-// UnregisterMachine tears down a machine's control stream AND every agent
-// session owned by it. Each owned agent with an in-flight command gets a 60s
-// grace period (→ FAILED if the agent does not reconnect). Machine reconnect
-// re-registers every agent via RegisterAgent, which cancels each agent's grace
-// timer — so no machine-scoped grace tracking is needed.
-func (d *Dispatcher) UnregisterMachine(machineID int) {
-	d.mu.Lock()
-	machine, ok := d.machines[machineID]
-	if !ok {
-		d.mu.Unlock()
-		return
-	}
-	delete(d.machines, machineID)
-	owned := d.detachMachineAgentsLocked(machineID)
-	d.mu.Unlock()
-	d.teardownMachineSession(machine, owned)
-}
-
-// UnregisterMachineIf tears down the machine session only if sess is still the
-// one registered for machineID. The MachineChannel handler uses this for its
-// deferred cleanup so that, when a reconnect has replaced the session in the
-// map, the old stream's teardown does not destroy the new (live) session and
-// re-arming grace timers against its agents' in-flight commands.
-func (d *Dispatcher) UnregisterMachineIf(machineID int, sess *MachineSession) {
-	d.mu.Lock()
-	current, ok := d.machines[machineID]
-	if !ok || current != sess {
-		d.mu.Unlock()
-		return
-	}
-	delete(d.machines, machineID)
-	owned := d.detachMachineAgentsLocked(machineID)
-	d.mu.Unlock()
-	d.teardownMachineSession(current, owned)
-}
-
-// detachMachineAgentsLocked removes and returns every AgentSession owned by
-// machineID. Caller must hold d.mu.
-func (d *Dispatcher) detachMachineAgentsLocked(machineID int) []*AgentSession {
-	owned := make([]*AgentSession, 0)
-	for _, sess := range d.sessions {
-		if sess.machineID == machineID {
-			owned = append(owned, sess)
-			delete(d.sessions, sess.agentID)
-		}
-	}
-	return owned
-}
-
-func (d *Dispatcher) teardownMachineSession(machine *MachineSession, owned []*AgentSession) {
-	machine.send.Store(nil)
-
-	for _, sess := range owned {
-		sess.mu.Lock()
-		cmdID := sess.currentCmdID
-		sess.mu.Unlock()
-		sess.send.Store(nil)
-		if cmdID != "" {
-			d.startGracePeriod(sess.agentID, cmdID)
-		}
-	}
-	slog.Info("machine unregistered from control dispatch", "machineID", machine.machineID, "agents", len(owned))
-}
-
-func (d *Dispatcher) IsMachineConnected(machineID int) bool {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	_, ok := d.machines[machineID]
-	return ok
+	d.activity = &activityAggregator{store: s, registry: registry}
+	return d
 }
 
 // sendToMachine is the single machine-session send path: look up the connected
 // machine session and deliver a control message, returning an error when the
 // machine is offline.
 func (d *Dispatcher) sendToMachine(machineID int, msg *v1pb.ManagerMachineStreamMessage) error {
-	d.mu.RLock()
-	sess, ok := d.machines[machineID]
-	d.mu.RUnlock()
-	if !ok {
-		return errors.New("machine is not connected")
-	}
-	return sess.Send(msg)
+	return d.registry.sendToMachine(machineID, msg)
 }
 
 // sendToAgent is the single agent-session send path: look up the connected
 // agent session and deliver a control message, returning an error when the
 // agent is offline.
 func (d *Dispatcher) sendToAgent(agentID int, msg *v1pb.ManagerStreamMessage) error {
-	d.mu.RLock()
-	sess, ok := d.sessions[agentID]
-	d.mu.RUnlock()
-	if !ok {
-		return errors.New("agent is not connected")
-	}
-	return sess.Send(msg)
+	return d.registry.sendToAgent(agentID, msg)
 }
 
 // SendAgentAssignment pushes a new agent assignment to the machine so it opens
@@ -527,18 +249,6 @@ func (d *Dispatcher) SendDiscoverProvidersToMachine(machineID int, requestID str
 			DiscoverProviders: &v1pb.DiscoverProviders{RequestId: requestID},
 		},
 	})
-}
-
-// HandleMachinePing records a machine heartbeat ping.
-func (d *Dispatcher) HandleMachinePing(machineID int, _ *v1pb.Ping) {
-	d.mu.RLock()
-	sess, ok := d.machines[machineID]
-	d.mu.RUnlock()
-	if ok {
-		sess.mu.Lock()
-		sess.lastPingAt = time.Now()
-		sess.mu.Unlock()
-	}
 }
 
 // SendPongToMachine replies to a machine Ping on its control stream.
@@ -730,9 +440,7 @@ func (d *Dispatcher) CompletePendingMachineWorkspaceScan(msg *v1pb.MachineWorksp
 // the link is filled in when the agent reads a channel (commits to working on
 // it) — see CommandService.ListConversationMessages.
 func (d *Dispatcher) CurrentCommandID(agentID int) string {
-	d.mu.RLock()
-	sess, ok := d.sessions[agentID]
-	d.mu.RUnlock()
+	sess, ok := d.registry.getAgent(agentID)
 	if !ok {
 		return ""
 	}
@@ -797,9 +505,7 @@ func (d *Dispatcher) HandleBeginSession(ctx context.Context, agentID int) (*v1pb
 		slog.Error("failed to mark session command RUNNING", "commandID", cmd.ID, "error", err)
 	}
 
-	d.mu.RLock()
-	sess, ok := d.sessions[agentID]
-	d.mu.RUnlock()
+	sess, ok := d.registry.getAgent(agentID)
 	if ok {
 		sess.mu.Lock()
 		sess.currentCmdID = cmd.ID.String()
@@ -843,10 +549,7 @@ func (d *Dispatcher) NotifyNewMessages(ctx context.Context, agentID int, convers
 	if d.agentStopped(ctx, agentID) {
 		return
 	}
-	d.mu.RLock()
-	sess, ok := d.sessions[agentID]
-	d.mu.RUnlock()
-
+	sess, ok := d.registry.getAgent(agentID)
 	if !ok {
 		return
 	}
@@ -875,9 +578,7 @@ func (d *Dispatcher) NotifyWake(ctx context.Context, agentID int) {
 	if d.agentStopped(ctx, agentID) {
 		return
 	}
-	d.mu.RLock()
-	sess, ok := d.sessions[agentID]
-	d.mu.RUnlock()
+	sess, ok := d.registry.getAgent(agentID)
 	if !ok {
 		return
 	}
@@ -902,9 +603,7 @@ func (d *Dispatcher) NotifyThreadMention(ctx context.Context, agentID int, conve
 	if d.agentStopped(ctx, agentID) {
 		return
 	}
-	d.mu.RLock()
-	sess, ok := d.sessions[agentID]
-	d.mu.RUnlock()
+	sess, ok := d.registry.getAgent(agentID)
 	if !ok {
 		return
 	}
@@ -924,679 +623,35 @@ func (d *Dispatcher) NotifyThreadMention(ctx context.Context, agentID int, conve
 }
 
 // FetchConversationActivity returns the execution status of every agent member
-// in a conversation. It combines member list, connection state, and running
-// command events to derive a human-readable status per agent.
+// in a conversation. It delegates to the activity aggregator.
 func (d *Dispatcher) FetchConversationActivity(ctx context.Context, conversationID string) ([]*v1pb.AgentActivity, error) {
-	convUUID, err := uuid.Parse(conversationID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "invalid conversation id")
-	}
-
-	members, err := d.store.ListConversationMembers(ctx, convUUID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to list conversation members")
-	}
-
-	// Collect agent members: member_id is the agent resource ID.
-	type agentEntry struct {
-		resourceID string
-		name       string
-		id         int
-	}
-	var agents []agentEntry
-	var agentIDs []int
-	for _, m := range members {
-		if m.MemberType != store.MemberTypeAgent {
-			continue
-		}
-		ag, agErr := d.store.GetAgentByResourceID(ctx, m.MemberID)
-		if agErr != nil || ag == nil {
-			continue
-		}
-		agents = append(agents, agentEntry{resourceID: ag.ResourceID, name: ag.Name, id: ag.ID})
-		agentIDs = append(agentIDs, ag.ID)
-	}
-
-	// Batch-query running commands for these agents in this conversation.
-	running, runErr := d.store.GetRunningCommandsForConversation(ctx, agentIDs, convUUID)
-	if runErr != nil {
-		return nil, errors.Wrapf(runErr, "failed to get running commands")
-	}
-	runningByAgent := make(map[int]*store.RunningCommandInfo, len(running))
-	for _, r := range running {
-		runningByAgent[r.AgentID] = r
-	}
-
-	// Build activity entries.
-	activities := make([]*v1pb.AgentActivity, 0, len(agents))
-	for _, ag := range agents {
-		act := &v1pb.AgentActivity{
-			AgentId:     ag.resourceID,
-			DisplayName: ag.name,
-			Status:      "idle",
-		}
-
-		d.mu.RLock()
-		sess, connected := d.sessions[ag.id]
-		d.mu.RUnlock()
-
-		if !connected {
-			act.Status = "offline"
-			activities = append(activities, act)
-			continue
-		}
-
-		rci, hasRunning := runningByAgent[ag.id]
-		if !hasRunning {
-			activities = append(activities, act) // stays "idle"
-			continue
-		}
-
-		// Derive status from the latest command event.
-		switch rci.EventType {
-		case 0:
-			act.Status = "starting"
-		case int32(v1pb.CommandEventType_LIFECYCLE):
-			act.Status = "starting"
-		case int32(v1pb.CommandEventType_TEXT_DELTA):
-			act.Status = "output"
-		case int32(v1pb.CommandEventType_TOOL_CALL_STARTED):
-			if rci.Summary.Valid {
-				act.Status = rci.Summary.String
-				act.ToolName = rci.Summary.String
-			} else {
-				act.Status = "tool"
-			}
-		case int32(v1pb.CommandEventType_TOOL_CALL_FINISHED):
-			act.Status = "thinking"
-		case int32(v1pb.CommandEventType_CONTEXT_COMPACTION_STARTED):
-			act.Status = "compacting"
-		case int32(v1pb.CommandEventType_CONTEXT_COMPACTION_FINISHED), int32(v1pb.CommandEventType_CONTEXT_USAGE_UPDATE):
-			act.Status = "thinking"
-		default:
-			act.Status = "starting"
-		}
-
-		// Suppress idle for active agents that might have a stale session.
-		sess.mu.Lock()
-		if sess.currentCmdID == "" {
-			act.Status = "idle"
-		}
-		sess.mu.Unlock()
-
-		activities = append(activities, act)
-	}
-
-	return activities, nil
+	return d.activity.FetchConversationActivity(ctx, conversationID)
 }
 
 // ---- Phase 2: Held Draft ----
 
-func (d *Dispatcher) CancelCommand(_ context.Context, agentID int, commandID string) error {
-	d.mu.RLock()
-	sess, ok := d.sessions[agentID]
-	d.mu.RUnlock()
-
-	if !ok {
-		return errors.New("agent not connected")
-	}
-
-	msg := &v1pb.ManagerStreamMessage{
-		Message: &v1pb.ManagerStreamMessage_Cancel{
-			Cancel: &v1pb.CancelMessage{
-				CommandId: commandID,
-			},
-		},
-	}
-
-	if err := sess.deliver(msg); err != nil {
-		slog.Error("failed to send cancel to agent", "error", err)
-		return errors.Wrapf(err, "failed to send cancel to agent")
-	}
-
-	slog.Info("cancel sent to agent", "commandID", commandID, "agentID", agentID)
-	return nil
-}
-
-// SteerCommand injects a follow-up message into the in-flight turn of a
-// running command. It is best-effort: executors without mid-turn steering
-// support ignore the message.
-func (d *Dispatcher) SteerCommand(_ context.Context, agentID int, commandID, text string) error {
-	d.mu.RLock()
-	sess, ok := d.sessions[agentID]
-	d.mu.RUnlock()
-
-	if !ok {
-		return errors.New("agent not connected")
-	}
-
-	msg := &v1pb.ManagerStreamMessage{
-		Message: &v1pb.ManagerStreamMessage_Steer{
-			Steer: &v1pb.SteerMessage{
-				CommandId: commandID,
-				Text:      text,
-			},
-		},
-	}
-
-	if err := sess.deliver(msg); err != nil {
-		slog.Error("failed to send steer to agent", "error", err)
-		return errors.Wrapf(err, "failed to send steer to agent")
-	}
-
-	slog.Info("steer sent to agent", "commandID", commandID, "agentID", agentID)
-	return nil
-}
-
 func (d *Dispatcher) Subscribe(_ context.Context, commandID string) (chan *v1pb.CommandOutput, error) {
-	ch := make(chan *v1pb.CommandOutput, watcherBufSize)
-
-	d.mu.Lock()
-	if d.watchers[commandID] == nil {
-		d.watchers[commandID] = make(map[*watcher[*v1pb.CommandOutput]]struct{})
-	}
-	d.watchers[commandID][&watcher[*v1pb.CommandOutput]{ch: ch}] = struct{}{}
-	d.mu.Unlock()
-
-	return ch, nil
+	return d.bus.subscribeOutput(commandID), nil
 }
 
 func (d *Dispatcher) Unsubscribe(commandID string, ch chan *v1pb.CommandOutput) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if watchers, ok := d.watchers[commandID]; ok {
-		for w := range watchers {
-			if w.ch == ch {
-				delete(watchers, w)
-				close(ch)
-				break
-			}
-		}
-		if len(watchers) == 0 {
-			delete(d.watchers, commandID)
-		}
-	}
+	d.bus.unsubscribeOutput(commandID, ch)
 }
 
 func (d *Dispatcher) SubscribeEvents(_ context.Context, commandID string) (chan *v1pb.CommandEvent, error) {
-	ch := make(chan *v1pb.CommandEvent, watcherBufSize)
-
-	d.mu.Lock()
-	if d.eventWatchers[commandID] == nil {
-		d.eventWatchers[commandID] = make(map[*watcher[*v1pb.CommandEvent]]struct{})
-	}
-	d.eventWatchers[commandID][&watcher[*v1pb.CommandEvent]{ch: ch}] = struct{}{}
-	d.mu.Unlock()
-
-	return ch, nil
+	return d.bus.subscribeEvent(commandID), nil
 }
 
 func (d *Dispatcher) UnsubscribeEvents(commandID string, ch chan *v1pb.CommandEvent) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if watchers, ok := d.eventWatchers[commandID]; ok {
-		for w := range watchers {
-			if w.ch == ch {
-				delete(watchers, w)
-				close(ch)
-				break
-			}
-		}
-		if len(watchers) == 0 {
-			delete(d.eventWatchers, commandID)
-		}
-	}
+	d.bus.unsubscribeEvent(commandID, ch)
 }
 
 func (d *Dispatcher) broadcast(commandID string, output *v1pb.CommandOutput) {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-
-	for w := range d.watchers[commandID] {
-		select {
-		case w.ch <- output:
-		default:
-			total, log := w.drop()
-			watcherDroppedTotal.WithLabelValues("output").Inc()
-			if log {
-				slog.Warn("command watcher too slow; dropping live output (DB replay is the fallback)", "commandID", commandID, "dropped", total)
-			}
-		}
-	}
+	d.bus.broadcast(commandID, output)
 }
 
 func (d *Dispatcher) broadcastEvent(commandID string, event *v1pb.CommandEvent) {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-
-	for w := range d.eventWatchers[commandID] {
-		select {
-		case w.ch <- event:
-		default:
-			total, log := w.drop()
-			watcherDroppedTotal.WithLabelValues("event").Inc()
-			if log {
-				slog.Warn("command event watcher too slow; dropping live events (DB replay is the fallback)", "commandID", commandID, "dropped", total)
-			}
-		}
-	}
-}
-
-func (d *Dispatcher) HandleProgress(ctx context.Context, _ int, progress *v1pb.CommandProgress) error {
-	commanID, err := uuid.Parse(progress.GetCommandId())
-	if err != nil {
-		return errors.Wrap(err, "progress commandId parse failed")
-	}
-
-	// Prefer the agent-side timestamp carried in the progress; fall back to
-	// arrival time for older agents that do not send one.
-	ts := progress.GetTimestamp()
-	if ts == nil {
-		ts = timestamppb.Now()
-	}
-	createdAt := ts.AsTime()
-
-	if err := d.store.AppendCommandOutput(ctx, commanID, progress.SeqNo, int32(progress.Type), progress.Content, createdAt); err != nil {
-		return errors.Wrapf(err, "failed to store command output")
-	}
-
-	output := &v1pb.CommandOutput{
-		CommandId: progress.CommandId,
-		Type:      progress.Type,
-		Content:   progress.Content,
-		SeqNo:     progress.SeqNo,
-		Timestamp: ts,
-	}
-
-	d.broadcast(progress.CommandId, output)
-	return nil
-}
-
-func (d *Dispatcher) HandleEvent(ctx context.Context, event *v1pb.CommandEvent) error {
-	cmdID, err := uuid.Parse(event.CommandId)
-	if err != nil {
-		return errors.Wrapf(err, "invalid command ID in event")
-	}
-
-	payloadJSON := "{}"
-	data, err := marshalEventPayload(event)
-	if err != nil {
-		return errors.Wrapf(err, "failed to marshal command event payload")
-	}
-	if data != nil {
-		payloadJSON = string(data)
-	}
-
-	if err := d.store.AppendCommandEvent(ctx, &store.CommandEventMessage{
-		CommandID:   cmdID,
-		SeqNo:       event.SeqNo,
-		EventType:   int32(event.Type),
-		Summary:     event.Summary,
-		PayloadJSON: payloadJSON,
-	}); err != nil {
-		return errors.Wrapf(err, "failed to store command event")
-	}
-
-	// TOKEN_USAGE is additionally denormalized into command_token_usage so
-	// agent/principal/time aggregates stay cheap. Failure must not break the
-	// event stream: the standalone table is derived data, the event row above
-	// is the source of truth.
-	if event.Type == v1pb.CommandEventType_TOKEN_USAGE {
-		if usage := event.GetTokenUsage(); usage != nil {
-			if err := d.store.RecordCommandTokenUsage(ctx, &store.CommandTokenUsageMessage{
-				CommandID:        cmdID,
-				InputTokens:      usage.InputTokens,
-				OutputTokens:     usage.OutputTokens,
-				CacheReadTokens:  usage.CacheReadTokens,
-				CacheWriteTokens: usage.CacheWriteTokens,
-				TotalTokens:      usage.TotalTokens,
-			}); err != nil {
-				slog.Error("failed to record command token usage", "commandID", event.CommandId, "error", err)
-			}
-		}
-	}
-
-	if err := d.store.UpdateCommandAckSeq(ctx, cmdID, event.SeqNo); err != nil {
-		slog.Error("failed to update command ack seq from event", "commandID", event.CommandId, "error", err)
-	}
-
-	d.broadcastEvent(event.CommandId, event)
-	return nil
-}
-
-func (d *Dispatcher) HandleResult(ctx context.Context, agentID int, result *v1pb.CommandResult) error {
-	cmdID, err := uuid.Parse(result.CommandId)
-	if err != nil {
-		return errors.Wrapf(err, "invalid command ID in result")
-	}
-
-	d.mu.RLock()
-	sess, ok := d.sessions[agentID]
-	d.mu.RUnlock()
-
-	if ok {
-		sess.mu.Lock()
-		if sess.currentCmdID == result.CommandId {
-			sess.currentCmdID = ""
-		}
-		sess.mu.Unlock()
-	}
-
-	status := int32(v1pb.CommandStatus_COMPLETED)
-	errorMsg := result.ErrorMessage
-	if result.ExitCode != 0 {
-		status = int32(v1pb.CommandStatus_FAILED)
-	}
-
-	now := time.Now()
-	completedAt := &now
-	durationMs := result.DurationMs
-	exitCode := result.ExitCode
-
-	if err := d.store.UpdateCommandStatus(ctx, cmdID, status, nil, completedAt, &exitCode, &durationMs, errorMsg); err != nil {
-		return errors.Wrapf(err, "failed to update command result")
-	}
-
-	if err := d.store.UpdateCommandAckSeq(ctx, cmdID, result.LastSeqNo); err != nil {
-		slog.Error("failed to update ack seq", "commandID", cmdID, "error", err)
-	}
-
-	resultJSON := ""
-	if result.Result != nil {
-		data, err := protojson.Marshal(result.Result)
-		if err != nil {
-			slog.Error("failed to marshal command result struct", "commandID", result.CommandId, "error", err)
-		} else {
-			resultJSON = string(data)
-		}
-	}
-	if err := d.store.UpdateCommandResultSummary(ctx, cmdID, result.FinalSummary, resultJSON); err != nil {
-		slog.Error("failed to update command result summary", "commandID", cmdID, "error", err)
-	}
-
-	output := &v1pb.CommandOutput{
-		CommandId: result.CommandId,
-		Type:      v1pb.CommandOutput_SYSTEM,
-		Content:   formatResultMessage(result),
-		SeqNo:     result.LastSeqNo + 1,
-		Timestamp: timestamppb.Now(),
-	}
-	d.broadcast(result.CommandId, output)
-
-	go func() {
-		time.Sleep(100 * time.Millisecond)
-		d.closeWatchers(result.CommandId)
-		d.closeEventWatchers(result.CommandId)
-	}()
-
-	slog.Info("command completed", "commandID", result.CommandId, "exitCode", result.ExitCode, "duration_ms", result.DurationMs)
-
-	// The agent's autonomous drain loop decides whether to open another
-	// session (BeginSession will report idle if no channel has updates), so
-	// the manager no longer pushes the next command here.
-	return nil
-}
-
-func (d *Dispatcher) HandlePing(agentID int, _ *v1pb.Ping) {
-	d.mu.RLock()
-	sess, ok := d.sessions[agentID]
-	d.mu.RUnlock()
-
-	if ok {
-		sess.mu.Lock()
-		sess.lastPingAt = time.Now()
-		sess.mu.Unlock()
-	}
-}
-
-// StartPingMonitor launches the liveness ticker. It runs until Stop cancels
-// the dispatcher's lifecycle context, and is tracked on the dispatcher's
-// WaitGroup so shutdown joins it. Previously the goroutine had no context and
-// no join, so it ran for the whole process lifetime with no way to stop it.
-func (d *Dispatcher) StartPingMonitor() {
-	d.wg.Add(1)
-	go func() {
-		defer d.wg.Done()
-		ticker := time.NewTicker(d.pingInterval)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-d.lifecycleCtx.Done():
-				return
-			case <-ticker.C:
-				d.checkSessionLiveness()
-			}
-		}
-	}()
-}
-
-// Stop cancels the dispatcher's lifecycle context (ping monitor + any
-// in-flight grace goroutines) and waits for them to exit. Idempotent.
-func (d *Dispatcher) Stop() {
-	d.lifecycleCancel()
-	d.wg.Wait()
-}
-
-func (d *Dispatcher) checkSessionLiveness() {
-	d.mu.RLock()
-	sessions := make([]*AgentSession, 0, len(d.sessions))
-	for _, sess := range d.sessions {
-		sessions = append(sessions, sess)
-	}
-	machines := make([]*MachineSession, 0, len(d.machines))
-	for _, m := range d.machines {
-		machines = append(machines, m)
-	}
-	d.mu.RUnlock()
-
-	now := time.Now()
-	for _, sess := range sessions {
-		sess.mu.Lock()
-		idle := now.Sub(sess.lastPingAt)
-		agentID := sess.agentID
-		sess.mu.Unlock()
-
-		// Skip invalidated sessions (send is an atomic pointer now, not
-		// guarded by mu).
-		if sess.send.Load() == nil {
-			continue
-		}
-
-		if idle > d.pingTimeout {
-			slog.Warn("agent ping timeout, unregistering",
-				"agentID", agentID,
-				"idle", idle,
-				"timeout", d.pingTimeout)
-			d.UnregisterAgent(agentID)
-		}
-	}
-
-	for _, m := range machines {
-		m.mu.Lock()
-		idle := now.Sub(m.lastPingAt)
-		machineID := m.machineID
-		m.mu.Unlock()
-
-		if m.send.Load() == nil {
-			continue
-		}
-
-		if idle > d.pingTimeout {
-			slog.Warn("machine ping timeout, unregistering",
-				"machineID", machineID,
-				"idle", idle,
-				"timeout", d.pingTimeout)
-			d.UnregisterMachine(machineID)
-		}
-	}
-}
-
-// startGracePeriod arms a cancellable 60s timer that, if it fires, marks the
-// given command FAILED. The timer is tracked in d.grace so a reconnect can
-// cancel it (the reconnect path reaps stale commands itself). The goroutine
-// is tracked on the dispatcher's WaitGroup so Stop joins it.
-func (d *Dispatcher) startGracePeriod(agentID int, commandID string) {
-	ctx, cancel := context.WithCancel(d.lifecycleCtx)
-
-	d.graceMu.Lock()
-	cmds := d.grace[agentID]
-	if cmds == nil {
-		cmds = make(map[string]context.CancelFunc)
-		d.grace[agentID] = cmds
-	}
-	cmds[commandID] = cancel
-	d.graceMu.Unlock()
-
-	d.wg.Add(1)
-	go d.handleCommandGracePeriod(ctx, agentID, commandID)
-}
-
-// cancelGraceForAgent cancels every pending grace timer for an agent. Called
-// on reconnect so a dangling 60s "mark FAILED" does not race the new session.
-func (d *Dispatcher) cancelGraceForAgent(agentID int) {
-	d.graceMu.Lock()
-	cmds := d.grace[agentID]
-	delete(d.grace, agentID)
-	d.graceMu.Unlock()
-	for _, cancel := range cmds {
-		cancel()
-	}
-}
-
-// finishGrace removes a grace timer's entry once its goroutine exits.
-func (d *Dispatcher) finishGrace(agentID int, commandID string) {
-	d.graceMu.Lock()
-	defer d.graceMu.Unlock()
-	if cmds := d.grace[agentID]; cmds != nil {
-		delete(cmds, commandID)
-		if len(cmds) == 0 {
-			delete(d.grace, agentID)
-		}
-	}
-}
-
-func (d *Dispatcher) handleCommandGracePeriod(ctx context.Context, agentID int, commandID string) {
-	defer d.wg.Done()
-	defer d.finishGrace(agentID, commandID)
-
-	cmdUUID, err := uuid.Parse(commandID)
-	if err != nil {
-		return
-	}
-
-	// A cancellable timer instead of a bare time.Sleep: a reconnect cancels
-	// this context via cancelGraceForAgent, so the timer does not mark a
-	// command FAILED out from under the new session.
-	select {
-	case <-ctx.Done():
-		return
-	case <-time.After(gracePeriod):
-	}
-
-	// Belt-and-suspenders: if the agent reconnected between the timer firing
-	// and here, the reconnect path reaps the stale command — leave it alone.
-	d.mu.RLock()
-	_, reconnected := d.sessions[agentID]
-	d.mu.RUnlock()
-	if reconnected {
-		return
-	}
-
-	// Bound the DB call so a hung Postgres does not accumulate blocked grace
-	// goroutines. Previously this used a bare context.Background() with no
-	// deadline.
-	dbCtx, cancel := context.WithTimeout(d.lifecycleCtx, graceDBTimeout)
-	defer cancel()
-	status := int32(v1pb.CommandStatus_FAILED)
-	now := time.Now()
-	if err := d.store.UpdateCommandStatus(dbCtx, cmdUUID, status, nil, &now, nil, nil, "agent disconnected during execution"); err != nil {
-		slog.Error("failed to mark command as failed after grace period", "commandID", commandID, "error", err)
-	}
-
-	d.closeWatchers(commandID)
-	slog.Warn("command marked as FAILED after grace period", "commandID", commandID, "agentID", agentID)
-}
-
-func (d *Dispatcher) closeWatchers(commandID string) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	for w := range d.watchers[commandID] {
-		close(w.ch)
-	}
-	delete(d.watchers, commandID)
-}
-
-func (d *Dispatcher) closeEventWatchers(commandID string) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	for w := range d.eventWatchers[commandID] {
-		close(w.ch)
-	}
-	delete(d.eventWatchers, commandID)
-}
-
-func formatResultMessage(result *v1pb.CommandResult) string {
-	if result.ErrorMessage != "" {
-		return result.ErrorMessage
-	}
-	return ""
-}
-
-func ConvertChatMessageToV1(m *store.ChatMessage) *v1pb.ChatMessage {
-	cm := &v1pb.ChatMessage{
-		Name:          m.ID.String(),
-		Conversation:  m.ConversationID.String(),
-		PrincipalName: m.PrincipalName,
-		Role:          m.Role,
-		Content:       m.Content,
-		CreatedAt:     timestamppb.New(m.CreatedAt),
-		SenderName:    m.AgentName,
-		SenderType:    v1pb.SenderType(m.SenderType),
-		PrincipalId:   strconv.Itoa(m.PrincipalID),
-		RoomVersion:   m.RoomVersion,
-		Mentions:      m.Mentions,
-	}
-	if m.CommandID.Valid {
-		cm.CommandId = m.CommandID.UUID.String()
-	}
-	if m.SenderType != store.SenderTypeAgent {
-		cm.SenderName = m.PrincipalName
-	}
-	return cm
-}
-
-func marshalEventPayload(event *v1pb.CommandEvent) ([]byte, error) {
-	switch event.Type {
-	case v1pb.CommandEventType_LIFECYCLE:
-		return protojson.Marshal(event.GetLifecycle())
-	case v1pb.CommandEventType_TEXT_DELTA:
-		return protojson.Marshal(event.GetTextDelta())
-	case v1pb.CommandEventType_TOOL_CALL_STARTED:
-		return protojson.Marshal(event.GetToolCallStarted())
-	case v1pb.CommandEventType_TOOL_CALL_FINISHED:
-		return protojson.Marshal(event.GetToolCallFinished())
-	case v1pb.CommandEventType_DIFF_EMITTED:
-		return protojson.Marshal(event.GetDiffEmitted())
-	case v1pb.CommandEventType_WARNING:
-		return protojson.Marshal(event.GetWarning())
-	case v1pb.CommandEventType_RAW_ACP:
-		return protojson.Marshal(event.GetRawAcp())
-	case v1pb.CommandEventType_FINAL_SUMMARY:
-		return protojson.Marshal(event.GetFinalSummary())
-	case v1pb.CommandEventType_CONTEXT_COMPACTION_STARTED, v1pb.CommandEventType_CONTEXT_COMPACTION_FINISHED:
-		return protojson.Marshal(event.GetContextCompaction())
-	case v1pb.CommandEventType_CONTEXT_USAGE_UPDATE:
-		return protojson.Marshal(event.GetContextUsage())
-	case v1pb.CommandEventType_TOKEN_USAGE:
-		return protojson.Marshal(event.GetTokenUsage())
-	default:
-		return nil, nil
-	}
+	d.bus.broadcastEvent(commandID, event)
 }
 
 // SendDeleteAgentWorkspace tears down an agent's runner and deletes its

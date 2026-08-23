@@ -372,7 +372,7 @@ func TestConvertChatMessageToV1_TimestampProto(t *testing.T) {
 // live activity). It returns the session's current command id, or "" when the
 // agent has no session or no in-flight command.
 func TestCurrentCommandID(t *testing.T) {
-	d := &Dispatcher{sessions: map[int]*AgentSession{}}
+	d := &Dispatcher{registry: &sessionRegistry{sessions: map[int]*AgentSession{}}}
 
 	// No session at all.
 	if got := d.CurrentCommandID(7); got != "" {
@@ -380,14 +380,14 @@ func TestCurrentCommandID(t *testing.T) {
 	}
 
 	// Session present, no in-flight command.
-	d.sessions[7] = &AgentSession{agentID: 7}
+	d.registry.sessions[7] = &AgentSession{agentID: 7}
 	if got := d.CurrentCommandID(7); got != "" {
 		t.Errorf("expected empty when no command set, got %q", got)
 	}
 
 	// Session with a running command.
 	cmd := uuid.New().String()
-	d.sessions[7].currentCmdID = cmd
+	d.registry.sessions[7].currentCmdID = cmd
 	if got := d.CurrentCommandID(7); got != cmd {
 		t.Errorf("expected %q, got %q", cmd, got)
 	}
