@@ -3,7 +3,6 @@ package common
 
 import (
 	"crypto/rand"
-	"encoding/base64"
 	"math/big"
 	"strings"
 
@@ -47,29 +46,6 @@ func RandomString(n int) (string, error) {
 		}
 	}
 	return sb.String(), nil
-}
-
-// Obfuscate obfuscates a string with a seed string.
-func Obfuscate(src, seed string) string {
-	srcBytes, seedBytes := []byte(src), []byte(seed)
-	obfuscated := make([]byte, len(srcBytes))
-	for i, b := range srcBytes {
-		obfuscated[i] = b ^ seedBytes[i%len(seedBytes)]
-	}
-	return base64.StdEncoding.EncodeToString(obfuscated)
-}
-
-// Unobfuscate unobfuscates a string with a seed string.
-func Unobfuscate(dst, seed string) (string, error) {
-	obfuscated, err := base64.StdEncoding.DecodeString(dst)
-	if err != nil {
-		return "", err
-	}
-	unobfuscated, seedBytes := make([]byte, len(obfuscated)), []byte(seed)
-	for i, b := range obfuscated {
-		unobfuscated[i] = b ^ seedBytes[i%len(seedBytes)]
-	}
-	return string(unobfuscated), nil
 }
 
 // ValidatePhone validates the phone number.

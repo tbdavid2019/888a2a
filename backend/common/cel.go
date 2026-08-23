@@ -8,139 +8,16 @@ import (
 	"github.com/google/cel-go/cel"
 	celtypes "github.com/google/cel-go/common/types"
 	"github.com/pkg/errors"
-	exprproto "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 	"google.golang.org/genproto/googleapis/type/expr"
 )
 
 const celLimit = 1024 * 1024
-
-// RiskFactors are the variables when evaluating the risk level.
-var RiskFactors = []cel.EnvOption{
-	cel.Variable(CELAttributeResourceEnvironmentID, cel.StringType),
-	cel.Variable(CELAttributeResourceProjectID, cel.StringType),
-	cel.Variable(CELAttributeRequestExpirationDays, cel.IntType),
-	cel.Variable(CELAttributeRequestRole, cel.StringType),
-}
-
-// ApprovalFactors are the variables when finding the approval template.
-var ApprovalFactors = []cel.EnvOption{
-	cel.Variable(CELAttributeLevel, cel.StringType),
-	cel.Variable(CELAttributeSource, cel.StringType),
-	cel.ParserExpressionSizeLimit(celLimit),
-}
 
 // IAMPolicyConditionCELAttributes are the variables when evaluating IAM policy condition.
 var IAMPolicyConditionCELAttributes = []cel.EnvOption{
 	cel.Variable(CELAttributeResourceEnvironmentID, cel.StringType),
 	cel.Variable(CELAttributeRequestTime, cel.TimestampType),
 	cel.ParserExpressionSizeLimit(celLimit),
-}
-
-// MaskingRulePolicyCELAttributes are the variables when evaluating masking rule.
-var MaskingRulePolicyCELAttributes = []cel.EnvOption{
-	cel.Variable(CELAttributeResourceEnvironmentID, cel.StringType),
-	cel.Variable(CELAttributeResourceProjectID, cel.StringType),
-	cel.ParserExpressionSizeLimit(celLimit),
-}
-
-// MaskingExceptionPolicyCELAttributes are the variables when evaluating masking exception.
-var MaskingExceptionPolicyCELAttributes = []cel.EnvOption{
-	cel.Variable(CELAttributeRequestTime, cel.TimestampType),
-	cel.ParserExpressionSizeLimit(celLimit),
-}
-
-// DatabaseGroupCELAttributes are the variables when evaluating database group conditions.
-var DatabaseGroupCELAttributes = []cel.EnvOption{
-	cel.Variable(CELAttributeResourceEnvironmentID, cel.StringType),
-	cel.ParserExpressionSizeLimit(celLimit),
-}
-
-// ConvertUnparsedRisk converts unparsed risk to parsed format.
-func ConvertUnparsedRisk(expression *expr.Expr) (*exprproto.ParsedExpr, error) {
-	if expression == nil || expression.Expression == "" {
-		return nil, nil
-	}
-	e, err := cel.NewEnv(RiskFactors...)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create cel env")
-	}
-
-	ast, issues := e.Parse(expression.Expression)
-	if issues != nil && issues.Err() != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.Errorf("failed to parse expression: %v", issues.Err()))
-	}
-	expr, err := cel.AstToParsedExpr(ast)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, errors.Errorf("failed to convert ast to parsed expression: %v", err))
-	}
-	return expr, nil
-}
-
-// ConvertUnparsedApproval converts unparsed approval to parsed format.
-func ConvertUnparsedApproval(expression *expr.Expr) (*exprproto.ParsedExpr, error) {
-	if expression == nil || expression.Expression == "" {
-		return nil, nil
-	}
-	e, err := cel.NewEnv(ApprovalFactors...)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create cel env")
-	}
-
-	ast, issues := e.Parse(expression.Expression)
-	if issues != nil && issues.Err() != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.Errorf("failed to parse expression: %v", issues.Err()))
-	}
-	expr, err := cel.AstToParsedExpr(ast)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, errors.Errorf("failed to convert ast to parsed expression: %v", err))
-	}
-	return expr, nil
-}
-
-// ValidateGroupCELExpr validates group expr.
-func ValidateGroupCELExpr(expr string) (cel.Program, error) {
-	e, err := cel.NewEnv(DatabaseGroupCELAttributes...)
-	if err != nil {
-		return nil, err
-	}
-	ast, issues := e.Compile(expr)
-	if issues != nil && issues.Err() != nil {
-		return nil, issues.Err()
-	}
-	prog, err := e.Program(ast)
-	if err != nil {
-		return nil, err
-	}
-	return prog, nil
-}
-
-// ValidateMaskingRuleCELExpr validates masking rule expr.
-func ValidateMaskingRuleCELExpr(expr string) (cel.Program, error) {
-	e, err := cel.NewEnv(
-		MaskingRulePolicyCELAttributes...,
-	)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	ast, issues := e.Compile(expr)
-	if issues != nil && issues.Err() != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, issues.Err())
-	}
-	prog, err := e.Program(ast)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
-	return prog, nil
-}
-
-// ValidateMaskingExceptionCELExpr validates masking exception expr.
-func ValidateMaskingExceptionCELExpr(expression *expr.Expr) (cel.Program, error) {
-	return validateCELExpr(expression, MaskingExceptionPolicyCELAttributes)
-}
-
-// ValidateProjectMemberCELExpr validates a project member condition expression.
-func ValidateProjectMemberCELExpr(expression *expr.Expr) (cel.Program, error) {
-	return ValidateIAMBindingConditionExpr(expression)
 }
 
 // ValidateIAMBindingConditionExpr validates an IAM binding condition against

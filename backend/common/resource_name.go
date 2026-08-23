@@ -35,15 +35,6 @@ func GetUserHandle(name string) (string, error) {
 	return tokens[0], nil
 }
 
-// GetUserEmail returns the user email from a resource name.
-func GetUserEmail(name string) (string, error) {
-	tokens, err := GetNameParentTokens(name, UserNamePrefix)
-	if err != nil {
-		return "", err
-	}
-	return tokens[0], nil
-}
-
 // GetSettingName returns the setting name from a resource name.
 func GetSettingName(name string) (string, error) {
 	token, err := GetNameParentTokens(name, SettingNamePrefix)

@@ -489,20 +489,6 @@ func (s *UserService) CreateUser(ctx context.Context, request *connect.Request[v
 		}
 	}
 
-	// isFirstUser := user.ID == common.PrincipalIDForFirstUser
-	// s.metricReporter.Report(ctx, &metric.Metric{
-	// 	Name:  metricapi.PrincipalRegistrationMetricName,
-	// 	Value: 1,
-	// 	Labels: map[string]any{
-	// 		"email": user.Email,
-	// 		"name":  user.Name,
-	// 		"phone": user.Phone,
-	// 		// We only send lark notification for the first principal registration.
-	// 		// false means do not notify upfront. Later the notification will be triggered by the scheduler.
-	// 		"lark_notified": !isFirstUser,
-	// 	},
-	// })
-
 	userResponse := convertToUser(user, false)
 	if request.Msg.User.UserType == v1pb.UserType_SERVICE_ACCOUNT {
 		userResponse.ServiceKey = password
