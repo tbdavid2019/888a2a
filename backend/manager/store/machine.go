@@ -67,11 +67,14 @@ func (s *Store) GetMachine(ctx context.Context, id int) (*MachineMessage, error)
 		return v, nil
 	}
 
-	if err := s.listAndCacheAllMachines(ctx); err != nil {
+	machine, err := s.findMachine(ctx, &FindMachineMessage{ID: &id, ShowDeleted: true})
+	if err != nil {
 		return nil, err
 	}
-
-	machine, _ := s.machineIDCache.Get(id)
+	if machine == nil {
+		return nil, nil
+	}
+	s.cacheMachine(machine)
 	return machine, nil
 }
 
@@ -80,11 +83,14 @@ func (s *Store) GetMachineByResourceID(ctx context.Context, resourceID string) (
 		return v, nil
 	}
 
-	if err := s.listAndCacheAllMachines(ctx); err != nil {
+	machine, err := s.findMachine(ctx, &FindMachineMessage{ResourceID: &resourceID, ShowDeleted: true})
+	if err != nil {
 		return nil, err
 	}
-
-	machine, _ := s.machineResourceIDCache.Get(resourceID)
+	if machine == nil {
+		return nil, nil
+	}
+	s.cacheMachine(machine)
 	return machine, nil
 }
 
@@ -105,33 +111,44 @@ func (s *Store) ListMachines(ctx context.Context, find *FindMachineMessage) ([]*
 	}
 
 	for _, machine := range machines {
-		s.machineIDCache.Add(machine.ID, machine)
-		s.machineResourceIDCache.Add(machine.ResourceID, machine)
+		s.cacheMachine(machine)
 	}
 	return machines, nil
 }
 
-func (s *Store) listAndCacheAllMachines(ctx context.Context) error {
+// findMachine runs a single-machine lookup via listMachineImpl in a read
+// transaction and returns the match (or nil when absent). It is the
+// point-query path used on a cache miss so resolving one machine does not
+// trigger a full-table load.
+func (s *Store) findMachine(ctx context.Context, find *FindMachineMessage) (*MachineMessage, error) {
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer tx.Rollback()
 
-	machines, err := listMachineImpl(ctx, tx, &FindMachineMessage{ShowDeleted: true})
+	machines, err := listMachineImpl(ctx, tx, find)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := tx.Commit(); err != nil {
-		return err
+		return nil, err
 	}
 
-	for _, machine := range machines {
-		s.machineIDCache.Add(machine.ID, machine)
-		s.machineResourceIDCache.Add(machine.ResourceID, machine)
+	if len(machines) == 0 {
+		return nil, nil
 	}
-	return nil
+	return machines[0], nil
+}
+
+// cacheMachine stores a machine in both the ID and resource-id caches.
+func (s *Store) cacheMachine(machine *MachineMessage) {
+	if machine == nil {
+		return
+	}
+	s.machineIDCache.Add(machine.ID, machine)
+	s.machineResourceIDCache.Add(machine.ResourceID, machine)
 }
 
 func listMachineImpl(ctx context.Context, txn *sql.Tx, find *FindMachineMessage) ([]*MachineMessage, error) {

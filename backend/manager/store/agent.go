@@ -112,11 +112,14 @@ func (s *Store) GetAgent(ctx context.Context, id int) (*AgentMessage, error) {
 		return v, nil
 	}
 
-	if err := s.listAndCacheAllAgents(ctx); err != nil {
+	agent, err := s.findAgent(ctx, &FindAgentMessage{ID: &id, ShowDeleted: true})
+	if err != nil {
 		return nil, err
 	}
-
-	agent, _ := s.agentIDCache.Get(id)
+	if agent == nil {
+		return nil, nil
+	}
+	s.cacheAgent(agent)
 	return agent, nil
 }
 
@@ -125,11 +128,14 @@ func (s *Store) GetAgentByResourceID(ctx context.Context, resourceID string) (*A
 		return v, nil
 	}
 
-	if err := s.listAndCacheAllAgents(ctx); err != nil {
+	agent, err := s.findAgent(ctx, &FindAgentMessage{ResourceID: &resourceID, ShowDeleted: true})
+	if err != nil {
 		return nil, err
 	}
-
-	agent, _ := s.agentResourceIDCache.Get(resourceID)
+	if agent == nil {
+		return nil, nil
+	}
+	s.cacheAgent(agent)
 	return agent, nil
 }
 
@@ -150,33 +156,43 @@ func (s *Store) ListAgents(ctx context.Context, find *FindAgentMessage) ([]*Agen
 	}
 
 	for _, agent := range agents {
-		s.agentIDCache.Add(agent.ID, agent)
-		s.agentResourceIDCache.Add(agent.ResourceID, agent)
+		s.cacheAgent(agent)
 	}
 	return agents, nil
 }
 
-func (s *Store) listAndCacheAllAgents(ctx context.Context) error {
+// findAgent runs a single-agent lookup via listAgentImpl in a read transaction
+// and returns the match (or nil when absent). It is the point-query path used
+// on a cache miss so resolving one agent does not trigger a full-table load.
+func (s *Store) findAgent(ctx context.Context, find *FindAgentMessage) (*AgentMessage, error) {
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer tx.Rollback()
 
-	agents, err := listAgentImpl(ctx, tx, &FindAgentMessage{ShowDeleted: true})
+	agents, err := listAgentImpl(ctx, tx, find)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := tx.Commit(); err != nil {
-		return err
+		return nil, err
 	}
 
-	for _, agent := range agents {
-		s.agentIDCache.Add(agent.ID, agent)
-		s.agentResourceIDCache.Add(agent.ResourceID, agent)
+	if len(agents) == 0 {
+		return nil, nil
 	}
-	return nil
+	return agents[0], nil
+}
+
+// cacheAgent stores an agent in both the ID and resource-id caches.
+func (s *Store) cacheAgent(agent *AgentMessage) {
+	if agent == nil {
+		return
+	}
+	s.agentIDCache.Add(agent.ID, agent)
+	s.agentResourceIDCache.Add(agent.ResourceID, agent)
 }
 
 func listAgentImpl(ctx context.Context, txn *sql.Tx, find *FindAgentMessage) ([]*AgentMessage, error) {

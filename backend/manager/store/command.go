@@ -11,6 +11,18 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Command status values. They mirror the v1.CommandStatus proto enum so the
+// store layer and API layer can compare statuses without scattering magic
+// numbers.
+const (
+	CommandStatusPending   int32 = 1
+	CommandStatusRunning   int32 = 2
+	CommandStatusCompleted int32 = 3
+	CommandStatusFailed    int32 = 4
+	CommandStatusCancelled int32 = 5
+	CommandStatusTimeout   int32 = 6
+)
+
 type CommandMessage struct {
 	ID              uuid.UUID
 	AgentID         int

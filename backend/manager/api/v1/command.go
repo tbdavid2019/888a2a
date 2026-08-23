@@ -110,7 +110,7 @@ func (s *CommandService) CancelCommand(ctx context.Context, req *connect.Request
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
 
-	if cmd.Status != 1 && cmd.Status != 2 {
+	if cmd.Status != store.CommandStatusPending && cmd.Status != store.CommandStatusRunning {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("command is not in pending or running state"))
 	}
 
@@ -119,7 +119,7 @@ func (s *CommandService) CancelCommand(ctx context.Context, req *connect.Request
 		slog.Warn("failed to send cancel to agent", "commandID", cmd.ID, "error", err)
 	}
 
-	status := int32(v1pb.CommandStatus_CANCELLED)
+	status := store.CommandStatusCancelled
 	if err := s.store.UpdateCommandStatus(ctx, cmd.ID, status, nil, nil, nil, nil, ""); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.Wrapf(err, "failed to update command status"))
 	}
@@ -139,7 +139,7 @@ func (s *CommandService) SteerCommand(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
-	if cmd.Status != int32(v1pb.CommandStatus_RUNNING) {
+	if cmd.Status != store.CommandStatusRunning {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("command is not in running state"))
 	}
 	text := strings.TrimSpace(req.Msg.Text)
@@ -177,7 +177,7 @@ func (s *CommandService) WatchCommand(ctx context.Context, req *connect.Request[
 		}
 	}
 
-	if cmd.Status != 1 && cmd.Status != 2 {
+	if cmd.Status != store.CommandStatusPending && cmd.Status != store.CommandStatusRunning {
 		return nil
 	}
 
@@ -224,7 +224,7 @@ func (s *CommandService) WatchCommandEvents(ctx context.Context, req *connect.Re
 		}
 	}
 
-	if cmd.Status != 1 && cmd.Status != 2 {
+	if cmd.Status != store.CommandStatusPending && cmd.Status != store.CommandStatusRunning {
 		return nil
 	}
 
