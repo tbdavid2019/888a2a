@@ -101,7 +101,7 @@ function channelLabel(entry: SearchChatHistoryEntry): string {
 function senderLabel(msg: ChatMessage): string {
   const name = msg.senderName?.trim();
   if (msg.senderType === SenderType.USER) {
-    return msg.principalId?.trim() || name || "";
+    return name || msg.principalId?.trim() || "";
   }
   return name || msg.principalId?.trim() || "";
 }

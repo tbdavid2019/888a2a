@@ -1,9 +1,17 @@
 import { create } from "@bufbuild/protobuf";
 import { TimestampSchema } from "@bufbuild/protobuf/wkt";
-import { CalendarClock, Search, SearchX, User } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  CalendarClock,
+  Loader2,
+  Search,
+  SearchX,
+  User as UserIcon,
+  X,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { Avatar } from "@/components/chat/avatar";
 import { SearchResultList } from "@/components/chat/search-result-list";
 import { EmptyState, LoadingState } from "@/components/chat/states";
 import { Button } from "@/components/ui/button";
@@ -15,13 +23,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { commandServiceClient } from "@/connect";
+import { commandServiceClient, userServiceClient } from "@/connect";
+import {
+  avatarNameForAgentId,
+  avatarNameForUserId,
+  useAvatar,
+} from "@/lib/avatar-cache";
+import { buildUserFilter } from "@/lib/user-filter";
+import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores";
+import type { AgentSummary } from "@/types/proto-es/v1/agent_pb";
 import type { SearchChatHistoryEntry } from "@/types/proto-es/v1/command_pb";
 import {
   SearchChatHistoryRequestSchema,
   SearchScope,
 } from "@/types/proto-es/v1/command_pb";
+import type { User } from "@/types/proto-es/v1/user_service_pb";
 
 const EMPTY_RESULTS: SearchChatHistoryEntry[] = [];
 
@@ -33,6 +50,12 @@ const TIME_RANGES = [
 ] as const;
 
 type TimeRange = (typeof TIME_RANGES)[number]["value"];
+
+// FromSender is a selected "From" filter value: either a human user or an
+// agent. The backend accepts both handles in SearchChatHistoryRequest.from.
+type FromSender =
+  | { kind: "user"; user: User }
+  | { kind: "agent"; agent: AgentSummary };
 
 function timeLabelKey(value: string): string {
   return `globalSearch.time-${value || "any"}`;
@@ -71,6 +94,304 @@ function buildSearchRequest({
   });
 }
 
+// SenderOption is a shared row layout for the From autocomplete: avatar +
+// display name + a Human/Agent badge so users can tell senders apart at a
+// glance.
+function SenderOption({
+  seed,
+  avatarSrc,
+  title,
+  subtitle,
+  badge,
+  onSelect,
+}: {
+  seed: string;
+  avatarSrc: string | null;
+  title: string;
+  subtitle?: string;
+  badge: string;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onSelect();
+      }}
+      className={cn(
+        "flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm",
+        "hover:bg-control-bg"
+      )}
+    >
+      <Avatar seed={seed} src={avatarSrc} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-main">{title}</span>
+        {subtitle && (
+          <span className="block truncate text-xs text-control-placeholder">
+            {subtitle}
+          </span>
+        )}
+      </span>
+      <span className="shrink-0 rounded bg-control-bg px-1.5 py-0.5 text-[10px] font-medium text-control">
+        {badge}
+      </span>
+    </button>
+  );
+}
+
+// UserPickerOption is one human row in the From autocomplete.
+function UserPickerOption({
+  user,
+  onSelect,
+}: {
+  user: User;
+  onSelect: (user: User) => void;
+}) {
+  const { t } = useTranslation();
+  const avatarSrc = useAvatar(avatarNameForUserId(user.handle || ""));
+  const label = user.title || user.email || user.handle;
+  const sublabel = user.handle || user.email;
+
+  return (
+    <SenderOption
+      seed={user.handle || user.name}
+      avatarSrc={avatarSrc}
+      title={label}
+      subtitle={sublabel !== label ? sublabel : undefined}
+      badge={t("members.kind-user")}
+      onSelect={() => onSelect(user)}
+    />
+  );
+}
+
+// AgentPickerOption is one agent row in the From autocomplete.
+function AgentPickerOption({
+  agent,
+  onSelect,
+}: {
+  agent: AgentSummary;
+  onSelect: (agent: AgentSummary) => void;
+}) {
+  const { t } = useTranslation();
+  const avatarSrc = useAvatar(avatarNameForAgentId(agent.handle || ""));
+  const label = agent.title || agent.handle;
+  const sublabel = agent.description || agent.handle;
+
+  return (
+    <SenderOption
+      seed={agent.handle || agent.name}
+      avatarSrc={avatarSrc}
+      title={label}
+      subtitle={sublabel !== label ? sublabel : undefined}
+      badge={t("chat.agent")}
+      onSelect={() => onSelect(agent)}
+    />
+  );
+}
+
+// FromSenderPicker is a single-select sender autocomplete used by the global
+// search "From" filter. It matches both human users (server-side search) and
+// agents (client-side filter over the shared roster), and shows a Human/Agent
+// badge so the two kinds are easy to tell apart.
+function FromSenderPicker({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: FromSender | null;
+  onChange: (value: FromSender | null) => void;
+  placeholder: string;
+}) {
+  const agents = useAppStore((s) => s.agents);
+  const agentsLoading = useAppStore((s) => s.agentsLoading);
+  const fetchAgents = useAppStore((s) => s.fetchAgents);
+
+  const [query, setQuery] = useState(() =>
+    value
+      ? value.kind === "user"
+        ? value.user.title || value.user.handle || ""
+        : value.agent.title || value.agent.handle || ""
+      : ""
+  );
+  const [open, setOpen] = useState(false);
+  const [userResults, setUserResults] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Preload the agent roster as soon as the picker mounts so agents are ready
+  // before the user starts typing (avoids agents popping in later and making
+  // the dropdown look like it "refreshes" with different content).
+  useEffect(() => {
+    if (useAppStore.getState().agents.length === 0) {
+      void fetchAgents({ pageSize: 100 });
+    }
+  }, [fetchAgents]);
+
+  // Make sure the agent roster is loaded when the picker opens so agents can
+  // appear in the dropdown alongside humans.
+  useEffect(() => {
+    if (!open) return;
+    if (useAppStore.getState().agents.length === 0) {
+      void fetchAgents({ pageSize: 100 });
+    }
+  }, [open, fetchAgents]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: MouseEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [open]);
+
+  // Debounced server-side user search, matching the existing MemberPicker
+  // pattern. `loading` is turned on synchronously in the input onChange so the
+  // dropdown does not briefly show stale results from the previous query.
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const q = query.trim();
+    if (!q) {
+      setUserResults([]);
+      setLoading(false);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await userServiceClient.listUsers({
+          pageSize: 50,
+          filter: buildUserFilter(q),
+        });
+        setUserResults(res.users ?? []);
+      } catch {
+        setUserResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 250);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query]);
+
+  const q = query.trim().toLowerCase();
+  const filteredAgents = useMemo(
+    () =>
+      agents.filter(
+        (a) =>
+          q === "" ||
+          a.title.toLowerCase().includes(q) ||
+          a.handle.toLowerCase().includes(q) ||
+          a.description.toLowerCase().includes(q)
+      ),
+    [agents, q]
+  );
+
+  const hasResults = userResults.length > 0 || filteredAgents.length > 0;
+  // Wait for the first agent-roster fetch too, so the combined list doesn't
+  // first appear with only users and then "refresh" when agents arrive.
+  const waitingForAgents = agentsLoading && agents.length === 0;
+
+  const currentLabel = value
+    ? value.kind === "user"
+      ? value.user.title || value.user.handle || ""
+      : value.agent.title || value.agent.handle || ""
+    : "";
+
+  function selectUser(user: User) {
+    onChange({ kind: "user", user });
+    setQuery(user.title || user.handle || "");
+    setOpen(false);
+  }
+
+  function selectAgent(agent: AgentSummary) {
+    onChange({ kind: "agent", agent });
+    setQuery(agent.title || agent.handle || "");
+    setOpen(false);
+  }
+
+  function clear() {
+    onChange(null);
+    setQuery("");
+    setOpen(false);
+  }
+
+  const showDropdown = open && query.trim().length > 0;
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="flex items-center gap-1.5 rounded-md border border-control-border px-2 py-1">
+        <UserIcon className="size-3.5 shrink-0 text-control-light" />
+        <Input
+          value={query}
+          onChange={(e) => {
+            const next = e.target.value;
+            setQuery(next);
+            setOpen(true);
+            // Drop stale user results immediately and show the loading state so
+            // the dropdown doesn't flash old content while the new search runs.
+            setUserResults([]);
+            setLoading(next.trim().length > 0);
+            // Typing away from the selected sender starts a fresh lookup.
+            if (value && currentLabel !== next) {
+              onChange(null);
+            }
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder={placeholder}
+          autoComplete="off"
+          spellCheck={false}
+          className="h-6 w-32 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
+        />
+        {(value || query) && (
+          <button
+            type="button"
+            onClick={clear}
+            className="shrink-0 rounded p-0.5 text-control-light transition-colors hover:bg-control-bg hover:text-main"
+            aria-label={placeholder}
+          >
+            <X className="size-3" />
+          </button>
+        )}
+      </div>
+      {showDropdown && (
+        <div className="absolute left-0 right-0 z-30 mt-1 max-h-60 overflow-auto rounded border border-control-border bg-background py-1 shadow-md">
+          {loading || waitingForAgents ? (
+            <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-control-placeholder">
+              <Loader2 className="size-3.5 animate-spin" />
+            </div>
+          ) : !hasResults ? (
+            <div className="px-2 py-1.5 text-xs text-control-placeholder">
+              {placeholder}
+            </div>
+          ) : (
+            <>
+              {userResults.map((user) => (
+                <UserPickerOption
+                  key={user.name}
+                  user={user}
+                  onSelect={selectUser}
+                />
+              ))}
+              {filteredAgents.map((agent) => (
+                <AgentPickerOption
+                  key={agent.name}
+                  agent={agent}
+                  onSelect={selectAgent}
+                />
+              ))}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // GlobalSearchPage searches every conversation the current user can read:
 // message content (main channel and thread replies) plus attachment file
 // names. Results link back into the channel chat at the exact message.
@@ -85,7 +406,7 @@ export function GlobalSearchPage() {
   }, [fetchChannels]);
 
   const [query, setQuery] = useState("");
-  const [from, setFrom] = useState("");
+  const [fromSender, setFromSender] = useState<FromSender | null>(null);
   const [scope, setScope] = useState<SearchScope>(SearchScope.UNSPECIFIED);
   const [channel, setChannel] = useState("");
   const [timeRange, setTimeRange] = useState<TimeRange>("any");
@@ -111,7 +432,17 @@ export function GlobalSearchPage() {
       setLoading(true);
       commandServiceClient
         .searchChatHistory(
-          buildSearchRequest({ query: q, from, scope, channel, timeRange })
+          buildSearchRequest({
+            query: q,
+            from: fromSender
+              ? fromSender.kind === "user"
+                ? fromSender.user.handle
+                : fromSender.agent.handle
+              : "",
+            scope,
+            channel,
+            timeRange,
+          })
         )
         .then((res) => {
           if (cancelled) return;
@@ -133,7 +464,7 @@ export function GlobalSearchPage() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [channel, from, query, scope, timeRange]);
+  }, [channel, fromSender, query, scope, timeRange]);
 
   const handleOpen = (entry: SearchChatHistoryEntry) => {
     const msg = entry.message;
@@ -157,7 +488,11 @@ export function GlobalSearchPage() {
       .searchChatHistory(
         buildSearchRequest({
           query: q,
-          from,
+          from: fromSender
+            ? fromSender.kind === "user"
+              ? fromSender.user.handle
+              : fromSender.agent.handle
+            : "",
           scope,
           channel,
           timeRange,
@@ -244,15 +579,11 @@ export function GlobalSearchPage() {
 
       {/* Filter toolbar */}
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-control-border px-4 py-2">
-        <div className="flex items-center gap-1.5 rounded-md border border-control-border px-2 py-1">
-          <User className="size-3.5 text-control-light" />
-          <Input
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            placeholder={t("globalSearch.from")}
-            className="h-6 w-32 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
-          />
-        </div>
+        <FromSenderPicker
+          value={fromSender}
+          onChange={setFromSender}
+          placeholder={t("globalSearch.from")}
+        />
 
         <Select
           value={String(scope)}

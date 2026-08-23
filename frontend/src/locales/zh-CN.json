@@ -308,13 +308,11 @@
   },
   "channelSearch": {
     "empty": "在 {{channel}} 中搜索消息与文件",
-    "in-thread": "位于话题中",
     "load-more": "加载更多",
     "no-results": "没有匹配“{{query}}”的消息",
     "placeholder": "搜索消息与文件…",
     "thread": "线程",
-    "title": "搜索",
-    "untitled": "无标题消息"
+    "title": "搜索"
   },
   "channelTask": {
     "as-task": "作为任务",
@@ -532,7 +530,6 @@
     "channel": "频道",
     "empty": "搜索频道、私信、消息与文件",
     "from": "发送者",
-    "in-thread": "位于话题中",
     "load-more": "加载更多",
     "no-results": "没有匹配“{{query}}”的结果",
     "placeholder": "搜索频道、私信、消息…",
@@ -544,8 +541,7 @@
     "time-30d": "过去 30 天",
     "time-7d": "过去 7 天",
     "time-any": "任意时间",
-    "title": "搜索",
-    "untitled": "无标题消息"
+    "title": "搜索"
   },
   "landing": {},
   "machine": {
