@@ -19,11 +19,6 @@ const (
 )
 
 const (
-	defaultACPMaxTimeoutSeconds = 1800
-	defaultACPMaxEventCount     = 10000
-	defaultACPMaxOutputBytes    = 1 << 20
-	defaultOutputFlushBytes     = 4096
-
 	// defaultACPStartupTimeout bounds the ACP startup handshake (Initialize +
 	// ResumeSession / NewSession): the window before the agent accepts its first
 	// turn. A server that spawns but never completes the handshake within it (a
@@ -54,17 +49,9 @@ var DefaultAllowEnv = []string{
 // fills in the template and derives the launch command from the provider
 // registry when a built-in provider is selected.
 type ACPConfig struct {
-	MaxTimeoutSeconds int32 `yaml:"max_timeout_seconds"`
-	MaxEventCount     int32 `yaml:"max_event_count"`
-	MaxOutputBytes    int64 `yaml:"max_output_bytes"`
-	OutputFlushBytes  int32 `yaml:"output_flush_bytes"`
-
-	// StartupTimeout bounds the Initialize + ResumeSession/NewSession
-	// handshake. A server that does not complete it within this window is
-	// failed fast at ~StartupTimeout instead of hanging to MaxTimeoutSeconds
-	// (the Prompt call stays on the turn ctx). Defaults to
-	// defaultACPStartupTimeout when zero.
-	StartupTimeout time.Duration `yaml:"startup_timeout"`
+	// Limits carries the shared runtime limits (timeout, event/output caps,
+	// flush threshold, startup timeout) defined once in executor.Limits.
+	Limits
 
 	Provider   string   `yaml:"provider"`
 	Model      string   `yaml:"model"`
@@ -119,11 +106,13 @@ func BuildACPConfig(user *v1pb.AgentACPConfig, machineID, agentID string) *ACPCo
 	}
 
 	cfg := &ACPConfig{
-		MaxTimeoutSeconds: defaultACPMaxTimeoutSeconds,
-		MaxEventCount:     defaultACPMaxEventCount,
-		MaxOutputBytes:    defaultACPMaxOutputBytes,
-		OutputFlushBytes:  defaultOutputFlushBytes,
-		StartupTimeout:    defaultACPStartupTimeout,
+		Limits: Limits{
+			MaxTimeoutSeconds: DefaultMaxTimeoutSeconds,
+			MaxEventCount:     DefaultMaxEventCount,
+			MaxOutputBytes:    DefaultMaxOutputBytes,
+			OutputFlushBytes:  DefaultOutputFlushBytes,
+			StartupTimeout:    defaultACPStartupTimeout,
+		},
 
 		Provider:           user.Provider,
 		Model:              user.Model,
@@ -165,12 +154,12 @@ func (c *ACPConfig) Capability() *v1pb.AgentCapability {
 	if c == nil || c.Executable == "" {
 		return &v1pb.AgentCapability{
 			SupportsAcp:                false,
-			MaxTimeoutSeconds:          defaultACPMaxTimeoutSeconds,
+			MaxTimeoutSeconds:          DefaultMaxTimeoutSeconds,
 			SupportsDiff:               false,
 			SupportsRawEvents:          false,
 			SupportsToolTraces:         false,
-			MaxEventCount:              defaultACPMaxEventCount,
-			MaxOutputBytes:             defaultACPMaxOutputBytes,
+			MaxEventCount:              DefaultMaxEventCount,
+			MaxOutputBytes:             DefaultMaxOutputBytes,
 			SupportsAutonomousDecision: false,
 		}
 	}

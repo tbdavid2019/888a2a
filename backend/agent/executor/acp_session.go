@@ -3,10 +3,7 @@ package executor
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
-	"os"
 
-	"github.com/Ranxy/laelia/backend/agent/atomicfile"
 	"github.com/Ranxy/laelia/backend/agent/home"
 )
 
@@ -78,18 +75,7 @@ func acpSessionPath(machineID, agentID string) string {
 // loadACPSession reads the persisted ACP session state. A missing file is not
 // an error: it means the agent has never opened a session and must cold-start.
 func loadACPSession(machineID, agentID string) (*acpSessionState, error) {
-	data, err := os.ReadFile(acpSessionPath(machineID, agentID))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	var s acpSessionState
-	if err := json.Unmarshal(data, &s); err != nil {
-		return nil, err
-	}
-	return &s, nil
+	return LoadSessionState[acpSessionState](acpSessionPath(machineID, agentID))
 }
 
 // saveACPSession persists the ACP session state so the next drain turn can
@@ -97,18 +83,14 @@ func loadACPSession(machineID, agentID string) (*acpSessionState, error) {
 // means the next turn cold-starts (re-sends the init prompt), never a lost
 // message — the durable per-channel cursor is the source of truth.
 func saveACPSession(machineID, agentID string, state *acpSessionState) error {
-	data, err := json.Marshal(state)
-	if err != nil {
-		return err
-	}
-	return atomicfile.WriteFileAtomic(acpSessionPath(machineID, agentID), data, 0o600)
+	return SaveSessionState(acpSessionPath(machineID, agentID), state)
 }
 
 // clearACPSession drops the persisted ACP session so the next turn cold-starts.
 // Called when a ResumeSession fails (the provider lost the session) so we do
 // not loop forever retrying a dead id.
 func clearACPSession(machineID, agentID string) {
-	_ = os.Remove(acpSessionPath(machineID, agentID))
+	ClearSessionState(acpSessionPath(machineID, agentID))
 }
 
 // recordResumeFailure increments the consecutive resume-failure counter in the

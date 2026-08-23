@@ -10,16 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Ranxy/laelia/backend/agent/executor"
 	"github.com/Ranxy/laelia/backend/agent/home"
 	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
 )
 
 const (
-	defaultMaxTimeoutSeconds = 1800
-	defaultMaxEventCount     = 10000
-	defaultMaxOutputBytes    = 1 << 20
-	defaultOutputFlushBytes  = 4096
-
 	// defaultStartupTimeout bounds the pi startup RPC round trip (spawn + first
 	// get_state / switch_session). A pi that spawns but never answers within
 	// this window is wedged (bad config, stuck download) and the turn fails fast
@@ -124,16 +120,9 @@ type PiConfig struct {
 	MachineID string
 	AgentID   string
 
-	MaxTimeoutSeconds int32
-	MaxEventCount     int32
-	MaxOutputBytes    int64
-	OutputFlushBytes  int32
-
-	// StartupTimeout bounds the spawn + first get_state / switch_session round
-	// trip. A pi that never answers within it is treated as wedged: the turn is
-	// killed and failed at ~StartupTimeout rather than hanging to
-	// MaxTimeoutSeconds. Defaults to defaultStartupTimeout when zero.
-	StartupTimeout time.Duration
+	// Limits carries the shared runtime limits (timeout, event/output caps,
+	// flush threshold, startup timeout) defined once in executor.Limits.
+	executor.Limits
 
 	// IdleTimeout is how long the subprocess stays resident after a turn ends
 	// before idle eviction tears it down to free memory. The conversation is
@@ -171,25 +160,27 @@ func BuildPiConfig(
 
 	workingDir := agentWorkingDir(machineID, agentID)
 	cfg := &PiConfig{
-		APIProvider:       user.ApiProvider,
-		Model:             user.Model,
-		APIKey:            user.ApiKey,
-		BaseURL:           strings.TrimSpace(user.ApiBaseUrl),
-		PersonaPrompt:     user.PersonaPrompt,
-		WorkingDir:        workingDir,
-		PiBinaryPath:      piBinaryPath,
-		AgentResourceID:   agentResourceID,
-		DaemonSocket:      daemonSocket,
-		SessionToken:      sessionToken,
-		BinaryDir:         binaryDir,
-		MachineID:         machineID,
-		AgentID:           agentID,
-		MaxTimeoutSeconds: defaultMaxTimeoutSeconds,
-		MaxEventCount:     defaultMaxEventCount,
-		MaxOutputBytes:    defaultMaxOutputBytes,
-		OutputFlushBytes:  defaultOutputFlushBytes,
-		StartupTimeout:    defaultStartupTimeout,
-		IdleTimeout:       defaultIdleTimeout,
+		APIProvider:     user.ApiProvider,
+		Model:           user.Model,
+		APIKey:          user.ApiKey,
+		BaseURL:         strings.TrimSpace(user.ApiBaseUrl),
+		PersonaPrompt:   user.PersonaPrompt,
+		WorkingDir:      workingDir,
+		PiBinaryPath:    piBinaryPath,
+		AgentResourceID: agentResourceID,
+		DaemonSocket:    daemonSocket,
+		SessionToken:    sessionToken,
+		BinaryDir:       binaryDir,
+		MachineID:       machineID,
+		AgentID:         agentID,
+		Limits: executor.Limits{
+			MaxTimeoutSeconds: executor.DefaultMaxTimeoutSeconds,
+			MaxEventCount:     executor.DefaultMaxEventCount,
+			MaxOutputBytes:    executor.DefaultMaxOutputBytes,
+			OutputFlushBytes:  executor.DefaultOutputFlushBytes,
+			StartupTimeout:    defaultStartupTimeout,
+		},
+		IdleTimeout: defaultIdleTimeout,
 	}
 	if user.ApiProvider == APIProviderCustom {
 		cfg.ConfigDir = filepath.Join(workingDir, ".pi-agent")
@@ -208,12 +199,12 @@ func BuildPiCapability(user *v1pb.AgentACPConfig) *v1pb.AgentCapability {
 	return &v1pb.AgentCapability{
 		SupportsPi:                 true,
 		SupportsAcp:                false,
-		MaxTimeoutSeconds:          defaultMaxTimeoutSeconds,
+		MaxTimeoutSeconds:          executor.DefaultMaxTimeoutSeconds,
 		SupportsDiff:               true,
 		SupportsRawEvents:          true,
 		SupportsToolTraces:         true,
-		MaxEventCount:              defaultMaxEventCount,
-		MaxOutputBytes:             defaultMaxOutputBytes,
+		MaxEventCount:              executor.DefaultMaxEventCount,
+		MaxOutputBytes:             executor.DefaultMaxOutputBytes,
 		SupportsAutonomousDecision: true,
 	}
 }

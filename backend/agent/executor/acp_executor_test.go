@@ -60,7 +60,7 @@ func TestACPSessionUpdateEmitsDiffEvent(t *testing.T) {
 	exec := &ACPExecutor{
 		ctx:             context.Background(),
 		request:         Request{AllowDiff: true},
-		config:          &ACPConfig{SupportsDiff: true, SupportsToolTraces: true, MaxEventCount: 10},
+		config:          &ACPConfig{SupportsDiff: true, SupportsToolTraces: true, Limits: Limits{MaxEventCount: 10}},
 		outputCh:        make(chan OutputChunk, 4),
 		eventCh:         make(chan Event, 4),
 		toolCallStates:  map[string]*toolCallState{},
@@ -107,7 +107,7 @@ func TestACPSessionUpdateBuffersConsecutiveMessageChunks(t *testing.T) {
 
 	assert.Empty(t, exec.outputCh, "consecutive message chunks should be buffered in output")
 
-	exec.buffer.flush(exec)
+	exec.buffer.Flush(exec.sendOutput)
 	assert.NotEmpty(t, exec.outputCh)
 	output := <-exec.outputCh
 	assert.Equal(t, v1pb.CommandOutput_STDOUT, output.StreamType)
@@ -156,7 +156,7 @@ func TestACPSessionUpdateDropsReplayedHistory(t *testing.T) {
 			},
 		}},
 	}))
-	exec.buffer.flush(exec)
+	exec.buffer.Flush(exec.sendOutput)
 	exec.rawEvents.flush(exec)
 	assert.Empty(t, exec.eventCh, "replayed history must not emit events")
 	assert.Empty(t, exec.outputCh, "replayed history must not emit output")
@@ -169,7 +169,7 @@ func TestACPSessionUpdateDropsReplayedHistory(t *testing.T) {
 			Content: acp.TextBlock("live agent text"),
 		}},
 	}))
-	exec.buffer.flush(exec)
+	exec.buffer.Flush(exec.sendOutput)
 	assert.NotEmpty(t, exec.outputCh, "live agent text must flow to output")
 }
 
@@ -204,7 +204,7 @@ func TestACPSessionUpdateBatchesRawEventsAcrossBoundaries(t *testing.T) {
 		},
 	}))
 
-	exec.buffer.flush(exec)
+	exec.buffer.Flush(exec.sendOutput)
 	exec.rawEvents.flush(exec)
 
 	var rawEvents []Event
@@ -420,18 +420,20 @@ func TestACPExecutor_WedgedStartupFailsFast(t *testing.T) {
 	// generous so a regression (Initialize on the turn ctx) hangs past the
 	// runACPTestRuntime deadline below, not masked by it.
 	cfg := &ACPConfig{
-		MaxTimeoutSeconds: 1800,
-		MaxEventCount:     10000,
-		MaxOutputBytes:    1 << 20,
-		OutputFlushBytes:  defaultOutputFlushBytes,
-		StartupTimeout:    500 * time.Millisecond,
-		Provider:          "custom",
-		Executable:        sleep,
-		Args:              []string{"9999"},
-		WorkingDir:        workspace,
-		ReadTextFiles:     true,
-		WriteTextFiles:    true,
-		AllowEnv:          []string{"PATH", "HOME"},
+		Limits: Limits{
+			MaxTimeoutSeconds: 1800,
+			MaxEventCount:     10000,
+			MaxOutputBytes:    1 << 20,
+			OutputFlushBytes:  DefaultOutputFlushBytes,
+			StartupTimeout:    500 * time.Millisecond,
+		},
+		Provider:       "custom",
+		Executable:     sleep,
+		Args:           []string{"9999"},
+		WorkingDir:     workspace,
+		ReadTextFiles:  true,
+		WriteTextFiles: true,
+		AllowEnv:       []string{"PATH", "HOME"},
 	}
 
 	runtime, err := NewACP(Request{
@@ -547,9 +549,11 @@ func newOpencodeTestConfig(bin string, workspace string, writable bool) *ACPConf
 	}
 
 	return &ACPConfig{
-		MaxTimeoutSeconds:     120,
-		MaxEventCount:         2000,
-		MaxOutputBytes:        256 * 1024,
+		Limits: Limits{
+			MaxTimeoutSeconds: 120,
+			MaxEventCount:     2000,
+			MaxOutputBytes:    256 * 1024,
+		},
 		Executable:            bin,
 		Args:                  args,
 		WorkingDir:            workspace,
@@ -607,7 +611,7 @@ func compactText(input string) string {
 func newTestBufferedExecutor() *ACPExecutor {
 	e := &ACPExecutor{
 		ctx:             context.Background(),
-		config:          &ACPConfig{OutputFlushBytes: defaultOutputFlushBytes, MaxEventCount: 10},
+		config:          &ACPConfig{Limits: Limits{OutputFlushBytes: DefaultOutputFlushBytes, MaxEventCount: 10}},
 		outputCh:        make(chan OutputChunk, 16),
 		eventCh:         make(chan Event, 16),
 		toolCallStates:  map[string]*toolCallState{},
@@ -654,7 +658,7 @@ func TestSendOutput_NonBlockingAfterCancel(t *testing.T) {
 	e := &ACPExecutor{
 		ctx:      ctx,
 		cancel:   cancel,
-		config:   &ACPConfig{MaxOutputBytes: 0}, // no output limit
+		config:   &ACPConfig{Limits: Limits{MaxOutputBytes: 0}}, // no output limit
 		outputCh: make(chan OutputChunk, 2),
 		eventCh:  make(chan Event, 2),
 	}

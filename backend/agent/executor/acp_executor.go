@@ -27,7 +27,6 @@ import (
 	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
 )
 
-const flushOutputInterval = 500 * time.Millisecond
 const maxRawEventBatchSize = 256
 const usageUpdateMinInterval = 5 * time.Second
 
@@ -36,89 +35,6 @@ const usageUpdateMinInterval = 5 * time.Second
 // where the bash command should live) the ACP agent populates. Enable with
 // LAELIA_DEBUG_TOOL_CALLS=1 on the agent process.
 var debugToolCalls = os.Getenv("LAELIA_DEBUG_TOOL_CALLS") == "1"
-
-type outputBuffer struct {
-	mu        sync.Mutex
-	stdout    strings.Builder
-	system    strings.Builder
-	assistant strings.Builder
-	order     []v1pb.CommandOutput_StreamType
-}
-
-func (b *outputBuffer) append(streamType v1pb.CommandOutput_StreamType, text string) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	switch streamType {
-	case v1pb.CommandOutput_STDOUT:
-		if b.stdout.Len() == 0 {
-			b.order = append(b.order, streamType)
-		}
-		_, _ = b.stdout.WriteString(text)
-	case v1pb.CommandOutput_SYSTEM:
-		if b.system.Len() == 0 {
-			b.order = append(b.order, streamType)
-		}
-		_, _ = b.system.WriteString(text)
-	case v1pb.CommandOutput_ASSISTANT:
-		if b.assistant.Len() == 0 {
-			b.order = append(b.order, streamType)
-		}
-		_, _ = b.assistant.WriteString(text)
-	default:
-	}
-}
-
-func (b *outputBuffer) totalLen() int {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.stdout.Len() + b.system.Len() + b.assistant.Len()
-}
-
-// outputSink is the minimal surface outputBuffer needs to flush buffered text.
-// Both ACPExecutor and ThreadExecutor satisfy it.
-type outputSink interface {
-	sendOutput(streamType v1pb.CommandOutput_StreamType, content string)
-}
-
-func (b *outputBuffer) flush(e outputSink) {
-	b.mu.Lock()
-	stdout := b.stdout.String()
-	b.stdout.Reset()
-	system := b.system.String()
-	b.system.Reset()
-	assistant := b.assistant.String()
-	b.assistant.Reset()
-	order := b.order
-	b.order = b.order[:0]
-	b.mu.Unlock()
-
-	for _, st := range order {
-		switch st {
-		case v1pb.CommandOutput_STDOUT:
-			if stdout != "" {
-				e.sendOutput(v1pb.CommandOutput_STDOUT, stdout)
-				stdout = ""
-			}
-		case v1pb.CommandOutput_SYSTEM:
-			if system != "" {
-				e.sendOutput(v1pb.CommandOutput_SYSTEM, system)
-				system = ""
-			}
-		case v1pb.CommandOutput_ASSISTANT:
-			if assistant != "" {
-				e.sendOutput(v1pb.CommandOutput_ASSISTANT, assistant)
-				assistant = ""
-			}
-		default:
-		}
-	}
-}
-
-func (b *outputBuffer) hasContent() bool {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.stdout.Len() > 0 || b.system.Len() > 0 || b.assistant.Len() > 0
-}
 
 type rawEventBatch struct {
 	mu      sync.Mutex
@@ -236,7 +152,7 @@ type ACPExecutor struct {
 	// delivers the command in the first in_progress status update, not the
 	// create). Resolved once at NewACP.
 	toolCallAdapter provider.ToolCallAdapter
-	buffer          outputBuffer
+	buffer          OutputBuffer
 	rawEvents       rawEventBatch
 	// usageMu guards lastUsageEmit, which rate-limits CONTEXT_USAGE_UPDATE
 	// events so streaming ACP UsageUpdate notifications do not flood the
@@ -289,8 +205,8 @@ func NewACP(req Request, cfg *ACPConfig) (Runtime, error) {
 		workingDir:      workingDir,
 		allowedRoots:    roots,
 		cmd:             cmd,
-		outputCh:        make(chan OutputChunk, outputBufferSize),
-		eventCh:         make(chan Event, outputBufferSize),
+		outputCh:        make(chan OutputChunk, OutputBufferSize),
+		eventCh:         make(chan Event, OutputBufferSize),
 		resultCh:        make(chan Result, 1),
 		done:            make(chan struct{}),
 		toolCallStates:  map[string]*toolCallState{},
@@ -556,7 +472,7 @@ func (e *ACPExecutor) run() {
 		// the same invariant the three sibling teardown sites uphold.
 		_ = KillGroup(e.cmd, syscall.SIGKILL)
 		_ = e.cmd.Wait()
-		e.buffer.flush(e)
+		e.buffer.Flush(e.sendOutput)
 		e.rawEvents.flush(e)
 		e.sendACPResult(Result{
 			ExitCode:     0,
@@ -580,7 +496,7 @@ func (e *ACPExecutor) run() {
 	_ = KillGroup(e.cmd, syscall.SIGKILL)
 	_ = e.cmd.Wait()
 
-	e.buffer.flush(e)
+	e.buffer.Flush(e.sendOutput)
 	e.rawEvents.flush(e)
 
 	finalSummary := strings.TrimSpace(e.client.finalSummary())
@@ -668,7 +584,7 @@ func (e *ACPExecutor) finishACPProcess(err error) {
 		_ = KillGroup(e.cmd, syscall.SIGKILL)
 	}
 	_ = e.cmd.Wait()
-	e.buffer.flush(e)
+	e.buffer.Flush(e.sendOutput)
 	e.rawEvents.flush(e)
 	if errors.Is(e.ctx.Err(), context.DeadlineExceeded) {
 		e.sendACPResult(Result{ExitCode: 124, DurationMs: time.Since(e.startedAt).Milliseconds(), ErrorMessage: e.ctx.Err().Error()})
@@ -754,13 +670,13 @@ func (e *ACPExecutor) sendOutput(streamType v1pb.CommandOutput_StreamType, conte
 }
 
 func (e *ACPExecutor) startFlushTimer() {
-	ticker := time.NewTicker(flushOutputInterval)
+	ticker := time.NewTicker(FlushOutputInterval)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
-			if e.buffer.hasContent() {
-				e.buffer.flush(e)
+			if e.buffer.HasContent() {
+				e.buffer.Flush(e.sendOutput)
 			}
 		case <-e.ctx.Done():
 			return
@@ -769,8 +685,8 @@ func (e *ACPExecutor) startFlushTimer() {
 }
 
 func (e *ACPExecutor) flushIfNeeded() {
-	if e.buffer.totalLen() >= int(e.config.OutputFlushBytes) {
-		e.buffer.flush(e)
+	if e.buffer.TotalLen() >= int(e.config.OutputFlushBytes) {
+		e.buffer.Flush(e.sendOutput)
 	}
 }
 
@@ -983,19 +899,19 @@ func (c *acpRuntimeClient) SessionUpdate(_ context.Context, params acp.SessionNo
 		text := contentBlockText(u.AgentMessageChunk.Content)
 		c.executor.client.appendSummary(text)
 		if text != "" {
-			c.executor.buffer.append(v1pb.CommandOutput_STDOUT, text)
+			c.executor.buffer.Append(v1pb.CommandOutput_STDOUT, text)
 			c.executor.flushIfNeeded()
 		}
 		c.executor.rawEvents.append(c.executor, "agent_message_chunk", toJSONMap(u.AgentMessageChunk))
 	case u.AgentThoughtChunk != nil:
 		text := contentBlockText(u.AgentThoughtChunk.Content)
 		if text != "" {
-			c.executor.buffer.append(v1pb.CommandOutput_ASSISTANT, text)
+			c.executor.buffer.Append(v1pb.CommandOutput_ASSISTANT, text)
 			c.executor.flushIfNeeded()
 		}
 		c.executor.rawEvents.append(c.executor, "agent_thought_chunk", toJSONMap(u.AgentThoughtChunk))
 	case u.ToolCall != nil:
-		c.executor.buffer.flush(c.executor)
+		c.executor.buffer.Flush(c.executor.sendOutput)
 		c.executor.rawEvents.flush(c.executor)
 		id := string(u.ToolCall.ToolCallId)
 		c.executor.recordToolCallTitle(id, u.ToolCall.Title)
@@ -1035,7 +951,7 @@ func (c *acpRuntimeClient) SessionUpdate(_ context.Context, params acp.SessionNo
 			if content.Content != nil {
 				text := contentBlockText(content.Content.Content)
 				if text != "" {
-					c.executor.buffer.append(v1pb.CommandOutput_SYSTEM, text)
+					c.executor.buffer.Append(v1pb.CommandOutput_SYSTEM, text)
 					c.executor.flushIfNeeded()
 				}
 			}
@@ -1067,12 +983,12 @@ func (c *acpRuntimeClient) SessionUpdate(_ context.Context, params acp.SessionNo
 			c.executor.toolCallAdapter.OnStatusUpdate(c.executor, u.ToolCallUpdate)
 		}
 	case u.Plan != nil:
-		c.executor.buffer.flush(c.executor)
+		c.executor.buffer.Flush(c.executor.sendOutput)
 		c.executor.rawEvents.flush(c.executor)
 		c.executor.rawEvents.append(c.executor, "plan", toJSONMap(u.Plan))
 		c.executor.rawEvents.flush(c.executor)
 	case u.UsageUpdate != nil:
-		c.executor.buffer.flush(c.executor)
+		c.executor.buffer.Flush(c.executor.sendOutput)
 		c.executor.rawEvents.flush(c.executor)
 		c.executor.rawEvents.append(c.executor, "usage", toJSONMap(u.UsageUpdate))
 		c.executor.rawEvents.flush(c.executor)

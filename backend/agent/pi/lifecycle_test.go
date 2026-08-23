@@ -32,19 +32,21 @@ func newFakePiSession(t *testing.T, mode string) (*Session, *PiConfig) {
 	writeFakePiMode(t, work, mode)
 
 	cfg := &PiConfig{
-		APIProvider:       APIProviderDeepseek,
-		Model:             "deepseek-chat",
-		APIKey:            "sk-test",
-		PiBinaryPath:      os.Args[0],
-		WorkingDir:        work,
-		AgentResourceID:   "agents/test-agent",
-		MachineID:         "test-machine",
-		AgentID:           "test-agent",
-		MaxTimeoutSeconds: 30,
-		MaxEventCount:     10000,
-		MaxOutputBytes:    1 << 20,
-		OutputFlushBytes:  defaultOutputFlushBytes,
-		StartupTimeout:    defaultStartupTimeout,
+		APIProvider:     APIProviderDeepseek,
+		Model:           "deepseek-chat",
+		APIKey:          "sk-test",
+		PiBinaryPath:    os.Args[0],
+		WorkingDir:      work,
+		AgentResourceID: "agents/test-agent",
+		MachineID:       "test-machine",
+		AgentID:         "test-agent",
+		Limits: executor.Limits{
+			MaxTimeoutSeconds: 30,
+			MaxEventCount:     10000,
+			MaxOutputBytes:    1 << 20,
+			OutputFlushBytes:  executor.DefaultOutputFlushBytes,
+			StartupTimeout:    defaultStartupTimeout,
+		},
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	sess := NewSession(ctx, cancel, cfg)

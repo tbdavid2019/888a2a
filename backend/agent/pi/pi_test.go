@@ -529,20 +529,22 @@ func TestDeriveToolTitle(t *testing.T) {
 func newTestExecutor(t *testing.T) *PiExecutor {
 	t.Helper()
 	cfg := &PiConfig{
-		APIProvider:      APIProviderDeepseek,
-		Model:            "deepseek-chat",
-		APIKey:           "sk",
-		PiBinaryPath:     "/bin/pi",
-		MaxEventCount:    10000,
-		MaxOutputBytes:   1 << 20,
-		OutputFlushBytes: defaultOutputFlushBytes,
+		APIProvider:  APIProviderDeepseek,
+		Model:        "deepseek-chat",
+		APIKey:       "sk",
+		PiBinaryPath: "/bin/pi",
+		Limits: executor.Limits{
+			MaxEventCount:    10000,
+			MaxOutputBytes:   1 << 20,
+			OutputFlushBytes: executor.DefaultOutputFlushBytes,
+		},
 	}
 	e := &PiExecutor{
 		cfg:         cfg,
 		identity:    "TestAgent",
 		ctx:         context.Background(),
-		outputCh:    make(chan executor.OutputChunk, outputBufferSize),
-		eventCh:     make(chan executor.Event, outputBufferSize),
+		outputCh:    make(chan executor.OutputChunk, executor.OutputBufferSize),
+		eventCh:     make(chan executor.Event, executor.OutputBufferSize),
 		resultCh:    make(chan executor.Result, 1),
 		done:        make(chan struct{}),
 		toolStarted: map[string]bool{},

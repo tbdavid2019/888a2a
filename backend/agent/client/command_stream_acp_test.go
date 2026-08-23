@@ -282,9 +282,11 @@ func newOpencodeCSConfig(bin string, workspace string, writable bool) *executor.
 	}
 
 	return &executor.ACPConfig{
-		MaxTimeoutSeconds:     120,
-		MaxEventCount:         4000,
-		MaxOutputBytes:        512 * 1024,
+		Limits: executor.Limits{
+			MaxTimeoutSeconds: 120,
+			MaxEventCount:     4000,
+			MaxOutputBytes:    512 * 1024,
+		},
 		Executable:            bin,
 		Args:                  args,
 		WorkingDir:            workspace,

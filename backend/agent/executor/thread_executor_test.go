@@ -274,11 +274,13 @@ func newThreadTestConfig(t *testing.T, mode string) *ThreadConfig {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("LAELIA_FAKE_THREAD_MODE", mode)
 	return &ThreadConfig{
-		MaxTimeoutSeconds: 30,
-		MaxEventCount:     2000,
-		MaxOutputBytes:    256 * 1024,
-		OutputFlushBytes:  4096,
-		StartupTimeout:    5 * time.Second,
+		Limits: Limits{
+			MaxTimeoutSeconds: 30,
+			MaxEventCount:     2000,
+			MaxOutputBytes:    256 * 1024,
+			OutputFlushBytes:  4096,
+			StartupTimeout:    5 * time.Second,
+		},
 		Provider:          "codex",
 		Model:             "gpt-5.2-codex",
 		WorkingDir:        t.TempDir(),

@@ -19,7 +19,6 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/agent/atomicfile"
 	"github.com/Ranxy/laelia/backend/agent/executor"
 	"github.com/Ranxy/laelia/backend/agent/home"
 )
@@ -800,26 +799,11 @@ func piSessionPath(machineID, agentID string) string {
 }
 
 func loadPiSession(machineID, agentID string) (*piSessionState, error) {
-	data, err := os.ReadFile(piSessionPath(machineID, agentID))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	var s piSessionState
-	if err := json.Unmarshal(data, &s); err != nil {
-		return nil, err
-	}
-	return &s, nil
+	return executor.LoadSessionState[piSessionState](piSessionPath(machineID, agentID))
 }
 
 func savePiSession(machineID, agentID string, s *piSessionState) error {
-	data, err := json.Marshal(s)
-	if err != nil {
-		return err
-	}
-	return atomicfile.WriteFileAtomic(piSessionPath(machineID, agentID), data, 0o600)
+	return executor.SaveSessionState(piSessionPath(machineID, agentID), s)
 }
 
 var requestIDCounter atomic.Int64

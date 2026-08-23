@@ -28,13 +28,9 @@ import (
 // inputs (model, developer instructions, MCP servers). It is never
 // user-authored: BuildThreadConfig derives it from the resolved ACPConfig.
 type ThreadConfig struct {
-	MaxTimeoutSeconds int32
-	MaxEventCount     int32
-	MaxOutputBytes    int64
-	OutputFlushBytes  int32
-	// StartupTimeout bounds the Initialize + thread/start|resume handshake,
-	// mirroring ACPConfig.StartupTimeout.
-	StartupTimeout time.Duration
+	// Limits carries the shared runtime limits (timeout, event/output caps,
+	// flush threshold, startup timeout) defined once in executor.Limits.
+	Limits
 	// IdleTimeout is how long a resident ThreadSession subprocess stays alive
 	// after its last turn before idle eviction. Zero disables eviction. Only
 	// the resident (session) mode reads it; the per-turn executor ignores it.
@@ -65,11 +61,7 @@ func BuildThreadConfig(cfg *ACPConfig) *ThreadConfig {
 		return nil
 	}
 	return &ThreadConfig{
-		MaxTimeoutSeconds: cfg.MaxTimeoutSeconds,
-		MaxEventCount:     cfg.MaxEventCount,
-		MaxOutputBytes:    cfg.MaxOutputBytes,
-		OutputFlushBytes:  cfg.OutputFlushBytes,
-		StartupTimeout:    cfg.StartupTimeout,
+		Limits:            cfg.Limits,
 		Provider:          cfg.Provider,
 		Model:             cfg.Model,
 		WorkingDir:        cfg.WorkingDir,
@@ -116,7 +108,7 @@ type ThreadExecutor struct {
 	eventCount    atomic.Int32
 	outputLimited atomic.Bool
 	eventLimitHit atomic.Bool
-	buffer        outputBuffer
+	buffer        OutputBuffer
 
 	summaryMu      sync.Mutex
 	summaryText    string
@@ -130,9 +122,6 @@ type ThreadExecutor struct {
 var _ Runtime = (*ThreadExecutor)(nil)
 var _ SteerResolver = (*ThreadExecutor)(nil)
 
-// NewThread constructs a per-turn thread executor driven by the given
-// ThreadProvider. The provider supplies the launch command and the EventMapper
-// that translates its notification shapes.
 // NewThread constructs a per-turn thread executor driven by the given
 // ThreadProvider. The provider supplies the launch command and the EventMapper
 // that translates its notification shapes.
@@ -177,8 +166,8 @@ func newThreadExecutor(req Request, cfg *ThreadConfig, p provider.ThreadProvider
 		p:        p,
 		sess:     sess,
 		gate:     acp2.NewTurnGate(),
-		outputCh: make(chan OutputChunk, outputBufferSize),
-		eventCh:  make(chan Event, outputBufferSize),
+		outputCh: make(chan OutputChunk, OutputBufferSize),
+		eventCh:  make(chan Event, OutputBufferSize),
 		resultCh: make(chan Result, 1),
 		done:     make(chan struct{}),
 	}, nil
@@ -295,7 +284,7 @@ func (e *ThreadExecutor) runPerTurn() {
 		// The thread is already persisted for the next turn.
 		_ = KillGroup(e.cmd, syscall.SIGKILL)
 		_ = e.cmd.Wait()
-		e.buffer.flush(e)
+		e.buffer.Flush(e.sendOutput)
 		e.sendResult(Result{
 			ExitCode:     0,
 			DurationMs:   time.Since(e.startedAt).Milliseconds(),
@@ -340,7 +329,7 @@ func (e *ThreadExecutor) runSessionTurn() {
 	promptText := e.turnPromptText(e.resumed)
 	if promptText == "" {
 		sess.EndTurn()
-		e.buffer.flush(e)
+		e.buffer.Flush(e.sendOutput)
 		e.sendResult(Result{
 			ExitCode:     0,
 			DurationMs:   time.Since(e.startedAt).Milliseconds(),
@@ -379,7 +368,7 @@ func (e *ThreadExecutor) runSessionTurn() {
 // by the per-turn and session-backed paths; the caller has already reaped (or
 // handed back) the subprocess.
 func (e *ThreadExecutor) completeTurn(threadID string, resumed bool) {
-	e.buffer.flush(e)
+	e.buffer.Flush(e.sendOutput)
 
 	if errors.Is(e.ctx.Err(), context.DeadlineExceeded) {
 		e.sendResult(Result{ExitCode: 124, DurationMs: time.Since(e.startedAt).Milliseconds(), ErrorMessage: e.ctx.Err().Error()})
@@ -482,15 +471,15 @@ func (e *ThreadExecutor) handleEvent(ev acp2.Event) bool {
 	case acp2.EventTextDelta:
 		e.gate.MarkProgress()
 		e.appendSummary(ev.Text)
-		e.buffer.append(v1pb.CommandOutput_STDOUT, ev.Text)
+		e.buffer.Append(v1pb.CommandOutput_STDOUT, ev.Text)
 		e.flushIfNeeded()
 	case acp2.EventThinkingDelta:
 		e.gate.MarkProgress()
-		e.buffer.append(v1pb.CommandOutput_ASSISTANT, ev.Text)
+		e.buffer.Append(v1pb.CommandOutput_ASSISTANT, ev.Text)
 		e.flushIfNeeded()
 	case acp2.EventToolCallStarted:
 		e.gate.MarkProgress()
-		e.buffer.flush(e)
+		e.buffer.Flush(e.sendOutput)
 		title := ev.ToolCall.Title
 		if title == "" {
 			title = ev.ToolCall.Kind
@@ -505,7 +494,7 @@ func (e *ThreadExecutor) handleEvent(ev acp2.Event) bool {
 		})
 	case acp2.EventToolCallFinished:
 		e.gate.MarkToolBoundary()
-		e.buffer.flush(e)
+		e.buffer.Flush(e.sendOutput)
 		e.sendEvent(Event{
 			Type:    v1pb.CommandEventType_TOOL_CALL_FINISHED,
 			Summary: ev.ToolCall.Status,
@@ -589,7 +578,7 @@ func (e *ThreadExecutor) finish(err error) {
 	if e.cmd != nil {
 		_ = e.cmd.Wait()
 	}
-	e.buffer.flush(e)
+	e.buffer.Flush(e.sendOutput)
 	if errors.Is(e.ctx.Err(), context.DeadlineExceeded) {
 		e.sendResult(Result{ExitCode: 124, DurationMs: time.Since(e.startedAt).Milliseconds(), ErrorMessage: e.ctx.Err().Error()})
 		return
@@ -651,13 +640,13 @@ func (e *ThreadExecutor) sendOutput(streamType v1pb.CommandOutput_StreamType, co
 }
 
 func (e *ThreadExecutor) startFlushTimer() {
-	ticker := time.NewTicker(flushOutputInterval)
+	ticker := time.NewTicker(FlushOutputInterval)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
-			if e.buffer.hasContent() {
-				e.buffer.flush(e)
+			if e.buffer.HasContent() {
+				e.buffer.Flush(e.sendOutput)
 			}
 		case <-e.ctx.Done():
 			return
@@ -666,8 +655,8 @@ func (e *ThreadExecutor) startFlushTimer() {
 }
 
 func (e *ThreadExecutor) flushIfNeeded() {
-	if e.buffer.totalLen() >= int(e.cfg.OutputFlushBytes) {
-		e.buffer.flush(e)
+	if e.buffer.TotalLen() >= int(e.cfg.OutputFlushBytes) {
+		e.buffer.Flush(e.sendOutput)
 	}
 }
 

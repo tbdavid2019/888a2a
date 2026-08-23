@@ -93,11 +93,13 @@ func newCodexTestConfig(t *testing.T, workspace string) *ThreadConfig {
 	t.Helper()
 	t.Setenv("HOME", t.TempDir())
 	return &ThreadConfig{
-		MaxTimeoutSeconds: 120,
-		MaxEventCount:     2000,
-		MaxOutputBytes:    256 * 1024,
-		OutputFlushBytes:  4096,
-		StartupTimeout:    30 * time.Second,
+		Limits: Limits{
+			MaxTimeoutSeconds: 120,
+			MaxEventCount:     2000,
+			MaxOutputBytes:    256 * 1024,
+			OutputFlushBytes:  4096,
+			StartupTimeout:    30 * time.Second,
+		},
 		Provider:          "codex",
 		Model:             os.Getenv("LAELIA_CODEX_MODEL"),
 		WorkingDir:        workspace,

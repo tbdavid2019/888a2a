@@ -6,10 +6,6 @@ import (
 	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
 )
 
-// outputBufferSize bounds the in-flight channel between a Runtime and the
-// stream pump that forwards chunks to the manager.
-const outputBufferSize = 1024
-
 type Request struct {
 	CommandID        string
 	Profile          string
