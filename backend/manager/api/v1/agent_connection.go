@@ -269,9 +269,9 @@ func (s *AgentService) AgentHeartbeat(ctx context.Context, req *connect.Request[
 
 	// The per-heartbeat agent.status rewrite used to cost a full JSONB marshal
 	// + UPDATE + cache refill per agent per heartbeat. The HeartbeatBuffer now
-	// batches last_heartbeat_at (session touch + status jsonb_set) once per
-	// flush window per agent; the immediate TouchAgentSession above keeps the
-	// session row fresh on the request path.
+	// batches last_heartbeat_at (session touch + status jsonb_set) for every
+	// agent in one multi-row UPDATE per flush window; the immediate
+	// TouchAgentSession above keeps the session row fresh on the request path.
 	nowSec := time.Now().Unix()
 	if s.stateCfg.HeartbeatBuffer != nil {
 		s.stateCfg.HeartbeatBuffer.Record(&state.HeartbeatUpdate{

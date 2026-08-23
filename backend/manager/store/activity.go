@@ -277,25 +277,121 @@ func (s *Store) MarkConversationActivitiesRead(ctx context.Context, principalID 
 	return nil
 }
 
+// activityWorkerCount bounds how many activity-generation jobs run at once.
+// Activity generation is mostly DB reads + a few upserts, so a small pool is
+// enough to absorb bursts without piling up goroutines.
+const activityWorkerCount = 4
+
+// activityQueueSize bounds how many messages may wait for activity generation.
+// Enqueue is non-blocking: when the queue is full the activity row is dropped
+// (best-effort) rather than back-pressuring the message-send critical path.
+const activityQueueSize = 1024
+
+// activityJobTimeout bounds a single activity-generation job so a hung
+// Postgres cannot stall a worker (and therefore shutdown) forever.
+const activityJobTimeout = 30 * time.Second
+
+// activityJob is one queued activity-generation task.
+type activityJob struct {
+	msg            *ChatMessage
+	rootIsTask     bool
+	rootIsReminder bool
+}
+
+// startActivityWorkers launches the bounded activity worker pool. It is called
+// once from New; a zero-value Store (tests) has no workers and
+// GenerateActivityForMessage drops jobs instead of panicking.
+func (s *Store) startActivityWorkers() {
+	s.activityMu.Lock()
+	if s.activityJobs != nil {
+		s.activityMu.Unlock()
+		return
+	}
+	s.activityJobs = make(chan activityJob, activityQueueSize)
+	s.activityStop = make(chan struct{})
+	for i := 0; i < activityWorkerCount; i++ {
+		s.activityWg.Add(1)
+	}
+	s.activityMu.Unlock()
+
+	for i := 0; i < activityWorkerCount; i++ {
+		go s.activityWorker()
+	}
+}
+
+// stopActivityWorkers stops the worker pool and waits for in-flight jobs to
+// finish. Queued-but-not-started jobs are dropped, which is fine for this
+// best-effort path and keeps shutdown bounded. It is idempotent and safe to
+// call on a Store whose workers were never started.
+func (s *Store) stopActivityWorkers() {
+	s.activityMu.Lock()
+	if s.activityClosed || s.activityJobs == nil {
+		s.activityMu.Unlock()
+		return
+	}
+	s.activityClosed = true
+	close(s.activityStop)
+	s.activityMu.Unlock()
+	s.activityWg.Wait()
+}
+
+func (s *Store) activityWorker() {
+	defer s.activityWg.Done()
+	for {
+		// Prefer shutdown over queued work so Close does not drain the whole
+		// backlog; queued-but-not-started jobs are best-effort and may be
+		// dropped.
+		select {
+		case <-s.activityStop:
+			return
+		default:
+		}
+
+		select {
+		case job := <-s.activityJobs:
+			// Detached context: the caller's request ctx may be cancelled as soon
+			// as the handler returns. Bound each job so a hung Postgres cannot
+			// stall a worker forever.
+			ctx, cancel := context.WithTimeout(context.Background(), activityJobTimeout)
+			s.generateActivityRows(ctx, job.msg, job.rootIsTask, job.rootIsReminder)
+			cancel()
+		case <-s.activityStop:
+			return
+		}
+	}
+}
+
 // GenerateActivityForMessage computes the target-user set and category flags for
-// a freshly inserted message and writes activity rows, fire-and-forget on a
-// background goroutine. It is the single entry point shared by the API message
-// handlers (SendMessage, PostMessage, CreateTask, the reminder lifecycle
-// handlers) and the scheduler (reminder miss), so activity generation lives in
-// the store layer to avoid a circular dependency from the scheduler back into
-// the API service.
+// a freshly inserted message and writes activity rows, fire-and-forget on the
+// bounded activity worker pool. It is the single entry point shared by the API
+// message handlers (SendMessage, PostMessage, CreateTask, the reminder
+// lifecycle handlers) and the scheduler (reminder miss), so activity generation
+// lives in the store layer to avoid a circular dependency from the scheduler
+// back into the API service.
 //
 // The work is best-effort: a missed activity row is a missed notification, not
-// data corruption, so it must NOT block the message-send critical path. It is
-// therefore dispatched on a background goroutine with a detached context
-// (context.Background), mirroring the audit interceptor's fire-and-forget write —
-// the caller's request ctx may be cancelled as soon as the handler returns, so
-// the request ctx cannot be used here. See generateActivityRows for the
+// data corruption, so it must NOT block the message-send critical path. Jobs are
+// enqueued without blocking; when the queue is full the activity row is dropped
+// and logged. The caller's request ctx may be cancelled as soon as the handler
+// returns, so workers use a detached context. See generateActivityRows for the
 // targeting/folding contract.
 func (s *Store) GenerateActivityForMessage(msg *ChatMessage, rootIsTask, rootIsReminder bool) {
-	go func() {
-		s.generateActivityRows(context.Background(), msg, rootIsTask, rootIsReminder)
-	}()
+	if msg == nil {
+		return
+	}
+
+	s.activityMu.RLock()
+	defer s.activityMu.RUnlock()
+	if s.activityClosed || s.activityJobs == nil {
+		slog.Warn("activity worker not running; dropping activity generation", "messageID", msg.ID)
+		return
+	}
+
+	select {
+	case s.activityJobs <- activityJob{msg: msg, rootIsTask: rootIsTask, rootIsReminder: rootIsReminder}:
+	default:
+		slog.Warn("activity worker queue full; dropping activity generation", "messageID", msg.ID)
+	}
 }
 
 // activityUpsert is one activity row to write for a target user.
@@ -564,23 +660,17 @@ func (s *Store) generateActivityRows(ctx context.Context, msg *ChatMessage, root
 		upsert(target.uid, target.key, target.message, target.root, target.cats)
 	}
 
-	// Fan Web Push notifications out to every targeted user on a single detached
-	// goroutine, mirroring GenerateActivityForMessage's fire-and-forget policy.
-	// The request ctx may be cancelled by the time this runs, so use a detached
-	// context; the sender's per-subscription fan-out is bounded internally. A
-	// missed push is not data corruption, so failures are logged inside the
-	// sender and never propagate.
+	// Fan Web Push notifications out to every targeted user. This already runs
+	// on the bounded activity worker, so no extra goroutine is needed here; the
+	// sender's per-subscription fan-out is bounded internally. A missed push is
+	// not data corruption, so failures are logged inside the sender and never
+	// propagate.
 	if s.webPushSender != nil && len(pushTargets) > 0 {
-		sender := s.webPushSender
-		targets := pushTargets
-		go func() {
-			ctx := context.Background()
-			for _, t := range targets {
-				if payload := buildPushPayload(msg, t.cats); payload != nil {
-					sender.SendToUser(ctx, t.uid, payload)
-				}
+		for _, t := range pushTargets {
+			if payload := buildPushPayload(msg, t.cats); payload != nil {
+				s.webPushSender.SendToUser(ctx, t.uid, payload)
 			}
-		}()
+		}
 	}
 }
 

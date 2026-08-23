@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -415,26 +416,86 @@ func (s *Store) CreateAgent(ctx context.Context, create *AgentMessage) (*AgentMe
 	return agent, nil
 }
 
-// TouchAgentHeartbeat records an agent heartbeat in one round trip: it touches
-// the ACTIVE session row and patches the agent status' last_heartbeat_at via
-// jsonb_set (instead of marshaling and rewriting the whole status JSONB from
-// Go), then refreshes the in-memory cache so reads see the new heartbeat
-// without a DB re-read. The HeartbeatBuffer calls it once per agent per flush
-// window, so a steady heartbeat stream costs one UPDATE per flush instead of a
-// full-row status rewrite per heartbeat.
+// AgentHeartbeat is one agent's heartbeat update for a batch flush.
+type AgentHeartbeat struct {
+	AgentID         int
+	LastHeartbeatAt int64
+}
+
+// TouchAgentHeartbeat records a single agent heartbeat. It is a convenience
+// wrapper around TouchAgentHeartbeats for callers that update one agent at a
+// time; the HeartbeatBuffer uses the batch form.
 func (s *Store) TouchAgentHeartbeat(ctx context.Context, agentID int, lastHeartbeatAt int64) error {
-	// Single data-modifying CTE keeps both writes atomic in one round trip.
-	if _, err := s.GetDB().ExecContext(ctx, `
-		WITH touched AS (
-			UPDATE agent_session SET last_heartbeat_at = to_timestamp($2)
-			WHERE agent_id = $1 AND state = 'ACTIVE'
-		)
-		UPDATE agent SET status = jsonb_set(status, '{last_heartbeat_at}', to_jsonb($2))
-		WHERE id = $1
-	`, agentID, lastHeartbeatAt); err != nil {
-		return err
+	return s.TouchAgentHeartbeats(ctx, []AgentHeartbeat{{AgentID: agentID, LastHeartbeatAt: lastHeartbeatAt}})
+}
+
+// TouchAgentHeartbeats records many agent heartbeats in one round trip per
+// chunk: it touches each ACTIVE session row and patches each agent status'
+// last_heartbeat_at via jsonb_set (instead of marshaling and rewriting the
+// whole status JSONB from Go), then refreshes the in-memory cache so reads see
+// the new heartbeats without a DB re-read. The HeartbeatBuffer flushes its
+// whole snapshot here, so a steady heartbeat stream costs one multi-row UPDATE
+// per flush window instead of one UPDATE per agent per flush.
+func (s *Store) TouchAgentHeartbeats(ctx context.Context, heartbeats []AgentHeartbeat) error {
+	if len(heartbeats) == 0 {
+		return nil
 	}
-	s.refreshAgentHeartbeatCache(agentID, lastHeartbeatAt)
+
+	// The buffer already dedupes by agent id, but keep the batch method robust:
+	// collapse duplicate ids and keep the newest heartbeat for each agent.
+	latest := make(map[int]int64, len(heartbeats))
+	for _, hb := range heartbeats {
+		if cur, ok := latest[hb.AgentID]; !ok || hb.LastHeartbeatAt > cur {
+			latest[hb.AgentID] = hb.LastHeartbeatAt
+		}
+	}
+	ids := make([]int, 0, len(latest))
+	for id := range latest {
+		ids = append(ids, id)
+	}
+	sort.Ints(ids)
+
+	// Two parameters per row; 5000 rows => 10,000 parameters, safely under
+	// Postgres' 65,535 parameter limit.
+	const chunkSize = 5000
+	for start := 0; start < len(ids); start += chunkSize {
+		chunk := ids[start:min(start+chunkSize, len(ids))]
+		var sb strings.Builder
+		// strings.Builder never errors; discard the (int, error) results.
+		write := func(s string) { _, _ = sb.WriteString(s) }
+		write(`
+			WITH vals(agent_id, ts) AS (
+				VALUES `)
+		args := make([]any, 0, len(chunk)*2)
+		for i, id := range chunk {
+			if i > 0 {
+				write(",")
+			}
+			base := i * 2
+			write(fmt.Sprintf("($%d::bigint, $%d::bigint)", base+1, base+2))
+			args = append(args, id, latest[id])
+		}
+		write(`
+			),
+			touched AS (
+				UPDATE agent_session AS sess
+				   SET last_heartbeat_at = to_timestamp(vals.ts::double precision)
+				  FROM vals
+				 WHERE sess.agent_id = vals.agent_id AND sess.state = 'ACTIVE'
+			)
+			UPDATE agent AS a
+			   SET status = jsonb_set(status, '{last_heartbeat_at}', to_jsonb(vals.ts))
+			  FROM vals
+			 WHERE a.id = vals.agent_id`)
+
+		if _, err := s.GetDB().ExecContext(ctx, sb.String(), args...); err != nil {
+			return errors.Wrapf(err, "failed to batch touch agent heartbeats")
+		}
+		for _, id := range chunk {
+			s.refreshAgentHeartbeatCache(id, latest[id])
+		}
+	}
+
 	return nil
 }
 

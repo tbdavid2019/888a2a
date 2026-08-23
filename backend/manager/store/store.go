@@ -53,6 +53,17 @@ type Store struct {
 	// create/update/delete.
 	globalMentionIndexMu sync.RWMutex
 	globalMentionIndex   *GlobalMentionIndex
+
+	// activity worker pool bounds the fire-and-forget activity generation so a
+	// message burst cannot spawn an unbounded number of goroutines. Jobs are
+	// enqueued without blocking the message-send critical path; when the queue
+	// is full (or the store is closing) the activity row is dropped, which is
+	// acceptable for this best-effort path.
+	activityMu     sync.RWMutex
+	activityJobs   chan activityJob
+	activityStop   chan struct{}
+	activityWg     sync.WaitGroup
+	activityClosed bool
 }
 
 func New(ctx context.Context, pgURL string, enableCache bool) (*Store, error) {
@@ -125,11 +136,15 @@ func New(ctx context.Context, pgURL string, enableCache bool) (*Store, error) {
 		machineResourceIDCache: machineResourceIDCache,
 		rolesCache:             rolesCache,
 	}
+	s.startActivityWorkers()
 
 	return s, nil
 }
 
 func (s *Store) Close() error {
+	// Stop the activity workers and drain their queue before closing the
+	// database, so an in-flight activity write cannot use a closed *sql.DB.
+	s.stopActivityWorkers()
 	return s.dbConnManager.Close()
 }
 

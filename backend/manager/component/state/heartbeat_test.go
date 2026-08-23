@@ -5,16 +5,20 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/Ranxy/laelia/backend/manager/store"
 )
 
-// fakeHeartbeatWriter counts TouchAgentHeartbeat calls so the buffer can be
-// exercised without a Postgres connection.
+// fakeHeartbeatWriter counts TouchAgentHeartbeats calls and rows so the buffer
+// can be exercised without a Postgres connection.
 type fakeHeartbeatWriter struct {
 	count atomic.Int64
+	rows  atomic.Int64
 }
 
-func (f *fakeHeartbeatWriter) TouchAgentHeartbeat(_ context.Context, _ int, _ int64) error {
+func (f *fakeHeartbeatWriter) TouchAgentHeartbeats(_ context.Context, updates []store.AgentHeartbeat) error {
 	f.count.Add(1)
+	f.rows.Add(int64(len(updates)))
 	return nil
 }
 
@@ -48,4 +52,26 @@ func TestHeartbeatBuffer_StartIdempotent(t *testing.T) {
 func TestHeartbeatBuffer_StopBeforeStart(_ *testing.T) {
 	b := NewHeartbeatBuffer(nil, 30*time.Millisecond)
 	b.Stop() // must not panic on nil cancel
+}
+
+// TestHeartbeatBuffer_FlushBatchesAgents guards the batch-flush contract: one
+// flush writes every buffered agent in a single store call, not one call per
+// agent.
+func TestHeartbeatBuffer_FlushBatchesAgents(t *testing.T) {
+	fake := &fakeHeartbeatWriter{}
+	b := NewHeartbeatBuffer(nil, time.Hour)
+	b.store = fake
+
+	b.Record(&HeartbeatUpdate{AgentID: 1, LastHeartbeatAt: 10})
+	b.Record(&HeartbeatUpdate{AgentID: 2, LastHeartbeatAt: 20})
+	b.Record(&HeartbeatUpdate{AgentID: 1, LastHeartbeatAt: 11}) // deduped by buffer
+
+	b.flush()
+
+	if got := fake.count.Load(); got != 1 {
+		t.Errorf("expected one batch store call, got %d", got)
+	}
+	if got := fake.rows.Load(); got != 2 {
+		t.Errorf("expected two heartbeat rows in the batch, got %d", got)
+	}
 }

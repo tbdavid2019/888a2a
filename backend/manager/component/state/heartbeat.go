@@ -19,7 +19,7 @@ type HeartbeatUpdate struct {
 // satisfies it; tests may pass a fake. Keeping it an interface (rather than
 // *store.Store) lets the buffer be unit-tested without a Postgres connection.
 type heartbeatWriter interface {
-	TouchAgentHeartbeat(ctx context.Context, agentID int, lastHeartbeatAt int64) error
+	TouchAgentHeartbeats(ctx context.Context, updates []store.AgentHeartbeat) error
 }
 
 type HeartbeatBuffer struct {
@@ -32,6 +32,9 @@ type HeartbeatBuffer struct {
 	// cancel and leak the first flush goroutine.
 	startMu sync.Mutex
 	cancel  context.CancelFunc
+	// done is closed when the flush goroutine exits after its final flush;
+	// Stop waits on it so the caller never races the last batch.
+	done chan struct{}
 }
 
 func NewHeartbeatBuffer(store *store.Store, interval time.Duration) *HeartbeatBuffer {
@@ -60,7 +63,8 @@ func (b *HeartbeatBuffer) GetLatest(agentID int) *HeartbeatUpdate {
 // Start launches the flush ticker. It is idempotent: a second call (e.g. if
 // the server wiring ever double-starts it) returns immediately instead of
 // overwriting b.cancel and leaving the first goroutine running with no way
-// to stop it. The goroutine exits when ctx is cancelled and does a final flush.
+// to stop it. The goroutine exits when ctx is cancelled, does a final flush,
+// and closes done so Stop can join it.
 func (b *HeartbeatBuffer) Start(ctx context.Context) {
 	b.startMu.Lock()
 	if b.cancel != nil {
@@ -70,9 +74,11 @@ func (b *HeartbeatBuffer) Start(ctx context.Context) {
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	b.cancel = cancel
+	b.done = make(chan struct{})
 	b.startMu.Unlock()
 
 	go func() {
+		defer close(b.done)
 		ticker := time.NewTicker(b.interval)
 		defer ticker.Stop()
 
@@ -88,13 +94,19 @@ func (b *HeartbeatBuffer) Start(ctx context.Context) {
 	}()
 }
 
+// Stop cancels the flush loop and blocks until the final flush has been
+// written, so a caller that closes the store right after Stop cannot race the
+// last batch. It is safe to call before Start or more than once.
 func (b *HeartbeatBuffer) Stop() {
 	b.startMu.Lock()
 	cancel := b.cancel
+	done := b.done
 	b.startMu.Unlock()
-	if cancel != nil {
-		cancel()
+	if cancel == nil {
+		return
 	}
+	cancel()
+	<-done
 }
 
 func (b *HeartbeatBuffer) flush() {
@@ -112,9 +124,15 @@ func (b *HeartbeatBuffer) flush() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	updates := make([]store.AgentHeartbeat, 0, len(snapshot))
 	for _, update := range snapshot {
-		if err := b.store.TouchAgentHeartbeat(ctx, update.AgentID, update.LastHeartbeatAt); err != nil {
-			slog.Error("failed to batch update agent heartbeat", "agent_id", update.AgentID, "error", err)
-		}
+		updates = append(updates, store.AgentHeartbeat{
+			AgentID:         update.AgentID,
+			LastHeartbeatAt: update.LastHeartbeatAt,
+		})
+	}
+
+	if err := b.store.TouchAgentHeartbeats(ctx, updates); err != nil {
+		slog.Error("failed to batch update agent heartbeats", "count", len(updates), "error", err)
 	}
 }

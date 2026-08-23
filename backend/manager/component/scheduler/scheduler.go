@@ -1,11 +1,12 @@
-// Package scheduler fires reminders at their scheduled time. It runs two
+// Package scheduler fires reminders at their scheduled time. It runs three
 // background tick loops: a due scan that flips PENDING reminders whose fire_at
 // has passed to DUE and wakes the owning agent (or schedules an offline retry),
-// and a retry scan that re-attempts delivery for DUE reminders whose agent was
-// offline at fire time, with a bounded backoff. After the backoff is exhausted
-// a one-shot reminder is marked MISSED; a recurring reminder is rescheduled to
-// the next cron fire. The scheduler is crash-safe: it scans the database each
-// tick (no in-memory timer heap), so a restart picks up all pending work.
+// a retry scan that re-attempts delivery for DUE reminders whose agent was
+// offline at fire time, with a bounded backoff, and a daily unverified-account
+// cleanup. After the backoff is exhausted a one-shot reminder is marked MISSED;
+// a recurring reminder is rescheduled to the next cron fire. The scheduler is
+// crash-safe: it scans the database each tick (no in-memory timer heap), so a
+// restart picks up all pending work.
 package scheduler
 
 import (
@@ -58,6 +59,11 @@ type Scheduler struct {
 	lifecycleCancel context.CancelFunc
 	wg              sync.WaitGroup
 
+	// startMu guards the single-flight Start so a second call cannot spawn a
+	// second set of scan loops on the same WaitGroup.
+	startMu sync.Mutex
+	started bool
+
 	// lastUnverifiedScan guards the daily unverified-account cleanup.
 	lastUnverifiedScan time.Time
 }
@@ -75,23 +81,37 @@ func New(s *store.Store, disp *dispatcher.Dispatcher) *Scheduler {
 	}
 }
 
-// Start launches the due and retry scan loops. They run until Stop cancels the
-// scheduler's lifecycle context, and are tracked on the WaitGroup so shutdown
-// joins them. Idempotent: calling Start twice spawns two loops; callers call
-// it once from Server.Run.
+// Start launches the due, retry, and unverified-user scan loops. They run
+// until Stop cancels the scheduler's lifecycle context, and are tracked on the
+// WaitGroup so shutdown joins them. Start is single-flight: a second call
+// returns immediately instead of spawning a second set of loops on the same
+// WaitGroup. Callers call it once from Server.Run.
 func (s *Scheduler) Start() {
+	s.startMu.Lock()
+	if s.started {
+		s.startMu.Unlock()
+		return
+	}
+	s.started = true
 	s.wg.Add(1)
 	go s.runLoop(s.scanDue)
 	s.wg.Add(1)
 	go s.runLoop(s.scanRetry)
 	s.wg.Add(1)
 	go s.runLoop(s.scanUnverifiedUsers)
+	s.startMu.Unlock()
 }
 
-// Stop cancels the lifecycle context and waits for both loops to exit.
-// Idempotent.
+// Stop cancels the lifecycle context and waits for the scan loops to exit.
+// It is safe to call before Start or more than once.
 func (s *Scheduler) Stop() {
+	s.startMu.Lock()
+	if !s.started {
+		s.startMu.Unlock()
+		return
+	}
 	s.lifecycleCancel()
+	s.startMu.Unlock()
 	s.wg.Wait()
 }
 

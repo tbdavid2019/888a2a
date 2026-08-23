@@ -195,3 +195,13 @@ func TestExcludeSenderFromActivity(t *testing.T) {
 		assert.Equal(t, int32(ActivityCategoryTask), thread[8])
 	})
 }
+
+// TestActivityWorkerPoolStartStop guards the worker-pool lifecycle: starting
+// and stopping the pool (including a second, idempotent stop) must not panic
+// or leak workers. No jobs are enqueued, so no database is needed.
+func TestActivityWorkerPoolStartStop(t *testing.T) {
+	s := &Store{}
+	s.startActivityWorkers()
+	s.stopActivityWorkers()
+	s.stopActivityWorkers() // idempotent
+}
