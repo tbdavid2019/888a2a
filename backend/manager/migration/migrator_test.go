@@ -420,7 +420,7 @@ func TestMigrateSchema_A2AWorkUpgrade(t *testing.T) {
 	if err := MigrateSchema(ctx, db); err != nil {
 		t.Fatalf("MigrateSchema (fresh): %v", err)
 	}
-	assertHistoryVersions(t, db, "1.1.26")
+	assertHistoryVersions(t, db, "1.1.27")
 
 	// Remove only the four work tables from this throwaway database, in reverse
 	// dependency order, then rewind the sole history row to the preceding
@@ -463,6 +463,51 @@ func TestMigrateSchema_A2AWorkUpgrade(t *testing.T) {
 		}
 	}
 	assertHistoryVersions(t, db, "1.1.25", "1.1.26")
+}
+
+func TestMigrateSchema_MachineAssignmentUpgrade(t *testing.T) {
+	db := integrationDB(t)
+	ctx := context.Background()
+
+	if err := MigrateSchema(ctx, db); err != nil {
+		t.Fatalf("MigrateSchema (fresh): %v", err)
+	}
+	assertHistoryVersions(t, db, "1.1.27")
+
+	for _, table := range []string{
+		"a2a888_machine_assignment_event",
+		"a2a888_machine_assignment_state",
+	} {
+		if _, err := db.ExecContext(ctx, "DROP TABLE IF EXISTS "+table); err != nil {
+			t.Fatalf("drop %s: %v", table, err)
+		}
+	}
+	if _, err := db.ExecContext(ctx,
+		"UPDATE schema_migration_history SET version = $1", "1.1.26"); err != nil {
+		t.Fatalf("rewind schema history: %v", err)
+	}
+
+	incrementalPath := "migration/1.1/0027##machine-assignment-persistence.sql"
+	incremental, err := fs.ReadFile(migrationFS, incrementalPath)
+	if err != nil {
+		t.Fatalf("read Machine Assignment incremental: %v", err)
+	}
+	upgradeFS := fstest.MapFS{
+		latestSchemaFileName: {Data: []byte("-- existing schema")},
+		incrementalPath:      {Data: incremental},
+	}
+	if err := migrateSchemaFS(ctx, db, upgradeFS); err != nil {
+		t.Fatalf("MigrateSchema (Machine Assignment upgrade): %v", err)
+	}
+	for _, table := range []string{
+		"a2a888_machine_assignment_event",
+		"a2a888_machine_assignment_state",
+	} {
+		if !tableExistsQ(t, db, table) {
+			t.Fatalf("Machine Assignment upgrade did not recreate %s", table)
+		}
+	}
+	assertHistoryVersions(t, db, "1.1.26", "1.1.27")
 }
 
 // --- helpers ---

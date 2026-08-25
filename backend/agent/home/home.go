@@ -8,13 +8,22 @@ import (
 	"path/filepath"
 )
 
-// EnvDir is the environment variable that overrides the Laelia data root.
-const EnvDir = "LAELIA_HOME"
+// EnvDir is the environment variable that overrides the 888a2a data root.
+const (
+	EnvDir       = "A2A888_HOME"
+	LegacyEnvDir = "LAE" + "LIA_HOME"
+)
 
-// Dir returns the Laelia data root directory. If LAELIA_HOME is set, it is
-// used directly (made absolute); otherwise it defaults to ~/.laelia.
+// Dir returns the 888a2a data root directory. If A2A888_HOME (or legacy fallback)
+// is set, it is used directly (made absolute); otherwise it defaults to ~/.888a2a.
 func Dir() string {
 	if d := os.Getenv(EnvDir); d != "" {
+		if abs, err := filepath.Abs(d); err == nil {
+			return abs
+		}
+		return d
+	}
+	if d := os.Getenv(LegacyEnvDir); d != "" {
 		if abs, err := filepath.Abs(d); err == nil {
 			return abs
 		}

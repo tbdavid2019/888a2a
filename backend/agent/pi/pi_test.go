@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Ranxy/laelia/backend/agent/executor"
+	"github.com/Ranxy/laelia/backend/agent/home"
 	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
 )
 
@@ -174,7 +175,7 @@ func TestBuildPiEnv_APIKeyAndBootstrap(t *testing.T) {
 }
 
 func TestBuildPiEnvPropagatesLaeliaHomeOutsideAllowEnv(t *testing.T) {
-	t.Setenv("LAELIA_HOME", "/custom/laelia")
+	t.Setenv(home.EnvDir, "/custom/laelia")
 	t.Setenv("PATH", "/usr/bin")
 
 	cfg := &PiConfig{
@@ -187,7 +188,7 @@ func TestBuildPiEnvPropagatesLaeliaHomeOutsideAllowEnv(t *testing.T) {
 	}
 	env := cfg.buildPiEnv("commands/1")
 	m := envMap(env)
-	assert.Equal(t, "/custom/laelia", m["LAELIA_HOME"], "parent LAELIA_HOME must be forced into pi env even though piAllowEnv does not include it")
+	assert.Equal(t, "/custom/laelia", m[home.EnvDir], "parent data root must be forced into pi env even though piAllowEnv does not include it")
 }
 
 func envMap(env []string) map[string]string {

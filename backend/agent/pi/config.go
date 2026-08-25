@@ -261,24 +261,31 @@ func (c *PiConfig) buildPiEnv(commandID string) []string {
 		values["PI_CODING_AGENT_DIR"] = c.ConfigDir
 	}
 
-	// laelia-machine bootstrap so the LLM can drive the chat loop from its shell.
+	// 888a2a-machine bootstrap so the LLM can drive the chat loop from its shell.
 	if c.DaemonSocket != "" {
+		values["A2A888_DAEMON_SOCKET"] = c.DaemonSocket
 		values["LAELIA_DAEMON_SOCKET"] = c.DaemonSocket
 	}
 	if c.SessionToken != "" {
+		values["A2A888_SESSION_TOKEN"] = c.SessionToken
 		values["LAELIA_SESSION_TOKEN"] = c.SessionToken
 	}
 	if c.AgentResourceID != "" {
+		values["A2A888_AGENT"] = c.AgentResourceID
 		values["LAELIA_AGENT"] = c.AgentResourceID
 	}
 	if commandID != "" {
+		values["A2A888_COMMAND"] = commandID
 		values["LAELIA_COMMAND"] = commandID
 	}
-	// Propagate LAELIA_HOME unconditionally when the parent has it, so pi and
-	// any laelia-machine CLI it spawns resolve the same data root even though
-	// LAELIA_HOME is not part of the fixed piAllowEnv whitelist.
+	// Propagate A2A888_HOME (and legacy fallback) unconditionally when the parent has it, so pi and
+	// any machine CLI it spawns resolve the same data root even though
+	// A2A888_HOME is not part of the fixed piAllowEnv whitelist.
 	if v := os.Getenv(home.EnvDir); v != "" {
 		values[home.EnvDir] = v
+	}
+	if v := os.Getenv(home.LegacyEnvDir); v != "" {
+		values[home.LegacyEnvDir] = v
 	}
 	if c.BinaryDir != "" {
 		existing := values["PATH"]

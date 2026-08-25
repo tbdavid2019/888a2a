@@ -238,3 +238,4 @@ export enum AssignmentEventType {
  * Describes the enum a2a888.v1.AssignmentEventType.
  */
 export declare const AssignmentEventTypeSchema: GenEnum<AssignmentEventType>;
+

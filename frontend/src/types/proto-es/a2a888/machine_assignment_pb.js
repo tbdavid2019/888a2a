@@ -67,3 +67,4 @@ export const AssignmentEventTypeSchema = /*@__PURE__*/
  */
 export const AssignmentEventType = /*@__PURE__*/
   tsEnum(AssignmentEventTypeSchema);
+

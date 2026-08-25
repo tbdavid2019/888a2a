@@ -13,17 +13,42 @@ import (
 
 	"github.com/Ranxy/laelia/backend/agent/atomicfile"
 	"github.com/Ranxy/laelia/backend/agent/home"
+	"github.com/Ranxy/laelia/backend/generated-go/a2a888"
 )
 
 // State is the persisted machine registration. The refresh token is the only
 // credential; the manager URL and machine id let setup decide between
 // re-authenticating the existing machine and creating a new one.
 type State struct {
-	ManagerURL   string    `json:"manager_url"`
-	MachineID    string    `json:"machine_id"`
-	RefreshToken string    `json:"refresh_token"`
-	Hostname     string    `json:"hostname"`
-	CreatedAt    time.Time `json:"created_at"`
+	ManagerURL    string                   `json:"manager_url"`
+	MachineID     string                   `json:"machine_id"`
+	RefreshToken  string                   `json:"refresh_token"`
+	Hostname      string                   `json:"hostname"`
+	CreatedAt     time.Time                `json:"created_at"`
+	LastAckCursor *a2a888.AssignmentCursor `json:"last_ack_cursor,omitempty"`
+}
+
+// GetLastAckCursor returns the persisted assignment acknowledgement cursor or nil.
+func (s *State) GetLastAckCursor() *a2a888.AssignmentCursor {
+	if s == nil || s.LastAckCursor == nil {
+		return nil
+	}
+	return s.LastAckCursor
+}
+
+// SaveAckCursor updates and persists the assignment acknowledgement cursor.
+func SaveAckCursor(cursor *a2a888.AssignmentCursor) error {
+	s, err := Load()
+	if err != nil {
+		return err
+	}
+	if s == nil {
+		s = &State{
+			CreatedAt: time.Now(),
+		}
+	}
+	s.LastAckCursor = cursor
+	return Save(s)
 }
 
 // Path returns the state file location (default ~/.laelia/machine.json, or

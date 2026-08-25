@@ -1,7 +1,10 @@
 package assignment
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"sort"
 	"strings"
 
 	pkgerrors "github.com/pkg/errors"
@@ -170,6 +173,42 @@ func (r *Reducer) Assignment(agentResourceID string) (Assignment, bool) {
 	}
 	assignment.Config = cloneConfig(assignment.Config)
 	return assignment, true
+}
+
+func (r *Reducer) ActiveAssignments() map[string]Assignment {
+	out := make(map[string]Assignment, len(r.assignments))
+	for k, v := range r.assignments {
+		out[k] = Assignment{
+			AgentResourceID: v.AgentResourceID,
+			Config:          cloneConfig(v.Config),
+		}
+	}
+	return out
+}
+
+func (r *Reducer) ActiveAgentIDs() []string {
+	ids := make([]string, 0, len(r.assignments))
+	for id := range r.assignments {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	return ids
+}
+
+func (r *Reducer) FullRosterRevision() string {
+	ids := r.ActiveAgentIDs()
+	var sb strings.Builder
+	for _, id := range ids {
+		asg := r.assignments[id]
+		sb.WriteString(id)
+		sb.WriteString("=")
+		if asg.Config != nil {
+			sb.WriteString(asg.Config.GetRevision())
+		}
+		sb.WriteString(";")
+	}
+	hash := sha256.Sum256([]byte(sb.String()))
+	return "sha256:" + hex.EncodeToString(hash[:])
 }
 
 func validateEvent(event *a2a888.MachineAssignmentEvent, machineResourceID string) error {

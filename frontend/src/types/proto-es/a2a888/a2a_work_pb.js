@@ -89,3 +89,4 @@ export const WorkStateSchema = /*@__PURE__*/
  */
 export const WorkState = /*@__PURE__*/
   tsEnum(WorkStateSchema);
+

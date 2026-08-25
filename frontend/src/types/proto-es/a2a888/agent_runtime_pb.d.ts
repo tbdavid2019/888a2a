@@ -877,3 +877,4 @@ export enum CompatibilityLevel {
  * Describes the enum a2a888.v1.CompatibilityLevel.
  */
 export declare const CompatibilityLevelSchema: GenEnum<CompatibilityLevel>;
+

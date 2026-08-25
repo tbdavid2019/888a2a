@@ -5,20 +5,20 @@
 
 - [v1/annotation.proto](#v1_annotation-proto)
     - [AuthMethod](#laelia-v1-AuthMethod)
-  
+
     - [File-level Extensions](#v1_annotation-proto-extensions)
     - [File-level Extensions](#v1_annotation-proto-extensions)
     - [File-level Extensions](#v1_annotation-proto-extensions)
     - [File-level Extensions](#v1_annotation-proto-extensions)
-  
+
 - [v1/common.proto](#v1_common-proto)
     - [PermissionDeniedDetail](#laelia-v1-PermissionDeniedDetail)
     - [Position](#laelia-v1-Position)
     - [Range](#laelia-v1-Range)
-  
+
     - [RiskLevel](#laelia-v1-RiskLevel)
     - [State](#laelia-v1-State)
-  
+
 - [v1/agent.proto](#v1_agent-proto)
     - [Agent](#laelia-v1-Agent)
     - [Agent.LabelsEntry](#laelia-v1-Agent-LabelsEntry)
@@ -79,11 +79,11 @@
     - [UploadAgentAvatarRequest](#laelia-v1-UploadAgentAvatarRequest)
     - [WorkspaceEntry](#laelia-v1-WorkspaceEntry)
     - [WorkspaceReadResponse](#laelia-v1-WorkspaceReadResponse)
-  
+
     - [AgentStatus.ConnectionState](#laelia-v1-AgentStatus-ConnectionState)
-  
+
     - [AgentService](#laelia-v1-AgentService)
-  
+
 - [v1/api_provider_service.proto](#v1_api_provider_service-proto)
     - [ApiProvider](#laelia-v1-ApiProvider)
     - [ApiProviderChange](#laelia-v1-ApiProviderChange)
@@ -96,18 +96,18 @@
     - [ListApiProvidersRequest](#laelia-v1-ListApiProvidersRequest)
     - [ListApiProvidersResponse](#laelia-v1-ListApiProvidersResponse)
     - [UpdateApiProviderRequest](#laelia-v1-UpdateApiProviderRequest)
-  
+
     - [ApiProviderService](#laelia-v1-ApiProviderService)
-  
+
 - [v1/audit_log_service.proto](#v1_audit_log_service-proto)
     - [AuditLog](#laelia-v1-AuditLog)
     - [ExportAuditLogsRequest](#laelia-v1-ExportAuditLogsRequest)
     - [ExportAuditLogsResponse](#laelia-v1-ExportAuditLogsResponse)
     - [SearchAuditLogsRequest](#laelia-v1-SearchAuditLogsRequest)
     - [SearchAuditLogsResponse](#laelia-v1-SearchAuditLogsResponse)
-  
+
     - [AuditLogService](#laelia-v1-AuditLogService)
-  
+
 - [v1/user_service.proto](#v1_user_service-proto)
     - [BatchGetUsersRequest](#laelia-v1-BatchGetUsersRequest)
     - [BatchGetUsersResponse](#laelia-v1-BatchGetUsersResponse)
@@ -125,12 +125,12 @@
     - [UploadAvatarRequest](#laelia-v1-UploadAvatarRequest)
     - [User](#laelia-v1-User)
     - [UserProfile](#laelia-v1-UserProfile)
-  
+
     - [PreferredLanguage](#laelia-v1-PreferredLanguage)
     - [UserType](#laelia-v1-UserType)
-  
+
     - [UserService](#laelia-v1-UserService)
-  
+
 - [v1/auth_service.proto](#v1_auth_service-proto)
     - [IdentityProviderContext](#laelia-v1-IdentityProviderContext)
     - [LoginRequest](#laelia-v1-LoginRequest)
@@ -141,9 +141,9 @@
     - [ResendVerificationEmailResponse](#laelia-v1-ResendVerificationEmailResponse)
     - [VerifyEmailRequest](#laelia-v1-VerifyEmailRequest)
     - [VerifyEmailResponse](#laelia-v1-VerifyEmailResponse)
-  
+
     - [AuthService](#laelia-v1-AuthService)
-  
+
 - [v1/command.proto](#v1_command-proto)
     - [AccessibleChannel](#laelia-v1-AccessibleChannel)
     - [AckProcessedVersionRequest](#laelia-v1-AckProcessedVersionRequest)
@@ -316,7 +316,7 @@
     - [WorkspaceListRequest](#laelia-v1-WorkspaceListRequest)
     - [WorkspaceListResponse](#laelia-v1-WorkspaceListResponse)
     - [WorkspaceReadRequest](#laelia-v1-WorkspaceReadRequest)
-  
+
     - [ActivityCategory](#laelia-v1-ActivityCategory)
     - [ActivityState](#laelia-v1-ActivityState)
     - [CommandEventType](#laelia-v1-CommandEventType)
@@ -326,10 +326,10 @@
     - [SearchScope](#laelia-v1-SearchScope)
     - [SenderType](#laelia-v1-SenderType)
     - [TaskStatus](#laelia-v1-TaskStatus)
-  
+
     - [AgentStreamService](#laelia-v1-AgentStreamService)
     - [CommandService](#laelia-v1-CommandService)
-  
+
 - [v1/device.proto](#v1_device-proto)
     - [ApproveDeviceLoginRequest](#laelia-v1-ApproveDeviceLoginRequest)
     - [ApproveDeviceLoginResponse](#laelia-v1-ApproveDeviceLoginResponse)
@@ -339,11 +339,11 @@
     - [PollDeviceLoginResponse](#laelia-v1-PollDeviceLoginResponse)
     - [StartDeviceLoginRequest](#laelia-v1-StartDeviceLoginRequest)
     - [StartDeviceLoginResponse](#laelia-v1-StartDeviceLoginResponse)
-  
+
     - [DeviceLoginStatus](#laelia-v1-DeviceLoginStatus)
-  
+
     - [DeviceService](#laelia-v1-DeviceService)
-  
+
 - [v1/group_service.proto](#v1_group_service-proto)
     - [BatchGetGroupsRequest](#laelia-v1-BatchGetGroupsRequest)
     - [BatchGetGroupsResponse](#laelia-v1-BatchGetGroupsResponse)
@@ -357,11 +357,11 @@
     - [ListGroupsRequest](#laelia-v1-ListGroupsRequest)
     - [ListGroupsResponse](#laelia-v1-ListGroupsResponse)
     - [UpdateGroupRequest](#laelia-v1-UpdateGroupRequest)
-  
+
     - [GroupMemberRole](#laelia-v1-GroupMemberRole)
-  
+
     - [GroupService](#laelia-v1-GroupService)
-  
+
 - [v1/iam_service.proto](#v1_iam_service-proto)
     - [BindingDelta](#laelia-v1-BindingDelta)
     - [GetAgentIamPolicyRequest](#laelia-v1-GetAgentIamPolicyRequest)
@@ -373,11 +373,11 @@
     - [SetAgentIamPolicyRequest](#laelia-v1-SetAgentIamPolicyRequest)
     - [SetMachineIamPolicyRequest](#laelia-v1-SetMachineIamPolicyRequest)
     - [SetWorkspaceIamPolicyRequest](#laelia-v1-SetWorkspaceIamPolicyRequest)
-  
+
     - [BindingDelta.Action](#laelia-v1-BindingDelta-Action)
-  
+
     - [IamService](#laelia-v1-IamService)
-  
+
 - [v1/idp_service.proto](#v1_idp_service-proto)
     - [CreateIdentityProviderRequest](#laelia-v1-CreateIdentityProviderRequest)
     - [DeleteIdentityProviderRequest](#laelia-v1-DeleteIdentityProviderRequest)
@@ -398,13 +398,13 @@
     - [TestIdentityProviderResponse.ClaimsEntry](#laelia-v1-TestIdentityProviderResponse-ClaimsEntry)
     - [TestIdentityProviderResponse.UserInfoEntry](#laelia-v1-TestIdentityProviderResponse-UserInfoEntry)
     - [UpdateIdentityProviderRequest](#laelia-v1-UpdateIdentityProviderRequest)
-  
+
     - [IdentityProviderType](#laelia-v1-IdentityProviderType)
     - [LDAPIdentityProviderConfig.SecurityProtocol](#laelia-v1-LDAPIdentityProviderConfig-SecurityProtocol)
     - [OAuth2AuthStyle](#laelia-v1-OAuth2AuthStyle)
-  
+
     - [IdentityProviderService](#laelia-v1-IdentityProviderService)
-  
+
 - [v1/machine.proto](#v1_machine-proto)
     - [AgentAssignment](#laelia-v1-AgentAssignment)
     - [AgentConfigUpdate](#laelia-v1-AgentConfigUpdate)
@@ -450,12 +450,12 @@
     - [UpgradeMachineRequest](#laelia-v1-UpgradeMachineRequest)
     - [UpgradeProgress](#laelia-v1-UpgradeProgress)
     - [UpgradeRequest](#laelia-v1-UpgradeRequest)
-  
+
     - [MachineStatus.ConnectionState](#laelia-v1-MachineStatus-ConnectionState)
-  
+
     - [MachineService](#laelia-v1-MachineService)
     - [MachineStreamService](#laelia-v1-MachineStreamService)
-  
+
 - [v1/mcp.proto](#v1_mcp-proto)
     - [CallMcpToolRequest](#laelia-v1-CallMcpToolRequest)
     - [CallMcpToolResponse](#laelia-v1-CallMcpToolResponse)
@@ -476,12 +476,12 @@
     - [McpTextContent](#laelia-v1-McpTextContent)
     - [McpTool](#laelia-v1-McpTool)
     - [UpdateMcpServerRequest](#laelia-v1-UpdateMcpServerRequest)
-  
+
     - [McpServerScope](#laelia-v1-McpServerScope)
-  
+
     - [McpGatewayService](#laelia-v1-McpGatewayService)
     - [McpServerService](#laelia-v1-McpServerService)
-  
+
 - [v1/notification.proto](#v1_notification-proto)
     - [CreatePushSubscriptionRequest](#laelia-v1-CreatePushSubscriptionRequest)
     - [DeletePushSubscriptionRequest](#laelia-v1-DeletePushSubscriptionRequest)
@@ -492,9 +492,9 @@
     - [PushSubscription](#laelia-v1-PushSubscription)
     - [UpdatePushConfigRequest](#laelia-v1-UpdatePushConfigRequest)
     - [UpdatePushConfigResponse](#laelia-v1-UpdatePushConfigResponse)
-  
+
     - [NotificationService](#laelia-v1-NotificationService)
-  
+
 - [v1/role_service.proto](#v1_role_service-proto)
     - [CreateRoleRequest](#laelia-v1-CreateRoleRequest)
     - [DeleteRoleRequest](#laelia-v1-DeleteRoleRequest)
@@ -503,9 +503,9 @@
     - [ListRolesResponse](#laelia-v1-ListRolesResponse)
     - [Role](#laelia-v1-Role)
     - [UpdateRoleRequest](#laelia-v1-UpdateRoleRequest)
-  
+
     - [RoleService](#laelia-v1-RoleService)
-  
+
 - [v1/setting.proto](#v1_setting-proto)
     - [GetDebugConfigRequest](#laelia-v1-GetDebugConfigRequest)
     - [GetDebugConfigResponse](#laelia-v1-GetDebugConfigResponse)
@@ -520,9 +520,9 @@
     - [UpdateDebugConfigRequest](#laelia-v1-UpdateDebugConfigRequest)
     - [UpdateDebugConfigResponse](#laelia-v1-UpdateDebugConfigResponse)
     - [UpdateSettingRequest](#laelia-v1-UpdateSettingRequest)
-  
+
     - [SettingService](#laelia-v1-SettingService)
-  
+
 - [Scalar Value Types](#scalar-value-types)
 
 
@@ -533,7 +533,7 @@
 ## v1/annotation.proto
 
 
- 
+
 
 
 <a name="laelia-v1-AuthMethod"></a>
@@ -548,7 +548,7 @@
 | CUSTOM | 2 | Custom authorization method. |
 
 
- 
+
 
 
 <a name="v1_annotation-proto-extensions"></a>
@@ -561,9 +561,9 @@
 | auth_method | AuthMethod | .google.protobuf.MethodOptions | 100002 |  |
 | permission | string | .google.protobuf.MethodOptions | 100001 |  |
 
- 
 
- 
+
+
 
 
 
@@ -626,7 +626,7 @@ offset.
 
 
 
- 
+
 
 
 <a name="laelia-v1-RiskLevel"></a>
@@ -655,11 +655,11 @@ RiskLevel is the risk level.
 | DELETED | 2 |  |
 
 
- 
 
- 
 
- 
+
+
+
 
 
 
@@ -940,6 +940,11 @@ the same way it preserves acp_config.
 | models | [AgentModelOption](#laelia-v1-AgentModelOption) | repeated | empty when the provider does not advertise a model config option |
 | supports_model_config_option | [bool](#bool) |  | whether probing observed a category==&#34;model&#34; config option |
 | detected_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| runtime_status | [string](#string) |  | READY, BROKEN, QUARANTINED, UPDATE_AVAILABLE, DETECTED |
+| compatibility_level | [string](#string) |  | DETECTED, PROTOCOL_READY, FUNCTIONALLY_VERIFIED, FULL_LOOP_VERIFIED |
+| failure_message | [string](#string) |  |  |
+| package_version | [string](#string) |  |  |
+| manifest_digest | [string](#string) |  |  |
 
 
 
@@ -1722,7 +1727,7 @@ ReadAgentWorkspaceFile RPC.
 
 
 
- 
+
 
 
 <a name="laelia-v1-AgentStatus-ConnectionState"></a>
@@ -1740,9 +1745,9 @@ ReadAgentWorkspaceFile RPC.
 | STOPPED | 5 | disabled via StopAgent; not processing sessions |
 
 
- 
 
- 
+
+
 
 
 <a name="laelia-v1-AgentService"></a>
@@ -1779,7 +1784,7 @@ ReadAgentWorkspaceFile RPC.
 | DeleteAgentAvatar | [DeleteAgentAvatarRequest](#laelia-v1-DeleteAgentAvatarRequest) | [Agent](#laelia-v1-Agent) | DeleteAgentAvatar clears an agent&#39;s avatar, reverting to the pixel default. Requires laelia.agents.edit on the agent. |
 | Hello | [HelloRequest](#laelia-v1-HelloRequest) | [HelloResponse](#laelia-v1-HelloResponse) | Health check (no auth required) |
 
- 
+
 
 
 
@@ -1984,11 +1989,11 @@ errors.
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="laelia-v1-ApiProviderService"></a>
@@ -2010,7 +2015,7 @@ without a management permission.
 | DeleteAPIProvider | [DeleteApiProviderRequest](#laelia-v1-DeleteApiProviderRequest) | [.google.protobuf.Empty](#google-protobuf-Empty) |  |
 | ListAPIProviderModels | [ListApiProviderModelsRequest](#laelia-v1-ListApiProviderModelsRequest) | [ListApiProviderModelsResponse](#laelia-v1-ListApiProviderModelsResponse) | List the models a provider type exposes. The manager proxies the provider&#39;s model-listing HTTP API (DeepSeek GET /models with the caller&#39;s api_key; OpenRouter GET /models, public). Admin (laelia.apiProviders.update) only. |
 
- 
+
 
 
 
@@ -2113,11 +2118,11 @@ with audit=true.
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="laelia-v1-AuditLogService"></a>
@@ -2131,7 +2136,7 @@ admin-tier (laelia.auditLogs.search / laelia.auditLogs.export).
 | SearchAuditLogs | [SearchAuditLogsRequest](#laelia-v1-SearchAuditLogsRequest) | [SearchAuditLogsResponse](#laelia-v1-SearchAuditLogsResponse) | Search audit logs with filtering and pagination. |
 | ExportAuditLogs | [ExportAuditLogsRequest](#laelia-v1-ExportAuditLogsRequest) | [ExportAuditLogsResponse](#laelia-v1-ExportAuditLogsResponse) | Export audit logs as CSV. |
 
- 
+
 
 
 
@@ -2422,7 +2427,7 @@ The user&#39;s `name` field is used to identify the user to update. Format: user
 
 
 
- 
+
 
 
 <a name="laelia-v1-PreferredLanguage"></a>
@@ -2454,9 +2459,9 @@ preference that agents can perceive and honor when conversing.
 | SYSTEM_BOT | 3 |  |
 
 
- 
 
- 
+
+
 
 
 <a name="laelia-v1-UserService"></a>
@@ -2478,7 +2483,7 @@ preference that agents can perceive and honor when conversing.
 | DownloadAvatar | [DownloadAvatarRequest](#laelia-v1-DownloadAvatarRequest) | [DownloadAvatarResponse](#laelia-v1-DownloadAvatarResponse) | DownloadAvatar fetches a user&#39;s avatar image bytes. Any authenticated user can download any user&#39;s avatar (workspace-internal profile image). |
 | DeleteAvatar | [DeleteAvatarRequest](#laelia-v1-DeleteAvatarRequest) | [User](#laelia-v1-User) | DeleteAvatar clears the current user&#39;s avatar, reverting to the pixel default. Self only. |
 
- 
+
 
 
 
@@ -2615,11 +2620,11 @@ VerifyEmailResponse is empty on success.
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="laelia-v1-AuthService"></a>
@@ -2634,7 +2639,7 @@ VerifyEmailResponse is empty on success.
 | VerifyEmail | [VerifyEmailRequest](#laelia-v1-VerifyEmailRequest) | [VerifyEmailResponse](#laelia-v1-VerifyEmailResponse) | VerifyEmail completes self-service signup: the user clicked the link in the verification email and this call marks the account&#39;s email as verified so sign-in is allowed. Permissions required: None. |
 | ResendVerificationEmail | [ResendVerificationEmailRequest](#laelia-v1-ResendVerificationEmailRequest) | [ResendVerificationEmailResponse](#laelia-v1-ResendVerificationEmailResponse) | ResendVerificationEmail resends the signup verification email to an unverified account. The response is the same whether or not the email belongs to an unverified account so the endpoint cannot be used to probe registered addresses. Permissions required: None. |
 
- 
+
 
 
 
@@ -5681,7 +5686,7 @@ WorkspaceReadResponse); other binaries return metadata only. Sensitive files
 
 
 
- 
+
 
 
 <a name="laelia-v1-ActivityCategory"></a>
@@ -5851,9 +5856,9 @@ enums cannot share value names), matching SenderType/CommandStatus.
 | TASK_STATUS_DONE | 4 |  |
 
 
- 
 
- 
+
+
 
 
 <a name="laelia-v1-AgentStreamService"></a>
@@ -5939,7 +5944,7 @@ enums cannot share value names), matching SenderType/CommandStatus.
 | ListActivities | [ListActivitiesRequest](#laelia-v1-ListActivitiesRequest) | [ListActivitiesResponse](#laelia-v1-ListActivitiesResponse) | ListActivities returns the authenticated user&#39;s activity feed: chat messages relevant to them, tagged with category flags (mention/task/reminder/thread). The caller&#39;s own id is the implicit filter; default read_state_filter is UNREAD. |
 | MarkActivityDone | [MarkActivityDoneRequest](#laelia-v1-MarkActivityDoneRequest) | [MarkActivityDoneResponse](#laelia-v1-MarkActivityDoneResponse) | MarkActivityDone marks a single activity item DONE for the authenticated user, hiding it from All and Unread. The caller&#39;s own id must own the row. |
 
- 
+
 
 
 
@@ -6088,7 +6093,7 @@ via GetDeviceLoginStatus polling.
 
 
 
- 
+
 
 
 <a name="laelia-v1-DeviceLoginStatus"></a>
@@ -6105,9 +6110,9 @@ DeviceLoginStatus is the state of a device login session.
 | DEVICE_LOGIN_STATUS_DENIED | 4 |  |
 
 
- 
 
- 
+
+
 
 
 <a name="laelia-v1-DeviceService"></a>
@@ -6128,7 +6133,7 @@ locally.
 | GetDeviceLoginStatus | [GetDeviceLoginStatusRequest](#laelia-v1-GetDeviceLoginStatusRequest) | [GetDeviceLoginStatusResponse](#laelia-v1-GetDeviceLoginStatusResponse) | GetDeviceLoginStatus backs the public approval page; the user_code is what the device screen displays. Returns only non-secret device info. |
 | ApproveDeviceLogin | [ApproveDeviceLoginRequest](#laelia-v1-ApproveDeviceLoginRequest) | [ApproveDeviceLoginResponse](#laelia-v1-ApproveDeviceLoginResponse) | ApproveDeviceLogin approves a pending device login. Any logged-in user may approve a new machine; re-authentication of an existing machine is restricted to its creator or a workspace admin (the session is marked DENIED with a reason otherwise). Audited. |
 
- 
+
 
 
 
@@ -6335,7 +6340,7 @@ the group as a member.
 
 
 
- 
+
 
 
 <a name="laelia-v1-GroupMemberRole"></a>
@@ -6350,9 +6355,9 @@ the group as a member.
 | MEMBER | 2 |  |
 
 
- 
 
- 
+
+
 
 
 <a name="laelia-v1-GroupService"></a>
@@ -6372,7 +6377,7 @@ permissions. Groups synced from an external source (SCIM/IdP) are read-only.
 | DeleteGroup | [DeleteGroupRequest](#laelia-v1-DeleteGroupRequest) | [.google.protobuf.Empty](#google-protobuf-Empty) | Delete a group. The group owner or a caller holding laelia.groups.delete may delete. Existing IAM bindings referencing the group become no-ops. |
 | GetGroupReferences | [GetGroupRequest](#laelia-v1-GetGroupRequest) | [GroupReferences](#laelia-v1-GroupReferences) | List the policies that bind this group as a member, so owners/admins can see the impact of deleting it. |
 
- 
+
 
 
 
@@ -6543,7 +6548,7 @@ PolicyDelta describes the changes between two IAM policies.
 
 
 
- 
+
 
 
 <a name="laelia-v1-BindingDelta-Action"></a>
@@ -6558,9 +6563,9 @@ Action is the type of change applied to a binding.
 | REMOVE | 2 | The member was removed from the role. |
 
 
- 
 
- 
+
+
 
 
 <a name="laelia-v1-IamService"></a>
@@ -6582,7 +6587,7 @@ cannot express the creator&#39;s implicit authority.
 | GetMachineIamPolicy | [GetMachineIamPolicyRequest](#laelia-v1-GetMachineIamPolicyRequest) | [IamPolicyView](#laelia-v1-IamPolicyView) | Get the IAM policy attached to a machine (who may create agents on it). |
 | SetMachineIamPolicy | [SetMachineIamPolicyRequest](#laelia-v1-SetMachineIamPolicyRequest) | [IamPolicyView](#laelia-v1-IamPolicyView) | Set the IAM policy attached to a machine (full replace, etag-guarded). |
 
- 
+
 
 
 
@@ -6917,7 +6922,7 @@ OIDCIdentityProviderConfig is the structure for OIDC identity provider config.
 
 
 
- 
+
 
 
 <a name="laelia-v1-IdentityProviderType"></a>
@@ -6959,9 +6964,9 @@ OIDCIdentityProviderConfig is the structure for OIDC identity provider config.
 | IN_HEADER | 2 | IN_HEADER sends the client_id and client_password using HTTP Basic Authorization. This is an optional style described in the OAuth2 RFC 6749 section 2.3.1. |
 
 
- 
 
- 
+
+
 
 
 <a name="laelia-v1-IdentityProviderService"></a>
@@ -6981,7 +6986,7 @@ the enabled ones (ListIdentityProviders is public).
 | DeleteIdentityProvider | [DeleteIdentityProviderRequest](#laelia-v1-DeleteIdentityProviderRequest) | [.google.protobuf.Empty](#google-protobuf-Empty) | Deletes an identity provider. Permissions required: laelia.identityProviders.delete |
 | TestIdentityProvider | [TestIdentityProviderRequest](#laelia-v1-TestIdentityProviderRequest) | [TestIdentityProviderResponse](#laelia-v1-TestIdentityProviderResponse) | Tests the connection and configuration of an identity provider. Permissions required: laelia.identityProviders.update |
 
- 
+
 
 
 
@@ -7744,7 +7749,7 @@ verifies the sha256, installs it, and restarts the machine process.
 
 
 
- 
+
 
 
 <a name="laelia-v1-MachineStatus-ConnectionState"></a>
@@ -7761,9 +7766,9 @@ verifies the sha256, installs it, and restarts the machine process.
 | KICKED | 4 |  |
 
 
- 
 
- 
+
+
 
 
 <a name="laelia-v1-MachineService"></a>
@@ -7811,7 +7816,7 @@ its own AgentChannel.
 | ----------- | ------------ | ------------- | ------------|
 | MachineChannel | [MachineStreamMessage](#laelia-v1-MachineStreamMessage) stream | [ManagerMachineStreamMessage](#laelia-v1-ManagerMachineStreamMessage) stream |  |
 
- 
+
 
 
 
@@ -8147,7 +8152,7 @@ tool lists; machines never see the transport configuration.
 
 
 
- 
+
 
 
 <a name="laelia-v1-McpServerScope"></a>
@@ -8163,9 +8168,9 @@ personal servers (owned by a single user and usable only by that user).
 | MCP_SERVER_SCOPE_USER | 2 |  |
 
 
- 
 
- 
+
+
 
 
 <a name="laelia-v1-McpGatewayService"></a>
@@ -8203,7 +8208,7 @@ server.
 | UpdateMcpServer | [UpdateMcpServerRequest](#laelia-v1-UpdateMcpServerRequest) | [McpServer](#laelia-v1-McpServer) |  |
 | DeleteMcpServer | [DeleteMcpServerRequest](#laelia-v1-DeleteMcpServerRequest) | [.google.protobuf.Empty](#google-protobuf-Empty) |  |
 
- 
+
 
 
 
@@ -8344,11 +8349,11 @@ resource name is &#34;users/{user}/pushSubscriptions/{endpointKey}&#34;.
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="laelia-v1-NotificationService"></a>
@@ -8373,7 +8378,7 @@ UpdatePushConfig.
 | CreatePushSubscription | [CreatePushSubscriptionRequest](#laelia-v1-CreatePushSubscriptionRequest) | [PushSubscription](#laelia-v1-PushSubscription) | CreatePushSubscription registers a browser push subscription for the authenticated user. Idempotent on (user, endpoint): re-subscribing the same browser refreshes its p256dh/auth keys. Returns FailedPrecondition when Web Push is disabled. |
 | DeletePushSubscription | [DeletePushSubscriptionRequest](#laelia-v1-DeletePushSubscriptionRequest) | [.google.protobuf.Empty](#google-protobuf-Empty) | DeletePushSubscription removes a push subscription for the authenticated user. The name is &#34;users/{user}/pushSubscriptions/{endpointKey}&#34; where endpointKey is the URL-safe base64 of the subscription endpoint; the name&#39;s user must be the caller. |
 
- 
+
 
 
 
@@ -8499,11 +8504,11 @@ IAM engine. Predefined roles are read-only over this API.
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="laelia-v1-RoleService"></a>
@@ -8522,7 +8527,7 @@ laelia.roles.* permissions.
 | UpdateRole | [UpdateRoleRequest](#laelia-v1-UpdateRoleRequest) | [Role](#laelia-v1-Role) | Update a custom role. |
 | DeleteRole | [DeleteRoleRequest](#laelia-v1-DeleteRoleRequest) | [.google.protobuf.Empty](#google-protobuf-Empty) | Delete a custom role. |
 
- 
+
 
 
 
@@ -8733,11 +8738,11 @@ owns presentation (title/description/route) keyed by `id`.
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="laelia-v1-SettingService"></a>
@@ -8759,7 +8764,7 @@ masked on read; an update carrying a masked secret preserves the stored value.
 | UpdateDebugConfig | [UpdateDebugConfigRequest](#laelia-v1-UpdateDebugConfigRequest) | [UpdateDebugConfigResponse](#laelia-v1-UpdateDebugConfigResponse) |  |
 | GetWorkspaceInfo | [GetWorkspaceInfoRequest](#laelia-v1-GetWorkspaceInfoRequest) | [GetWorkspaceInfoResponse](#laelia-v1-GetWorkspaceInfoResponse) | GetWorkspaceInfo returns the workspace signup policy for the unauthenticated sign-in/sign-up pages. No auth required. |
 
- 
+
 
 
 

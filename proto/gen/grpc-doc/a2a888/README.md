@@ -14,9 +14,9 @@
     - [WorkTraceEvent](#a2a888-v1-WorkTraceEvent)
     - [WorkTraceEvent.MetadataEntry](#a2a888-v1-WorkTraceEvent-MetadataEntry)
     - [WorkUsage](#a2a888-v1-WorkUsage)
-
+  
     - [WorkState](#a2a888-v1-WorkState)
-
+  
 - [a2a888/agent_runtime.proto](#a2a888_agent_runtime-proto)
     - [CacheIdentity](#a2a888-v1-CacheIdentity)
     - [CompatibilityEvidence](#a2a888-v1-CompatibilityEvidence)
@@ -33,13 +33,13 @@
     - [RuntimeStatus](#a2a888-v1-RuntimeStatus)
     - [SessionBehavior](#a2a888-v1-SessionBehavior)
     - [SystemExecutableConfig](#a2a888-v1-SystemExecutableConfig)
-
+  
     - [AgentProtocol](#a2a888-v1-AgentProtocol)
     - [CompatibilityLevel](#a2a888-v1-CompatibilityLevel)
     - [RuntimeKind](#a2a888-v1-RuntimeKind)
     - [RuntimeState](#a2a888-v1-RuntimeState)
     - [SessionMode](#a2a888-v1-SessionMode)
-
+  
 - [a2a888/machine_assignment.proto](#a2a888_machine_assignment-proto)
     - [AssignmentConfig](#a2a888-v1-AssignmentConfig)
     - [AssignmentCursor](#a2a888-v1-AssignmentCursor)
@@ -47,9 +47,9 @@
     - [MachineAssignmentEvent](#a2a888-v1-MachineAssignmentEvent)
     - [MachineAssignmentReplayRequest](#a2a888-v1-MachineAssignmentReplayRequest)
     - [MachineAssignmentReplayResponse](#a2a888-v1-MachineAssignmentReplayResponse)
-
+  
     - [AssignmentEventType](#a2a888-v1-AssignmentEventType)
-
+  
 - [Scalar Value Types](#scalar-value-types)
 
 
@@ -295,7 +295,7 @@ WorkUsage is the durable accounting snapshot used to enforce WorkBudget.
 
 
 
-
+ 
 
 
 <a name="a2a888-v1-WorkState"></a>
@@ -318,11 +318,11 @@ persistence contract rather than an SDK type.
 | REJECTED | 8 |  |
 
 
+ 
 
+ 
 
-
-
-
+ 
 
 
 
@@ -644,7 +644,7 @@ provided by the host operating system.
 
 
 
-
+ 
 
 
 <a name="a2a888-v1-AgentProtocol"></a>
@@ -722,11 +722,11 @@ provided by the host operating system.
 | PERSISTENT | 2 |  |
 
 
+ 
 
+ 
 
-
-
-
+ 
 
 
 
@@ -849,7 +849,7 @@ Manager&#39;s authoritative roster markers for reconciliation.
 
 
 
-
+ 
 
 
 <a name="a2a888-v1-AssignmentEventType"></a>
@@ -866,11 +866,11 @@ assignment event.
 | REMOVE | 3 |  |
 
 
+ 
 
+ 
 
-
-
-
+ 
 
 
 
@@ -893,3 +893,4 @@ assignment event.
 | <a name="bool" /> bool |  | bool | boolean | boolean | bool | bool | boolean | TrueClass/FalseClass |
 | <a name="string" /> string | A string must always contain UTF-8 encoded or 7-bit ASCII text. | string | String | str/unicode | string | string | string | String (UTF-8) |
 | <a name="bytes" /> bytes | May contain any arbitrary sequence of bytes. | string | ByteString | str | []byte | ByteString | string | String (ASCII-8BIT) |
+

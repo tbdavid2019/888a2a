@@ -1260,28 +1260,35 @@ func buildRuntimeEnv(allowEnv []string, customEnv, env map[string]string, reques
 		values[key] = value
 	}
 
-	// Inject the CLI bootstrap env so the LLM can call `laelia-machine` from its
+	// Inject the CLI bootstrap env so the LLM can call `888a2a-machine` from its
 	// shell with no flags. These overlay the (filtered) inherited env, so they
 	// pass through regardless of the agent's AllowEnv whitelist. The session
 	// token + socket path are stable for the whole daemon lifetime; the live
 	// (rotating) access token stays here in the daemon, never in the subprocess.
 	if req.DaemonSocket != "" {
+		values["A2A888_DAEMON_SOCKET"] = req.DaemonSocket
 		values["LAELIA_DAEMON_SOCKET"] = req.DaemonSocket
 	}
 	if req.SessionToken != "" {
+		values["A2A888_SESSION_TOKEN"] = req.SessionToken
 		values["LAELIA_SESSION_TOKEN"] = req.SessionToken
 	}
 	if req.AgentResourceID != "" {
+		values["A2A888_AGENT"] = req.AgentResourceID
 		values["LAELIA_AGENT"] = req.AgentResourceID
 	}
 	if req.CommandID != "" {
+		values["A2A888_COMMAND"] = req.CommandID
 		values["LAELIA_COMMAND"] = req.CommandID
 	}
-	// Propagate LAELIA_HOME unconditionally when the parent has it, so every
-	// child process resolves the same Laelia data root even if the agent's
+	// Propagate A2A888_HOME (and legacy fallback) unconditionally when the parent has it, so every
+	// child process resolves the same data root even if the agent's
 	// AllowEnv whitelist does not include it.
 	if v := os.Getenv(home.EnvDir); v != "" {
 		values[home.EnvDir] = v
+	}
+	if v := os.Getenv(home.LegacyEnvDir); v != "" {
+		values[home.LegacyEnvDir] = v
 	}
 	// Prepend the agent binary's directory to PATH so `laelia-machine` resolves
 	// regardless of the host's PATH configuration.

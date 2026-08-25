@@ -605,3 +605,4 @@ export enum WorkState {
  * Describes the enum a2a888.v1.WorkState.
  */
 export declare const WorkStateSchema: GenEnum<WorkState>;
+

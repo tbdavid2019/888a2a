@@ -30,6 +30,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/Ranxy/laelia/backend/agent/assignment"
 	daemonsrv "github.com/Ranxy/laelia/backend/agent/daemon"
 	"github.com/Ranxy/laelia/backend/agent/home"
 	"github.com/Ranxy/laelia/backend/agent/provider"
@@ -113,6 +114,9 @@ type MachineClient struct {
 	// connect's bidi client is not safe for concurrent Send, so they go
 	// through sendStream.
 	streamSendMu sync.Mutex
+
+	reducer  *assignment.Reducer
+	capacity *capacityTracker
 }
 
 type ExponentialBackoff struct {
@@ -220,6 +224,8 @@ func New(managerURL, machineID, refreshToken string, insecure bool, allowHTTP bo
 		machineVersion:   version.Version,
 		providerUpdateCh: make(chan []provider.Discovered, 1),
 		runtimePreparer:  agentruntime.NewPreparer(home.Join("runtime"), nil),
+		reducer:          assignment.NewReducer(machineID),
+		capacity:         newCapacityTracker(16),
 	}, nil
 }
 
