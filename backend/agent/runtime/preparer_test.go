@@ -18,13 +18,13 @@ type mockRunner struct {
 	onRun func(ctx context.Context, cmd string, args []string, dir string) ([]byte, error)
 }
 
-func writePackageLock(t *testing.T, dir, packageName, integrity string) {
+func writePackageLock(t *testing.T, dir, integrity string) {
 	t.Helper()
 	lock := map[string]any{
 		"lockfileVersion": 3,
 		"packages": map[string]any{
 			"": map[string]any{},
-			"node_modules/" + packageName: map[string]any{
+			"node_modules/@agentclientprotocol/claude-agent-acp": map[string]any{
 				"version":   "0.70.0",
 				"integrity": integrity,
 			},
@@ -60,7 +60,7 @@ func TestPreparerNpmAtomicSuccess(t *testing.T) {
 			if err := os.WriteFile(binFile, []byte("#!/bin/sh\necho acp\n"), 0o755); err != nil {
 				return nil, err
 			}
-			writePackageLock(t, dir, "@agentclientprotocol/claude-agent-acp", testManifest().GetNpmPackage().GetIntegrity())
+			writePackageLock(t, dir, testManifest().GetNpmPackage().GetIntegrity())
 			return []byte("added 1 package in 0.5s"), nil
 		},
 	}
@@ -123,7 +123,7 @@ func TestPreparerNpmRejectsPackageIntegrityMismatch(t *testing.T) {
 			if err := os.WriteFile(filepath.Join(binDir, "claude-agent-acp"), []byte("binary"), 0o755); err != nil {
 				return nil, err
 			}
-			writePackageLock(t, dir, "@agentclientprotocol/claude-agent-acp", "sha512-wrong-integrity=")
+			writePackageLock(t, dir, "sha512-wrong-integrity=")
 			return []byte("ok"), nil
 		},
 	}
@@ -150,7 +150,7 @@ func TestPreparerNpmTamperDetectionQuarantines(t *testing.T) {
 			if err := os.WriteFile(filepath.Join(binDir, "claude-agent-acp"), []byte("original-code"), 0o755); err != nil {
 				return nil, err
 			}
-			writePackageLock(t, dir, "@agentclientprotocol/claude-agent-acp", testManifest().GetNpmPackage().GetIntegrity())
+			writePackageLock(t, dir, testManifest().GetNpmPackage().GetIntegrity())
 			return []byte("ok"), nil
 		},
 	}
@@ -211,7 +211,7 @@ func TestPreparerNpmInterruptionLeavesPreviousIntact(t *testing.T) {
 			if err := os.WriteFile(filepath.Join(binDir, "claude-agent-acp"), []byte("v0.70.0"), 0o755); err != nil {
 				return nil, err
 			}
-			writePackageLock(t, dir, "@agentclientprotocol/claude-agent-acp", testManifest().GetNpmPackage().GetIntegrity())
+			writePackageLock(t, dir, testManifest().GetNpmPackage().GetIntegrity())
 			return []byte("ok"), nil
 		},
 	}
@@ -328,7 +328,7 @@ func TestPreparerRetryOperation(t *testing.T) {
 			binDir := filepath.Join(dir, "node_modules", ".bin")
 			_ = os.MkdirAll(binDir, 0o755)
 			_ = os.WriteFile(filepath.Join(binDir, "claude-agent-acp"), []byte("ok"), 0o755)
-			writePackageLock(t, dir, "@agentclientprotocol/claude-agent-acp", testManifest().GetNpmPackage().GetIntegrity())
+			writePackageLock(t, dir, testManifest().GetNpmPackage().GetIntegrity())
 			return []byte("ok"), nil
 		},
 	}
@@ -357,7 +357,7 @@ func TestPreparerAuditLogNoSecrets(t *testing.T) {
 			binDir := filepath.Join(dir, "node_modules", ".bin")
 			_ = os.MkdirAll(binDir, 0o755)
 			_ = os.WriteFile(filepath.Join(binDir, "claude-agent-acp"), []byte("bin"), 0o755)
-			writePackageLock(t, dir, "@agentclientprotocol/claude-agent-acp", testManifest().GetNpmPackage().GetIntegrity())
+			writePackageLock(t, dir, testManifest().GetNpmPackage().GetIntegrity())
 			return []byte("Bearer secret_api_token_12345"), nil
 		},
 	}

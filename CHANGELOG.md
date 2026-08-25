@@ -47,6 +47,8 @@ and the project uses [Semantic Versioning](https://semver.org/) for releases.
 - Added Agent Network audit and trace recording (`TraceRecorder`, `SanitizeMetadata`) capturing discovery, delegation, runtime session, permission, budget, retry, cancellation, and terminal outcome events while scrubbing credentials and hidden reasoning.
 - Added comprehensive 12-Agent acceptance test suite (`TestTwelveAgentAcceptanceGate`) verifying 2-Machine topology, 10-specialist fan-out/join, Manager restart recovery, Machine disconnect/reconnect cursor replay, lost response deduplication, cancellation propagation, and cross-Agent security isolation.
 - Published the 888a2a Agent Network Operator Guide (`docs/guide/agent-network-operator-guide.md`) detailing architecture, environment variables, provider manifests, security defaults, step-by-step deployment, and troubleshooting runbooks.
+- Added top-level multi-stage `Dockerfile`, `docker-compose.yml`, and `docker-compose.example.yml` for zero-Go server deployment.
+- Published the Docker Deployment & Installation Guide (`docs/guide/docker-deployment-guide.md`) with one-command startup, volume persistence, and PostgreSQL maintenance runbooks.
 - Added the 888a2a project README and Traditional Chinese README with the
   project direction, upstream attribution, roadmap, and major TODO areas.
 - Added GitHub Actions CI for Agent Network naming checks, Go lint/tests/build,

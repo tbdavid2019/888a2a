@@ -45,7 +45,21 @@ Bot、外部 A2A Agent，以及各種全通路對話入口。
 
 ## 快速開始
 
-### 一鍵測試環境
+### 伺服器生產環境 Docker 部署（免安裝 Go / Node.js）
+
+對於一般伺服器（未安裝 Go 或 Node.js），可直接使用 Docker Compose 快速啟動全套服務：
+
+```bash
+# 取得程式庫並啟動所有服務 (PostgreSQL + Manager + Machine)
+git clone https://github.com/tbdavid2019/888a2a.git
+cd 888a2a
+docker compose up -d
+```
+
+啟動完成後，在瀏覽器開啟 `http://<YOUR_SERVER_IP>:8181` 即可使用。
+詳細配置、資料卷持久化與備份方式請見 [`docs/guide/docker-deployment-guide.md`](docs/guide/docker-deployment-guide.md)。
+
+### 本機一鍵測試環境
 
 啟動包含嵌入式 PostgreSQL 與預置測試帳號的本機瀏覽器測試環境：
 
@@ -61,7 +75,7 @@ scripts/test-server.sh stop --workdir /tmp/888a2a-test
 
 選項與注意事項請見 [`docs/test-server.md`](docs/test-server.md)。
 
-### 開發
+### 從原始碼開發
 
 ```bash
 # Backend

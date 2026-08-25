@@ -49,9 +49,9 @@ func FormatThreadSummary(work *store.WorkMessage, artifacts []*store.WorkArtifac
 			}
 			name = sanitizeSafeString(name)
 			if a.ExternalURI != "" {
-				sb.WriteString(fmt.Sprintf("  - [%s](%s) (%s)\n", name, sanitizeSafeString(a.ExternalURI), sanitizeSafeString(a.MediaType)))
+				fmt.Fprintf(&sb, "  - [%s](%s) (%s)\n", name, sanitizeSafeString(a.ExternalURI), sanitizeSafeString(a.MediaType))
 			} else {
-				sb.WriteString(fmt.Sprintf("  - `%s`: %s\n", name, sanitizeSafeString(a.Description)))
+				fmt.Fprintf(&sb, "  - `%s`: %s\n", name, sanitizeSafeString(a.Description))
 			}
 		}
 	}
@@ -66,7 +66,7 @@ func FormatDelegationSummary(work *store.WorkMessage) string {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("📋 **A2A Task Delegated**: `%s`\n", sanitizeSafeString(work.A2ATaskID)))
+	fmt.Fprintf(&sb, "📋 **A2A Task Delegated**: `%s`\n", sanitizeSafeString(work.A2ATaskID))
 	sb.WriteString(fmt.Sprintf("- **Target Executor**: `%s`\n", sanitizeSafeString(work.ExecutorAgentID)))
 	sb.WriteString(fmt.Sprintf("- **Requester**: `%s`\n", sanitizeSafeString(work.RequesterAgentID)))
 	sb.WriteString(fmt.Sprintf("- **Context ID**: `%s`\n", sanitizeSafeString(work.ContextID)))

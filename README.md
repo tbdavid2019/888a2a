@@ -62,10 +62,23 @@ For deployment instructions, see the [Agent Network Operator Guide](docs/guide/a
 
 ## Quick start
 
-### One-click test environment
+### Production / Server Deployment with Docker (No Go/Node required)
 
-Run a local browser-accessible instance with embedded PostgreSQL and seeded
-test accounts:
+For servers without Go or Node.js, run 888a2a directly using Docker Compose:
+
+```bash
+# Clone and start all services (PostgreSQL + Manager + Machine)
+git clone https://github.com/tbdavid2019/888a2a.git
+cd 888a2a
+docker compose up -d
+```
+
+Open `http://<YOUR_SERVER_IP>:8181` in your browser.
+See [`docs/guide/docker-deployment-guide.md`](docs/guide/docker-deployment-guide.md) for full configuration, volume management, and backup options.
+
+### One-click local test environment
+
+Run a throwaway local browser-accessible instance with embedded PostgreSQL and seeded test accounts:
 
 ```bash
 scripts/test-server.sh run --workdir /tmp/888a2a-test
@@ -79,7 +92,7 @@ scripts/test-server.sh stop --workdir /tmp/888a2a-test
 
 See [`docs/test-server.md`](docs/test-server.md) for options and caveats.
 
-### Development
+### Development from Source
 
 ```bash
 # Backend
