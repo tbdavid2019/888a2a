@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -45,13 +46,19 @@ func TestParseAgentToken_RejectsTampered(t *testing.T) {
 	tok, err := GenerateAgentTokenWithSession("agent-1", "agents/agent-1", 3, TokenTypeRefresh, "", common.ReleaseModeDev, "secret", time.Hour)
 	require.NoError(t, err)
 
-	// Flip a character in the payload segment to break the signature.
-	tampered := tok[:len(tok)-1]
-	if last := tok[len(tok)-1]; last == 'A' {
-		tampered += "B"
+	// Flip a character in the payload segment to break the signature. Changing
+	// the final Base64URL character of a SHA-256 signature can leave the
+	// decoded bytes unchanged because that character has unused trailing bits.
+	parts := strings.Split(tok, ".")
+	require.Len(t, parts, 3)
+	payload := []byte(parts[1])
+	if payload[0] == 'A' {
+		payload[0] = 'B'
 	} else {
-		tampered += "A"
+		payload[0] = 'A'
 	}
+	parts[1] = string(payload)
+	tampered := strings.Join(parts, ".")
 	_, err = ParseAgentToken(tampered, "secret")
 	assert.Error(t, err, "a token whose signature no longer matches its payload must not verify")
 }
