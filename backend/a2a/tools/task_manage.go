@@ -567,30 +567,30 @@ func FormatTaskGet(r *TaskGetResult) string {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("### A2A Task `%s` [%s]\n", r.A2ATaskID, r.State))
-	sb.WriteString(fmt.Sprintf("- **Context ID**: `%s` (Work ID: `%s`)\n", r.ContextID, r.WorkID))
-	sb.WriteString(fmt.Sprintf("- **Executor**: `%s` (Requester: `%s`)\n", r.ExecutorAgentID, r.RequesterAgentID))
+	fmt.Fprintf(&sb, "### A2A Task `%s` [%s]\n", r.A2ATaskID, r.State)
+	fmt.Fprintf(&sb, "- **Context ID**: `%s` (Work ID: `%s`)\n", r.ContextID, r.WorkID)
+	fmt.Fprintf(&sb, "- **Executor**: `%s` (Requester: `%s`)\n", r.ExecutorAgentID, r.RequesterAgentID)
 
 	if r.ParentWorkID != "" {
-		sb.WriteString(fmt.Sprintf("- **Parent Task**: `%s` (Depth: %d)\n", r.ParentWorkID, r.DelegationDepth))
+		fmt.Fprintf(&sb, "- **Parent Task**: `%s` (Depth: %d)\n", r.ParentWorkID, r.DelegationDepth)
 	}
 	if r.TerminalReason != "" {
-		sb.WriteString(fmt.Sprintf("- **Outcome**: %s\n", r.TerminalReason))
+		fmt.Fprintf(&sb, "- **Outcome**: %s\n", r.TerminalReason)
 	}
 	if r.Trace != nil && r.Trace.TraceID != "" {
-		sb.WriteString(fmt.Sprintf("- **Trace**: `%s` (Span: `%s`)\n", r.Trace.TraceID, r.Trace.SpanID))
+		fmt.Fprintf(&sb, "- **Trace**: `%s` (Span: `%s`)\n", r.Trace.TraceID, r.Trace.SpanID)
 	}
 	if len(r.Artifacts) > 0 {
-		sb.WriteString(fmt.Sprintf("- **Artifacts** (%d):\n", len(r.Artifacts)))
+		fmt.Fprintf(&sb, "- **Artifacts** (%d):\n", len(r.Artifacts))
 		for _, a := range r.Artifacts {
 			name := a.Name
 			if name == "" {
 				name = a.ArtifactID
 			}
 			if a.ExternalURI != "" {
-				sb.WriteString(fmt.Sprintf("  - [%s](%s) (%s)\n", name, a.ExternalURI, a.MediaType))
+				fmt.Fprintf(&sb, "  - [%s](%s) (%s)\n", name, a.ExternalURI, a.MediaType)
 			} else {
-				sb.WriteString(fmt.Sprintf("  - `%s`: %s\n", name, a.Description))
+				fmt.Fprintf(&sb, "  - `%s`: %s\n", name, a.Description)
 			}
 		}
 	}
@@ -604,11 +604,11 @@ func FormatTaskList(r *TaskListResult) string {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Tasks (%d total, showing %d):\n", r.TotalCount, len(r.Tasks)))
+	fmt.Fprintf(&sb, "Tasks (%d total, showing %d):\n", r.TotalCount, len(r.Tasks))
 	for _, t := range r.Tasks {
-		sb.WriteString(fmt.Sprintf("- `%s` [%s] executor=`%s` context=`%s`\n", t.A2ATaskID, t.State, t.ExecutorAgentID, t.ContextID))
+		fmt.Fprintf(&sb, "- `%s` [%s] executor=`%s` context=`%s`\n", t.A2ATaskID, t.State, t.ExecutorAgentID, t.ContextID)
 		if t.TerminalReason != "" {
-			sb.WriteString(fmt.Sprintf("  Outcome: %s\n", t.TerminalReason))
+			fmt.Fprintf(&sb, "  Outcome: %s\n", t.TerminalReason)
 		}
 	}
 	return sb.String()
@@ -631,12 +631,12 @@ func FormatTaskReplyResult(r *TaskReplyResult) string {
 		return "Failed to reply to task.\n"
 	}
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Task `%s` updated to state [%s].\n", r.A2ATaskID, r.State))
+	fmt.Fprintf(&sb, "Task `%s` updated to state [%s].\n", r.A2ATaskID, r.State)
 	if r.TerminalReason != "" {
-		sb.WriteString(fmt.Sprintf("- Outcome: %s\n", r.TerminalReason))
+		fmt.Fprintf(&sb, "- Outcome: %s\n", r.TerminalReason)
 	}
 	if len(r.Artifacts) > 0 {
-		sb.WriteString(fmt.Sprintf("- Artifacts attached: %d\n", len(r.Artifacts)))
+		fmt.Fprintf(&sb, "- Artifacts attached: %d\n", len(r.Artifacts))
 	}
 	return sb.String()
 }

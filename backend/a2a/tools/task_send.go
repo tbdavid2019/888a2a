@@ -297,22 +297,22 @@ func FormatTaskSendResult(res *TaskSendResult) string {
 		sb.WriteString("**A2A Task Sent Successfully**:\n")
 	}
 
-	sb.WriteString(fmt.Sprintf("- **Task ID**: `%s` (Work ID: `%s`)\n", res.A2ATaskID, res.WorkID))
-	sb.WriteString(fmt.Sprintf("- **Context ID**: `%s`\n", res.ContextID))
-	sb.WriteString(fmt.Sprintf("- **Target Executor**: `%s`\n", res.ExecutorAgentID))
-	sb.WriteString(fmt.Sprintf("- **Requester**: `%s`\n", res.RequesterAgentID))
-	sb.WriteString(fmt.Sprintf("- **State**: `%s`\n", res.State))
-	sb.WriteString(fmt.Sprintf("- **Idempotency Key**: `%s`\n", res.IdempotencyKey))
+	fmt.Fprintf(&sb, "- **Task ID**: `%s` (Work ID: `%s`)\n", res.A2ATaskID, res.WorkID)
+	fmt.Fprintf(&sb, "- **Context ID**: `%s`\n", res.ContextID)
+	fmt.Fprintf(&sb, "- **Target Executor**: `%s`\n", res.ExecutorAgentID)
+	fmt.Fprintf(&sb, "- **Requester**: `%s`\n", res.RequesterAgentID)
+	fmt.Fprintf(&sb, "- **State**: `%s`\n", res.State)
+	fmt.Fprintf(&sb, "- **Idempotency Key**: `%s`\n", res.IdempotencyKey)
 
 	if res.ParentWorkID != "" {
-		sb.WriteString(fmt.Sprintf("- **Parent Task**: `%s`\n", res.ParentWorkID))
+		fmt.Fprintf(&sb, "- **Parent Task**: `%s`\n", res.ParentWorkID)
 	}
 	if res.Trace != nil && res.Trace.TraceID != "" {
-		sb.WriteString(fmt.Sprintf("- **Trace ID**: `%s` (Span: `%s`)\n", res.Trace.TraceID, res.Trace.SpanID))
+		fmt.Fprintf(&sb, "- **Trace ID**: `%s` (Span: `%s`)\n", res.Trace.TraceID, res.Trace.SpanID)
 	}
 	if res.Budget != nil {
-		sb.WriteString(fmt.Sprintf("- **Budget**: MaxDepth=%d, MaxChildren=%d, MaxFanOut=%d, MaxRuntimeMs=%d, MaxTokens=%d\n",
-			res.Budget.MaxDepth, res.Budget.MaxChildren, res.Budget.MaxFanOut, res.Budget.MaxRuntimeMs, res.Budget.MaxTokens))
+		fmt.Fprintf(&sb, "- **Budget**: MaxDepth=%d, MaxChildren=%d, MaxFanOut=%d, MaxRuntimeMs=%d, MaxTokens=%d\n",
+			res.Budget.MaxDepth, res.Budget.MaxChildren, res.Budget.MaxFanOut, res.Budget.MaxRuntimeMs, res.Budget.MaxTokens)
 	}
 
 	sb.WriteString("\nTarget wake-up is asynchronous. Do NOT poll or block waiting on peer process.\n")

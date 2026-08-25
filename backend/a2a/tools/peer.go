@@ -167,7 +167,7 @@ func FormatPeerList(out *PeerListOutput) string {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Discovered %d peer agent(s):\n", out.TotalCount))
+	fmt.Fprintf(&sb, "Discovered %d peer agent(s):\n", out.TotalCount)
 	for _, p := range out.Peers {
 		sb.WriteString(formatPeerSummaryLine(p))
 	}
@@ -184,11 +184,11 @@ func FormatPeerGet(out *PeerGetOutput) string {
 
 func formatPeerSummaryLine(p PeerSummary) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("- **%s** (`%s`) [Readiness: %s]\n", p.Name, p.AgentResourceID, p.Readiness))
+	fmt.Fprintf(&sb, "- **%s** (`%s`) [Readiness: %s]\n", p.Name, p.AgentResourceID, p.Readiness)
 	if p.Description != "" {
-		sb.WriteString(fmt.Sprintf("  Description: %s\n", p.Description))
+		fmt.Fprintf(&sb, "  Description: %s\n", p.Description)
 	}
-	sb.WriteString(fmt.Sprintf("  Capabilities: Streaming=%t, ExtendedCard=%t\n", p.Capabilities.Streaming, p.Capabilities.ExtendedAgentCard))
+	fmt.Fprintf(&sb, "  Capabilities: Streaming=%t, ExtendedCard=%t\n", p.Capabilities.Streaming, p.Capabilities.ExtendedAgentCard)
 	if len(p.Skills) > 0 {
 		var skillNames []string
 		for _, s := range p.Skills {
@@ -198,39 +198,39 @@ func formatPeerSummaryLine(p PeerSummary) string {
 			}
 			skillNames = append(skillNames, name)
 		}
-		sb.WriteString(fmt.Sprintf("  Skills (%d): %s\n", len(p.Skills), strings.Join(skillNames, "; ")))
+		fmt.Fprintf(&sb, "  Skills (%d): %s\n", len(p.Skills), strings.Join(skillNames, "; "))
 	}
 	return sb.String()
 }
 
 func formatPeerSummaryDetailed(p PeerSummary) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("### Agent Card: %s (`%s`)\n", p.Name, p.AgentResourceID))
-	sb.WriteString(fmt.Sprintf("- **Tenant**: `%s`\n", p.Tenant))
-	sb.WriteString(fmt.Sprintf("- **Readiness**: `%s` (Enabled: %t)\n", p.Readiness, p.Enabled))
-	sb.WriteString(fmt.Sprintf("- **Protocol Version**: `%s`\n", p.Version))
-	sb.WriteString(fmt.Sprintf("- **Capabilities**: Streaming=%t, ExtendedAgentCard=%t\n", p.Capabilities.Streaming, p.Capabilities.ExtendedAgentCard))
+	fmt.Fprintf(&sb, "### Agent Card: %s (`%s`)\n", p.Name, p.AgentResourceID)
+	fmt.Fprintf(&sb, "- **Tenant**: `%s`\n", p.Tenant)
+	fmt.Fprintf(&sb, "- **Readiness**: `%s` (Enabled: %t)\n", p.Readiness, p.Enabled)
+	fmt.Fprintf(&sb, "- **Protocol Version**: `%s`\n", p.Version)
+	fmt.Fprintf(&sb, "- **Capabilities**: Streaming=%t, ExtendedAgentCard=%t\n", p.Capabilities.Streaming, p.Capabilities.ExtendedAgentCard)
 	if p.Description != "" {
-		sb.WriteString(fmt.Sprintf("- **Description**: %s\n", p.Description))
+		fmt.Fprintf(&sb, "- **Description**: %s\n", p.Description)
 	}
 	if len(p.Interfaces) > 0 {
 		sb.WriteString("- **Interfaces**:\n")
 		for _, iface := range p.Interfaces {
-			sb.WriteString(fmt.Sprintf("  - %s\n", iface))
+			fmt.Fprintf(&sb, "  - %s\n", iface)
 		}
 	}
 	if len(p.Skills) > 0 {
-		sb.WriteString(fmt.Sprintf("- **Skills** (%d):\n", len(p.Skills)))
+		fmt.Fprintf(&sb, "- **Skills** (%d):\n", len(p.Skills))
 		for _, s := range p.Skills {
-			sb.WriteString(fmt.Sprintf("  - **%s** (`%s`): %s\n", s.Name, s.ID, s.Description))
+			fmt.Fprintf(&sb, "  - **%s** (`%s`): %s\n", s.Name, s.ID, s.Description)
 			if len(s.Tags) > 0 {
-				sb.WriteString(fmt.Sprintf("    Tags: %s\n", strings.Join(s.Tags, ", ")))
+				fmt.Fprintf(&sb, "    Tags: %s\n", strings.Join(s.Tags, ", "))
 			}
 			if len(s.InputModes) > 0 {
-				sb.WriteString(fmt.Sprintf("    Input Modes: %s\n", strings.Join(s.InputModes, ", ")))
+				fmt.Fprintf(&sb, "    Input Modes: %s\n", strings.Join(s.InputModes, ", "))
 			}
 			if len(s.OutputModes) > 0 {
-				sb.WriteString(fmt.Sprintf("    Output Modes: %s\n", strings.Join(s.OutputModes, ", ")))
+				fmt.Fprintf(&sb, "    Output Modes: %s\n", strings.Join(s.OutputModes, ", "))
 			}
 		}
 	}
