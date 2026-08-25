@@ -134,7 +134,12 @@ describe("agent-mcp", () => {
     mock.updateAgentMcpConfig.mockResolvedValue(agent());
 
     renderPage();
-    const ws2 = await screen.findByRole("checkbox", { name: /Second Server/ });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("checkbox", { name: /Workspace Server/ })
+      ).toBeChecked()
+    );
+    const ws2 = screen.getByRole("checkbox", { name: /Second Server/ });
     fireEvent.click(ws2);
     expect(ws2).toBeChecked();
 
