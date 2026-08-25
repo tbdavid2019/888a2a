@@ -33,6 +33,8 @@ git -C "${tmp_repo}" checkout -q -- runtime.go
 legacy_module='github.com/Ranxy/'"${legacy_identifier%-agent}"
 printf 'import _ "%s/backend/common"\n' "${legacy_module}" >>"${tmp_repo}/runtime.go"
 "${tmp_repo}/scripts/check_agent_network_naming.sh"
+printf 'import _ "%s/backend/common"\n' "${legacy_module}" >"${tmp_repo}/compatibility.go"
+"${tmp_repo}/scripts/check_agent_network_naming.sh" "${tmp_repo}/compatibility.go"
 
 git -C "${tmp_repo}" checkout -q -- runtime.go
 printf 'const addedLegacyName = "%s";\n' "${legacy_identifier}" >>"${tmp_repo}/runtime.go"

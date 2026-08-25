@@ -103,6 +103,14 @@ scanned=0
 legacy_product='lae''lia'
 legacy_module_root="github.com/Ranxy/${legacy_product}"
 compatibility_import_re="^[[:space:]]*(import[[:space:]]+)?([[:alnum:]_.]+[[:space:]]+)?\"${legacy_module_root}(/[^\"]*)?\"[[:space:]]*$"
+filter_compatibility_imports() {
+	while IFS= read -r line; do
+		if [[ "${line}" =~ ${compatibility_import_re} ]]; then
+			continue
+		fi
+		printf '%s\n' "${line}"
+	done
+}
 for file in "${files[@]}"; do
 	case "${file}" in
 		/*) absolute_path="${file}" ;;
@@ -132,16 +140,9 @@ for file in "${files[@]}"; do
 	if [ "${auto_discovery}" -eq 1 ] && git -C "${repo_root}" ls-files --error-unmatch "${relative_path}" >/dev/null 2>&1; then
 		diff_base="${base_ref:-HEAD}"
 		added_lines="$(git -C "${repo_root}" diff --unified=0 "${diff_base}" -- "${relative_path}" | sed -n -e '/^+++ /d' -e 's/^+//p')"
-		filtered_lines=""
-		while IFS= read -r line; do
-			if [[ "${line}" =~ ${compatibility_import_re} ]]; then
-				continue
-			fi
-			filtered_lines+="${line}"$'\n'
-		done <<< "${added_lines}"
-		matches="$(printf '%s' "${filtered_lines}" | LC_ALL=C grep -n -E -i "${legacy_product}" || true)"
+		matches="$(printf '%s\n' "${added_lines}" | filter_compatibility_imports | LC_ALL=C grep -n -E -i "${legacy_product}" || true)"
 	else
-		matches="$(LC_ALL=C grep -n -I -E -i "${legacy_product}" "${absolute_path}" || true)"
+		matches="$(filter_compatibility_imports <"${absolute_path}" | LC_ALL=C grep -n -E -i "${legacy_product}" || true)"
 	fi
 	if [ -n "${matches}" ]; then
 		printf 'naming gate: unapproved legacy identifier in %s\n%s\n' "${relative_path}" "${matches}" >&2
