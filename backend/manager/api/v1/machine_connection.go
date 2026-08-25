@@ -6,15 +6,16 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/pkg/errors"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/Ranxy/laelia/backend/common"
 	"github.com/Ranxy/laelia/backend/common/log"
 	storepb "github.com/Ranxy/laelia/backend/generated-go/store"
 	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
 	"github.com/Ranxy/laelia/backend/manager/api/auth"
 	"github.com/Ranxy/laelia/backend/manager/store"
-	"github.com/pkg/errors"
-	"google.golang.org/protobuf/types/known/emptypb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // ConnectMachine registers a machine session. The machine authenticates via

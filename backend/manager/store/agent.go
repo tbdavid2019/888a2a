@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -453,7 +453,7 @@ func (s *Store) TouchAgentHeartbeats(ctx context.Context, heartbeats []AgentHear
 	for id := range latest {
 		ids = append(ids, id)
 	}
-	sort.Ints(ids)
+	slices.Sort(ids)
 
 	// Two parameters per row; 5000 rows => 10,000 parameters, safely under
 	// Postgres' 65,535 parameter limit.
