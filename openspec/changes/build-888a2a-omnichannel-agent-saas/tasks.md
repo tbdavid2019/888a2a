@@ -1,0 +1,161 @@
+## Execution Priority
+
+The master task numbers describe capability groups, not the immediate apply order. Implementation SHALL use the focused `build-888a2a-agent-network-foundation` change first. Within this master roadmap, the priority is:
+
+1. Product identity tasks required by runtime/API surfaces: `0.1`–`0.6`.
+2. Agent-network spikes: `1.3`, `1.4`, `1.6`, `1.8`.
+3. Provider Runtime Gateway: `7.1`–`7.8`.
+4. Durable Agent assignment and messaging foundation: `3.1`–`3.7`, `3.9`.
+5. A2A and Multi-Agent network: `8.1`–`8.10`.
+6. Minimal Agent safety and approval: `6.1`–`6.6`, then Agent-related quota/usage tasks.
+7. Organization tenancy, IM Message Plane, Native Web and Connectors after the 10+ Agent network gate passes.
+
+Agent Network gate: 12 Agents across two Machines SHALL discover peers, exchange A2A tasks, fan out bounded work, return results, resume sessions, survive Manager/Machine reconnect and cancel a task without cross-Agent workspace or credential access.
+
+## 0. Product Identity Migration
+
+- [ ] 0.1 Inventory every legacy product identifier across Go module/imports, Proto, binaries, CLI, environment variables, data/config paths, Docker images, release assets, services, cookies, metrics, permissions, UI and docs; verify the reviewed mapping has an 888a2a target for every occurrence class.
+- [ ] 0.2 Define public naming as `888a2a`, `888a2a Agent`, target CLI binaries and the `A2A888_` environment prefix; verify naming lint fixtures reject new legacy identifiers.
+- [ ] 0.3 Rename repository/module imports and internal Go package references through a mechanical migration; verify `go list ./...`, formatting, lint and unit tests pass.
+- [ ] 0.4 Rename Proto package/resource names and generated clients with an explicit compatibility decision; verify `buf format`, `buf lint`, generation and wire-compatibility tests pass.
+- [ ] 0.5 Rename Manager/Machine binaries, CLI commands, Docker images, release assets and install scripts; verify Linux, Windows and macOS build manifests contain only 888a2a targets.
+- [ ] 0.6 Rename environment variables, config keys, data directories, sockets, service names, cookies, metrics and permission prefixes; verify clean installs write only 888a2a identifiers.
+- [ ] 0.7 Implement one-time import or compatibility readers for existing local state and server configuration; verify an existing fixture upgrades without losing Machine credentials, Agent sessions or workspaces.
+- [ ] 0.8 Replace UI, localization, README, deployment, generated docs and examples with 888a2a branding while preserving required license attribution; verify documentation and snapshot searches contain no product-name leakage.
+- [ ] 0.9 Remove temporary compatibility aliases after migration verification and run a repository-wide zero-legacy-identifier gate, excluding only approved license/source-attribution records.
+
+## 1. Architecture Spikes and Decision Gates
+
+- [ ] 1.1 Record the current single-workspace schema, API resource names, process-local realtime paths and migration inventory; verify the inventory covers every table and service named in `proposal.md`.
+- [ ] 1.2 Build an additive Organization/resource-name prototype in an isolated spike and verify two tenant-scoped sample requests cannot resolve each other's resources.
+- [ ] 1.3 Run an official A2A Go SDK server/client spike covering Agent Card, send, stream, get, list, cancel and authenticated tenant routing; verify the recorded interoperability suite passes without proprietary wire changes.
+- [ ] 1.4 Run a WuKongIM production-readiness spike covering version selection, ordering, duplicate send, reconnect, offline sync, multi-device, failover, backup and restore; verify a written decision records measured results and a rollback candidate.
+- [ ] 1.5 Prototype the canonical connector envelope with LINE, Slack and Web Widget fixtures; verify duplicate and out-of-order fixtures converge to one deterministic event sequence.
+- [ ] 1.6 Prototype runtime permission-to-Organization-approval flow with a fake ACP Provider; verify allow, deny, expiry and parameter-change invalidation.
+- [ ] 1.7 Select the first external connector from target-customer evidence and platform review lead time; verify the decision record names the pilot market, required capabilities and acceptance suite.
+- [ ] 1.8 Decide SaaS-managed versus BYOC Machine scope for the first sellable release; verify threat model, operational owner and supported deployment modes are documented.
+
+## 2. Organization and Tenant Foundation
+
+- [ ] 2.1 Define Organization, workspace, membership and principal resource contracts in Proto; verify `buf format`, `buf lint` and `buf generate` pass.
+- [ ] 2.2 Add Organization, workspace and membership store schema as additive migrations; verify fresh install and upgrade migration tests pass.
+- [ ] 2.3 Create a default Organization migration for existing deployments; verify every existing principal, Agent, Machine and conversation receives a valid tenant owner.
+- [ ] 2.4 Add `organization_id` and applicable `workspace_id` to collaboration resources in bounded migration batches; verify foreign keys, uniqueness and tenant indexes through migration tests.
+- [ ] 2.5 Implement active-Organization selection for authenticated humans; verify one user can switch between two memberships without permission or cache leakage.
+- [ ] 2.6 Refactor human, Agent and service-account principals into distinct tenant-scoped identities; verify requester and executor are both present in delegated-action audit tests.
+- [ ] 2.7 Implement Organization roles, groups and workspace bindings; verify group grants, suspension and role removal update effective permissions.
+- [ ] 2.8 Make IAM resource resolution tenant-first; verify adversarial tests return indistinguishable denial for guessed cross-tenant identifiers.
+- [ ] 2.9 Prefix object-storage keys, cache keys and local projections with Organization scope; verify cross-tenant key-collision tests pass.
+- [ ] 2.10 Add Organization lifecycle enforcement for active, suspended and closed states; verify human, connector, A2A and runtime writes stop consistently when suspended.
+- [ ] 2.11 Add Organization switcher and membership administration UI; verify frontend tests cover multi-membership, inaccessible routes and suspended state.
+
+## 3. Durable Event and Multi-Instance Foundation
+
+- [ ] 3.1 Define durable event envelope, correlation, tenant, idempotency and retry metadata; verify schema fixtures round-trip and reject missing tenant identity.
+- [ ] 3.2 Add transactional outbox storage and worker claim/ack/retry behavior; verify a process crash after source commit is recovered by another worker.
+- [ ] 3.3 Add durable connector inbox with unique external-event keys; verify repeated webhook fixtures produce one committed canonical event.
+- [ ] 3.4 Replace critical Machine assignment best-effort delivery with outbox sequence and ack; verify create/update/remove replay after disconnect without duplicate runners.
+- [ ] 3.5 Introduce shared conversation notification behind the room notifier interface; verify a write on Manager replica A wakes a reader on replica B.
+- [ ] 3.6 Replace process-local nonce replay correctness with shared state; verify the same nonce is rejected across two Manager replicas.
+- [ ] 3.7 Make command event replay authoritative across replicas while retaining live fast paths; verify slow/disconnected watchers recover every persisted event.
+- [ ] 3.8 Implement per-Organization queue and worker limits; verify a flood from one tenant does not delay a control tenant beyond the test SLO.
+- [ ] 3.9 Add dead-letter state, authorized replay and reconciliation records; verify terminal retry exhaustion is visible and replay is idempotent.
+
+## 4. IM Message Plane and Collaboration Events
+
+- [ ] 4.1 Define the internal `MessagePlane` contract for connection credentials, append, history, cursor sync, membership projection and health; verify fake-engine contract tests pass.
+- [ ] 4.2 Implement the selected WuKongIM adapter without exposing its admin API publicly; verify internal-network and authentication boundary tests.
+- [ ] 4.3 Add `client_msg_no`, global message identity and per-conversation `message_seq` projections; verify concurrent sends converge on one order and retries deduplicate.
+- [ ] 4.4 Define append-only collaboration event types for create, edit, recall, redaction, reaction, thread and command lifecycle; verify projection tests produce the expected visible message state.
+- [ ] 4.5 Implement dual projection from Message Plane to PostgreSQL during migration; verify parity for text, attachments, mentions, threads, reactions and unread cursors.
+- [ ] 4.6 Implement resumable per-device and per-Agent cursors; verify offline reconnection returns all authorized events once in sequence order.
+- [ ] 4.7 Add edit, recall and moderation policies with audit/legal-hold behavior; verify normal readers lose recalled content while authorized hold access remains.
+- [ ] 4.8 Add presence, typing and delivery/read capability contracts; verify unsupported surfaces return explicit capability state rather than simulated success.
+- [ ] 4.9 Add Message Plane reconciliation for channel membership and conversation projection; verify drift is repaired or quarantined with an audit event.
+- [ ] 4.10 Cut native chat reads/writes to the new Collaboration API behind an Organization feature flag; verify per-tenant rollback to the old read path remains possible.
+
+## 5. Native Web Collaboration and Web Widget
+
+- [ ] 5.1 Update Native Web conversation state for sequence-based append-only events; verify reload, backward pagination, edit, recall and reaction UI tests.
+- [ ] 5.2 Add Organization/workspace/channel/member management views; verify role-based controls and mixed human/Agent roster tests.
+- [ ] 5.3 Add Agent execution start/steer/cancel/completion events to conversations; verify an authorized human can stop a running response and observe the terminal state.
+- [ ] 5.4 Define Organization-scoped Web Widget configuration, public bootstrap and short-lived visitor session contracts; verify unknown Organization and expired session failures.
+- [ ] 5.5 Implement widget origin allowlist, CSP integration and abuse rate limits; verify unauthorized origins cannot create or resume conversations.
+- [ ] 5.6 Implement widget conversation, attachment and human-handoff UI; verify a visitor can move from Bot to human without changing conversation identity.
+- [ ] 5.7 Add widget theming, localization and accessibility tests; verify supported themes meet contrast, keyboard and screen-reader acceptance checks.
+
+## 6. Organization Approval, Entitlements and Usage
+
+- [ ] 6.1 Define ApprovalPolicy, ApprovalRequest, ApprovalDecision and bound-action contracts; verify Proto generation and state-machine table tests.
+- [ ] 6.2 Add approval policy/version/request/decision schema; verify immutable intent hash, nonce, expiry and tenant foreign keys.
+- [ ] 6.3 Implement approver resolution for users, groups and roles; verify suspended members, conflicts and removed group members cannot decide.
+- [ ] 6.4 Implement quorum, deny, expiry, cancellation, supersession and escalation transitions; verify every transition is deterministic and audited.
+- [ ] 6.5 Replace ACP unconditional permission granting with policy evaluation and approval wait/resume; verify fake Provider tests cover allow, deny, timeout and changed parameters.
+- [ ] 6.6 Build Organization Approval Center UI; verify eligible approvers can inspect bounded intent and ineligible users cannot view sensitive requests.
+- [ ] 6.7 Define billing account, subscription, entitlement, quota and usage-event contracts without payment-provider fields in authorization paths; verify API contract tests.
+- [ ] 6.8 Add immutable idempotent usage-event storage and recomputable aggregates; verify duplicate source events are counted once and aggregates rebuild.
+- [ ] 6.9 Implement entitlement and quota checks for seats, Agents, Machines, connectors, concurrency, runtime and storage; verify per-Organization allow/queue/deny behavior.
+- [ ] 6.10 Add owner/billing-admin usage visibility and read-only grace state; verify ordinary members cannot access Organization-wide usage or cost data.
+
+## 7. Provider Runtime Gateway
+
+- [ ] 7.1 Define Provider manifest and validation for runtime, protocol, platform, version, integrity, capabilities and permission profile; verify invalid/floating manifests fail tests.
+- [ ] 7.2 Migrate OpenCode, Claude Code and Codex registry entries to manifest-backed adapters; verify existing detection and model probes remain green.
+- [ ] 7.3 Implement atomic npm package preparation and immutable Machine cache; verify cache hit, interrupted install, integrity failure, quarantine and rollback.
+- [ ] 7.4 Replace Claude Code `@latest` turn launch with pinned prepared local binary; verify offline restart and real ACP opt-in tests.
+- [ ] 7.5 Isolate Provider workspace, session, env and credentials per Agent while sharing only immutable package data; verify two-Agent isolation tests.
+- [ ] 7.6 Preserve session resume/cold-start fingerprint behavior across package versions; verify incompatible upgrade invalidates only the affected session.
+- [ ] 7.7 Publish Provider compatibility evidence levels by OS/version; verify detected-only Providers cannot be selected for automatic execution.
+- [ ] 7.8 Add Provider install, update, broken and quarantined UI states; verify operators can roll back to the last verified runtime.
+
+## 8. A2A 1.0 and Multi-Agent Orchestration
+
+- [ ] 8.1 Add official A2A Go SDK dependency and isolate it behind an A2A service boundary; verify supported protocol version is surfaced in integration tests.
+- [ ] 8.2 Implement public and authenticated extended Agent Cards per tenant Agent/skill policy; verify public cards omit private skills and credentials.
+- [ ] 8.3 Implement tenant-authorized A2A send, stream, get, list, cancel, subscribe and push operations; verify cross-tenant task enumeration is impossible.
+- [ ] 8.4 Add canonical work records linking A2A task/context, Organization, workspace, principal, Agent, conversation, artifact and approval; verify internal and external delegation round-trip.
+- [ ] 8.5 Adapt existing 888a2a tasks and Agent delegation into the A2A-compatible work model; verify legacy task UI remains usable during migration.
+- [ ] 8.6 Implement parent/child graph creation, fan-out and join; verify success, partial failure and timeout join policies.
+- [ ] 8.7 Add cycle detection, maximum depth/children and Organization concurrency/budget limits; verify adversarial self-delegation and exponential fan-out are stopped.
+- [ ] 8.8 Implement cancellation propagation from A2A/human root tasks to descendants and runtimes; verify every descendant reaches an observable terminal state.
+- [ ] 8.9 Integrate A2A authorization-required state with Organization Approval; verify task resume requires a valid action-bound decision and secure credential path.
+- [ ] 8.10 Add task graph and trace UI; verify humans can see requester, delegates, status, artifacts, approvals, budget and failure cause.
+
+## 9. Connector Gateway Framework
+
+- [ ] 9.1 Define versioned Connector contract and capability matrix for installation, verification, normalization, outbound delivery, media, replies, edits, recalls, reactions and receipts; verify fixture adapters compile against one contract.
+- [ ] 9.2 Add encrypted tenant-scoped connector credential storage and rotation hooks; verify secrets never appear in API responses, logs or audit payloads.
+- [ ] 9.3 Implement external identity and conversation mapping without display-name merging; verify explicit account linking and unlinking tests.
+- [ ] 9.4 Implement inbound verify→ack→inbox→normalize→route pipeline; verify platform deadlines are met while processing remains asynchronous.
+- [ ] 9.5 Implement per-installation outbound outbox, rate-limit scheduling, retry and terminal delivery status; verify one installation's limit does not block another tenant.
+- [ ] 9.6 Implement explicit conversation bridge policies and delivery-divergence records; verify unbridged conversations remain isolated.
+- [ ] 9.7 Add connector health, capability, backlog, dead-letter and replay operator UI; verify tenant admins see only their installations.
+
+## 10. First External Connector
+
+- [ ] 10.1 Write the selected connector's official API contract, credential types, webhook rules, rate limits and marketplace checklist; verify links and versions against current official documentation.
+- [ ] 10.2 Implement tenant onboarding/install/uninstall and credential revocation; verify two Organizations can install separate external accounts without token crossover.
+- [ ] 10.3 Implement signed/authenticated inbound events and platform-specific dedup/order handling; verify replay fixtures and invalid signature tests.
+- [ ] 10.4 Implement outbound text, media, replies and interactive content supported by the selected platform; verify success, retryable, rate-limited and terminal failure cases.
+- [ ] 10.5 Implement platform identity, group/channel/thread and member lifecycle mapping; verify join, leave, edit/recall or documented fallback scenarios.
+- [ ] 10.6 Complete external-user→human→Agent→human/external end-to-end pilot; verify one conversation preserves tenant, identity, trace, approval and delivery status.
+- [ ] 10.7 Run the platform review/readiness checklist and production canary; verify webhook logs, quotas, uninstall and incident rollback before pilot enablement.
+
+## 11. Remaining Connector Expansion
+
+- [ ] 11.1 Implement LINE connector using raw-body signature verification, asynchronous webhook processing, `webhookEventId` dedup, redelivery/out-of-order handling, group events, edit/unsend and reply/push rules; verify the LINE acceptance suite and Console webhook test.
+- [ ] 11.2 Implement Slack connector using OAuth, HTTPS Events API, fast acknowledgement, retries, per-workspace rate limits, conversations/threads and app lifecycle events; verify Marketplace-oriented HTTP mode and private Socket Mode separately.
+- [ ] 11.3 Implement Teams connector using the approved Microsoft 365 Agents SDK sidecar or validated Activity adapter; verify Teams messages, conversation lifecycle, Adaptive Cards, OAuth and tenant isolation.
+- [ ] 11.4 Implement WhatsApp Tech Provider connector covering Embedded Signup, business account/phone lifecycle, webhooks, templates, media and policy status; verify Meta onboarding and test-number end-to-end flow.
+- [ ] 11.5 Add cross-connector capability and fallback regression suite; verify every unsupported operation produces the configured visible fallback and divergence record.
+
+## 12. Production Hardening and Migration Completion
+
+- [ ] 12.1 Add tenant-scoped metrics, traces, logs and SLO dashboards for APIs, IM, connectors, A2A, runtime, approval and outbox; verify one correlation ID traces an end-to-end external task.
+- [ ] 12.2 Implement retention, deletion, export and legal-hold jobs across PostgreSQL, Message Plane, object storage and raw connector data; verify policy fixtures and immutable hold behavior.
+- [ ] 12.3 Implement backup/restore and disaster-recovery drills with declared RPO/RTO; verify restored tenant counts, sequences, tasks, approvals, credentials and artifacts reconcile.
+- [ ] 12.4 Perform security review for tenant isolation, webhook signatures, OAuth, secret storage, runtime sandbox, SSRF, file handling and approval binding; verify all critical/high findings are fixed or formally blocked from release.
+- [ ] 12.5 Run load tests for hot channels, many small channels, connector bursts, A2A fan-out and Machine reconnect storms; verify tenant fairness and selected capacity targets.
+- [ ] 12.6 Complete dual-projection reconciliation and per-Organization cutover; verify rollback before removing old unscoped read/write paths.
+- [ ] 12.7 Remove obsolete single-workspace and process-local correctness paths after compatibility window; verify upgrade, fresh install, lint, tests and production build pass.
+- [ ] 12.8 Publish operator, tenant admin, connector, A2A, runtime, approval and migration documentation; verify a clean environment can follow the documented setup without undocumented credentials or steps.
