@@ -388,6 +388,8 @@ func mapTaskStateToDurableState(s a2a.TaskState) string {
 		return "AUTH_REQUIRED"
 	case a2a.TaskStateRejected:
 		return "REJECTED"
+	case a2a.TaskStateUnspecified:
+		fallthrough
 	default:
 		return "SUBMITTED"
 	}

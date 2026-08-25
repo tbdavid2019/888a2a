@@ -89,7 +89,7 @@ func ComputeReadiness(agent *store.AgentMessage) RuntimeReadiness {
 			return ReadinessReady
 		case models.AgentStatus_OFFLINE:
 			return ReadinessOffline
-		case models.AgentStatus_ERROR, models.AgentStatus_KICKED:
+		case models.AgentStatus_ERROR, models.AgentStatus_KICKED, models.AgentStatus_CONNECTION_STATE_UNSPECIFIED:
 			return ReadinessUnavailable
 		}
 	}

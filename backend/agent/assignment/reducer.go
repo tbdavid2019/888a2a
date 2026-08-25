@@ -94,6 +94,8 @@ func (r *Reducer) ApplyEvent(event *a2a888.MachineAssignmentEvent) error {
 			return pkgerrors.Wrapf(ErrInvalidEvent, "Agent %q does not exist", agentID)
 		}
 		delete(r.assignments, agentID)
+	case a2a888.AssignmentEventType_ASSIGNMENT_EVENT_TYPE_UNSPECIFIED:
+		fallthrough
 	default:
 		return pkgerrors.Wrapf(ErrInvalidEvent, "unsupported event type %d", event.GetEventType())
 	}
@@ -236,6 +238,8 @@ func validateEvent(event *a2a888.MachineAssignmentEvent, machineResourceID strin
 		if event.GetConfig() != nil {
 			return pkgerrors.Wrap(ErrInvalidEvent, "remove cannot carry config")
 		}
+	case a2a888.AssignmentEventType_ASSIGNMENT_EVENT_TYPE_UNSPECIFIED:
+		fallthrough
 	default:
 		return pkgerrors.Wrapf(ErrInvalidEvent, "unsupported event type %d", event.GetEventType())
 	}

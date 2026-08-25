@@ -237,6 +237,8 @@ func (p *RuntimePolicy) Evaluate(req PermissionRequest) PermissionResult {
 			ActionSummary: "mcp: " + req.MCPServer + "/" + req.MCPTool,
 		}
 
+	case ActionUnclassified:
+		fallthrough
 	default:
 		return PermissionResult{
 			Decision:      DecisionDeny,
@@ -373,6 +375,8 @@ func ClassifyACPRequest(params acp.RequestPermissionRequest) PermissionRequest {
 			req.ActionKind = ActionWrite
 		case acp.ToolKindExecute:
 			req.ActionKind = ActionShell
+		case acp.ToolKindDelete, acp.ToolKindMove, acp.ToolKindSearch, acp.ToolKindThink, acp.ToolKindFetch, acp.ToolKindSwitchMode, acp.ToolKindOther:
+			req.ActionKind = ActionUnclassified
 		default:
 			req.ActionKind = ActionUnclassified
 		}

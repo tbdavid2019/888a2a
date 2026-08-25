@@ -73,8 +73,11 @@ func preferredLanguageString(l v1pb.PreferredLanguage) string {
 		return "en-US"
 	case v1pb.PreferredLanguage_PREFERRED_LANGUAGE_JA_JP:
 		return "ja-JP"
+	case v1pb.PreferredLanguage_PREFERRED_LANGUAGE_UNSPECIFIED:
+		fallthrough
+	default:
+		return ""
 	}
-	return ""
 }
 
 // formatMemberLine renders one roster entry: the header line (type, display

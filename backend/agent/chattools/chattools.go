@@ -68,7 +68,7 @@ func wrapManagerError(err error) *Error {
 	if err == nil {
 		return nil
 	}
-	switch connect.CodeOf(err) {
+	switch connect.CodeOf(err) { //nolint:exhaustive
 	case connect.CodeNotFound:
 		return &Error{Code: "NOT_FOUND_FAILED", Message: err.Error(), NextAction: "Check the conversation/command id; it may not exist or you may not be a member."}
 	case connect.CodePermissionDenied:
@@ -97,6 +97,8 @@ func senderTypeString(t v1pb.SenderType) string {
 		return "agent"
 	case v1pb.SenderType_SENDER_TYPE_SYSTEM:
 		return "system"
+	case v1pb.SenderType_SENDER_TYPE_UNSPECIFIED:
+		fallthrough
 	default:
 		return "unknown"
 	}

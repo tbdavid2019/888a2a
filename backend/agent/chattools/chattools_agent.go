@@ -94,6 +94,9 @@ func connectionStateString(s v1pb.AgentStatus_ConnectionState) string {
 		return "kicked"
 	case v1pb.AgentStatus_STOPPED:
 		return "stopped"
+	case v1pb.AgentStatus_CONNECTION_STATE_UNSPECIFIED:
+		fallthrough
+	default:
+		return "unknown"
 	}
-	return "unknown"
 }
