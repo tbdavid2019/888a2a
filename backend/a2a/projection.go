@@ -103,18 +103,18 @@ func FormatStatusUpdateSummary(work *store.WorkMessage, event *store.WorkEventMe
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("🔄 **A2A Task Status**: `%s` → [%s]", sanitizeSafeString(work.A2ATaskID), sanitizeSafeString(state)))
+	fmt.Fprintf(&sb, "🔄 **A2A Task Status**: `%s` → [%s]", sanitizeSafeString(work.A2ATaskID), sanitizeSafeString(state))
 	if seq > 0 {
-		sb.WriteString(fmt.Sprintf(" (Seq #%d)", seq))
+		fmt.Fprintf(&sb, " (Seq #%d)", seq)
 	}
 	sb.WriteString("\n")
 
-	sb.WriteString(fmt.Sprintf("- **Executor**: `%s`\n", sanitizeSafeString(work.ExecutorAgentID)))
+	fmt.Fprintf(&sb, "- **Executor**: `%s`\n", sanitizeSafeString(work.ExecutorAgentID))
 	if work.TraceID != "" {
-		sb.WriteString(fmt.Sprintf("- **Trace ID**: `%s`\n", sanitizeSafeString(work.TraceID)))
+		fmt.Fprintf(&sb, "- **Trace ID**: `%s`\n", sanitizeSafeString(work.TraceID))
 	}
 	if event != nil && event.TerminalReason != "" {
-		sb.WriteString(fmt.Sprintf("- **Note**: %s\n", sanitizeSafeString(event.TerminalReason)))
+		fmt.Fprintf(&sb, "- **Note**: %s\n", sanitizeSafeString(event.TerminalReason))
 	}
 
 	return sb.String()
