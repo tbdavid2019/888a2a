@@ -5,7 +5,6 @@
 package a2a
 
 import (
-	"fmt"
 	"strings"
 
 	officiala2a "github.com/a2aproject/a2a-go/v2/a2a"
@@ -65,5 +64,5 @@ func NegotiateProtocolVersion(reqVersion string) (string, error) {
 
 // FormatVersionHeader returns the standard A2A-Version header value.
 func FormatVersionHeader() string {
-	return fmt.Sprintf("%s", officiala2a.Version)
+	return string(officiala2a.Version)
 }

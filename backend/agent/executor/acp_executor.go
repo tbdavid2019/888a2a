@@ -1396,20 +1396,6 @@ func toProtobufStruct(value any) *structpb.Struct {
 	return s
 }
 
-func allowPermissionOption(options []acp.PermissionOption) acp.PermissionOptionId {
-	for _, option := range options {
-		if option.Kind == acp.PermissionOptionKindAllowOnce || option.Kind == acp.PermissionOptionKindAllowAlways {
-			return option.OptionId
-		}
-	}
-	// No allow option offered: fall back to the first one so the agent always
-	// gets a valid selection instead of an empty option id.
-	if len(options) > 0 {
-		return options[0].OptionId
-	}
-	return ""
-}
-
 func uniqueStrings(items []string) []string {
 	seen := map[string]struct{}{}
 	result := make([]string, 0, len(items))

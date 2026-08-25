@@ -1,4 +1,5 @@
-package agentruntime
+//nolint:revive // package name is retained for the existing runtime import path.
+package runtime
 
 import (
 	"context"

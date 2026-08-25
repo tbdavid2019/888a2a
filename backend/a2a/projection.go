@@ -29,15 +29,15 @@ func FormatThreadSummary(work *store.WorkMessage, artifacts []*store.WorkArtifac
 	fmt.Fprintf(&sb, "- **Executor**: `%s` (Requester: `%s`)\n", sanitizeSafeString(work.ExecutorAgentID), sanitizeSafeString(work.RequesterAgentID))
 
 	if work.TraceID != "" {
-		sb.WriteString(fmt.Sprintf("- **Trace**: `%s`", sanitizeSafeString(work.TraceID)))
+		fmt.Fprintf(&sb, "- **Trace**: `%s`", sanitizeSafeString(work.TraceID))
 		if work.SpanID != "" {
-			sb.WriteString(fmt.Sprintf(" (Span: `%s`)", sanitizeSafeString(work.SpanID)))
+			fmt.Fprintf(&sb, " (Span: `%s`)", sanitizeSafeString(work.SpanID))
 		}
 		sb.WriteString("\n")
 	}
 
 	if work.TerminalReason != "" {
-		sb.WriteString(fmt.Sprintf("- **Outcome**: %s\n", sanitizeSafeString(work.TerminalReason)))
+		fmt.Fprintf(&sb, "- **Outcome**: %s\n", sanitizeSafeString(work.TerminalReason))
 	}
 
 	if len(artifacts) > 0 {
