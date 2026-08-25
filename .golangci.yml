@@ -3,6 +3,7 @@ run:
   allow-parallel-runners: true
 
 linters:
+  disable-all: true
   enable:
     - errcheck
     - gosimple
@@ -10,8 +11,6 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-  disable:
-    - exhaustive
 
 issues:
   max-issues-per-linter: 0
