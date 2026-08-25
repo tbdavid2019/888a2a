@@ -73,5 +73,5 @@ and the project uses [Semantic Versioning](https://semver.org/) for releases.
 
 ## How to update this file
 
-Add every meaningful change to the `[Unreleased]` section before committing.
-Move those entries into a dated section when creating a release.
+Add every meaningful change directly to the section for today's date (`## [YYYY-MM-DD]`) before committing.
+Do not use `[Unreleased]`; all entries are organized strictly by date.
