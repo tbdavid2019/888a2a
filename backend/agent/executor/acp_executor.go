@@ -1113,7 +1113,17 @@ func (e *ACPExecutor) validatePath(path string, enabled bool) (string, error) {
 // pathInsideRoots reports whether target is at or below one of the allowed
 // ACP workspace roots.
 func (e *ACPExecutor) pathInsideRoots(target string) bool {
+	target = filepath.Clean(target)
 	for _, root := range e.allowedRoots {
+		// EvalSymlinks canonicalizes platform aliases such as macOS's /var
+		// symlink to /private/var, matching the resolved target path. If an
+		// allowed root cannot be resolved, fail closed rather than falling back
+		// to a lexical comparison that could weaken symlink escape protection.
+		resolvedRoot, err := filepath.EvalSymlinks(root)
+		if err != nil {
+			continue
+		}
+		root = filepath.Clean(resolvedRoot)
 		if target == root || strings.HasPrefix(target, root+string(os.PathSeparator)) {
 			return true
 		}

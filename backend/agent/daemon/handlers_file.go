@@ -67,6 +67,10 @@ func validateWorkspacePath(base, jail, path string) (string, error) {
 	if path == "" {
 		return "", errors.New("path is required")
 	}
+	resolvedJail, err := filepath.EvalSymlinks(jail)
+	if err != nil {
+		return "", errors.Errorf("failed to resolve workspace jail %q: %v", jail, err)
+	}
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(base, path)
 	}
@@ -86,7 +90,7 @@ func validateWorkspacePath(base, jail, path string) (string, error) {
 		if lerr != nil {
 			return "", errors.Errorf("failed to resolve path %q: %v", path, lerr)
 		}
-		if !insideWorkspace(jail, resolved) {
+		if !insideWorkspace(resolvedJail, resolved) {
 			return "", errors.Errorf("path %q escapes the agent workspace", path)
 		}
 		return resolved, nil
@@ -99,7 +103,7 @@ func validateWorkspacePath(base, jail, path string) (string, error) {
 		if perr != nil {
 			return "", errors.Errorf("failed to resolve parent directory %q: %v", parent, perr)
 		}
-		if !insideWorkspace(jail, parentResolved) {
+		if !insideWorkspace(resolvedJail, parentResolved) {
 			return "", errors.Errorf("path %q escapes the agent workspace", path)
 		}
 		return filepath.Join(parentResolved, filepath.Base(cleaned)), nil

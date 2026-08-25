@@ -28,7 +28,9 @@ func TestACPValidatePath(t *testing.T) {
 
 	resolved, err := exec.validatePath(insidePath, true)
 	require.NoError(t, err)
-	assert.Equal(t, filepath.Clean(insidePath), resolved)
+	expected, err := filepath.EvalSymlinks(insidePath)
+	require.NoError(t, err)
+	assert.Equal(t, expected, resolved)
 
 	_, err = exec.validatePath(filepath.Join(workspace, "..", "outside.txt"), true)
 	require.Error(t, err)
@@ -645,7 +647,9 @@ func TestACPValidatePath_AllowsFreshPathInsideRoot(t *testing.T) {
 	exec := &ACPExecutor{allowedRoots: []string{workspace}}
 	got, err := exec.validatePath(filepath.Join(sub, "new.txt"), true)
 	require.NoError(t, err)
-	assert.Equal(t, filepath.Join(sub, "new.txt"), got)
+	resolvedSub, err := filepath.EvalSymlinks(sub)
+	require.NoError(t, err)
+	assert.Equal(t, filepath.Join(resolvedSub, "new.txt"), got)
 }
 
 // TestSendOutput_NonBlockingAfterCancel guards the T15 cancel-safe channel fix:

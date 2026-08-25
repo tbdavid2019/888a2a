@@ -107,7 +107,16 @@ func TestValidateWorkspacePath_AllowsFreshPathInsideJail(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected fresh path inside jail to pass, got: %v", err)
 	}
-	want := filepath.Join(sub, "new.txt")
+	want, err := filepath.EvalSymlinks(filepath.Join(sub, "new.txt"))
+	if err != nil {
+		// The leaf is intentionally fresh, so canonicalize its parent and append
+		// the leaf name for platforms whose temp root is a symlink.
+		parent, parentErr := filepath.EvalSymlinks(sub)
+		if parentErr != nil {
+			t.Fatalf("resolve parent: %v", parentErr)
+		}
+		want = filepath.Join(parent, "new.txt")
+	}
 	if got != want {
 		t.Errorf("expected %q, got %q", want, got)
 	}
@@ -140,7 +149,9 @@ func TestValidateWorkspacePath_ResolvesCwdRelativeIntoAgentTemp(t *testing.T) {
 	}
 	got, err := validateWorkspacePath(home, tempDir, filepath.Join("temp", "docker-report.md"))
 	assert.NoError(t, err)
-	assert.Equal(t, filepath.Join(tempDir, "docker-report.md"), got)
+	resolvedTemp, err := filepath.EvalSymlinks(tempDir)
+	assert.NoError(t, err)
+	assert.Equal(t, filepath.Join(resolvedTemp, "docker-report.md"), got)
 }
 
 // TestValidateWorkspacePath_RejectsWorkspaceRootFile: a file written directly
@@ -163,7 +174,9 @@ func TestValidateWorkspacePath_ResolvesFromTempCwd(t *testing.T) {
 	tempDir := t.TempDir()
 	got, err := validateWorkspacePath(tempDir, tempDir, "docker-report.md")
 	assert.NoError(t, err)
-	assert.Equal(t, filepath.Join(tempDir, "docker-report.md"), got)
+	resolvedTemp, err := filepath.EvalSymlinks(tempDir)
+	assert.NoError(t, err)
+	assert.Equal(t, filepath.Join(resolvedTemp, "docker-report.md"), got)
 }
 
 // TestValidateWorkspacePath_RejectsOldMachineTempEscape: the pre-machine temp
