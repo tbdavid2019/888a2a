@@ -10,11 +10,8 @@ linters:
     - ineffassign
     - staticcheck
     - unused
+  disable:
     - exhaustive
-
-linters-settings:
-  exhaustive:
-    default-signifies-exhaustive: true
 
 issues:
   max-issues-per-linter: 0
