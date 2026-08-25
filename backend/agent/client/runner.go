@@ -15,6 +15,8 @@ import (
 	"github.com/Ranxy/laelia/backend/agent/home"
 	"github.com/Ranxy/laelia/backend/agent/pi"
 	"github.com/Ranxy/laelia/backend/agent/provider"
+	agentruntime "github.com/Ranxy/laelia/backend/agent/runtime"
+	a2a888pb "github.com/Ranxy/laelia/backend/generated-go/a2a888"
 	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
 )
 
@@ -58,7 +60,42 @@ type agentRunner struct {
 // returns nil for an agent that is not yet configured (no provider/executable),
 // which keeps the runner inert until the admin sets a config.
 func (r *agentRunner) buildAcpConfig(assignment *v1pb.AgentAssignment) *executor.ACPConfig {
-	cfg := executor.BuildACPConfig(assignment.GetAcpConfig(), r.machine.machineID, r.agentID)
+	user := assignment.GetAcpConfig()
+	if user == nil {
+		return nil
+	}
+
+	var cfg *executor.ACPConfig
+	if r.machine.runtimePreparer != nil {
+		manifest, ok := provider.Default().LookupManifest(user.GetProvider())
+		if !ok && user.GetProvider() == "custom" {
+			manifest = provider.CustomManifest(user.GetExecutable(), user.GetArgs(), protocolFromConfig(user.GetProtocol()))
+			ok = true
+		}
+		if ok {
+			prepareCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			prepared, err := r.machine.runtimePreparer.Prepare(prepareCtx, manifest, agentruntime.CurrentPlatform())
+			cancel()
+			if err != nil || prepared == nil || prepared.GetStatus().GetState() != a2a888pb.RuntimeState_READY || prepared.GetResolvedBinary() == nil {
+				if err != nil {
+					slog.Warn("provider runtime preparation failed; agent stays inert", "agent", r.agentName, "provider", user.GetProvider(), "error", err)
+				}
+				return nil
+			}
+			resolved := prepared.GetResolvedBinary()
+			cfg = executor.BuildACPConfigWithCommand(user, r.machine.machineID, r.agentID, resolved.GetPath(), resolved.GetArguments())
+			if cfg != nil {
+				cfg.ManifestDigest = prepared.GetCacheIdentity().GetManifestDigest()
+				cfg.PackageIntegrity = prepared.GetCacheIdentity().GetIntegrity()
+				cfg.CacheIdentityDigest = prepared.GetCacheIdentity().GetIdentityDigest()
+				cfg.BinarySha256 = resolved.GetSha256()
+			}
+		} else {
+			cfg = executor.BuildACPConfig(user, r.machine.machineID, r.agentID)
+		}
+	} else {
+		cfg = executor.BuildACPConfig(user, r.machine.machineID, r.agentID)
+	}
 	if cfg == nil {
 		return nil
 	}
@@ -67,6 +104,13 @@ func (r *agentRunner) buildAcpConfig(assignment *v1pb.AgentAssignment) *executor
 		return nil
 	}
 	return cfg
+}
+
+func protocolFromConfig(protocol string) a2a888pb.AgentProtocol {
+	if protocol == executor.ProtocolV2 {
+		return a2a888pb.AgentProtocol_ACP_V2
+	}
+	return a2a888pb.AgentProtocol_ACP_V1
 }
 
 // buildPiConfig resolves the server-owned AgentACPConfig into a pi config +

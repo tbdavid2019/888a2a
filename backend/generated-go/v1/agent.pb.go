@@ -3279,6 +3279,11 @@ type AgentProviderInfo struct {
 	Models                    []*AgentModelOption    `protobuf:"bytes,5,rep,name=models,proto3" json:"models,omitempty"`                                                                             // empty when the provider does not advertise a model config option
 	SupportsModelConfigOption bool                   `protobuf:"varint,6,opt,name=supports_model_config_option,json=supportsModelConfigOption,proto3" json:"supports_model_config_option,omitempty"` // whether probing observed a category=="model" config option
 	DetectedAt                *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=detected_at,json=detectedAt,proto3" json:"detected_at,omitempty"`
+	RuntimeStatus             string                 `protobuf:"bytes,8,opt,name=runtime_status,json=runtimeStatus,proto3" json:"runtime_status,omitempty"`                // READY, BROKEN, QUARANTINED, UPDATE_AVAILABLE, DETECTED
+	CompatibilityLevel        string                 `protobuf:"bytes,9,opt,name=compatibility_level,json=compatibilityLevel,proto3" json:"compatibility_level,omitempty"` // DETECTED, PROTOCOL_READY, FUNCTIONALLY_VERIFIED, FULL_LOOP_VERIFIED
+	FailureMessage            string                 `protobuf:"bytes,10,opt,name=failure_message,json=failureMessage,proto3" json:"failure_message,omitempty"`
+	PackageVersion            string                 `protobuf:"bytes,11,opt,name=package_version,json=packageVersion,proto3" json:"package_version,omitempty"`
+	ManifestDigest            string                 `protobuf:"bytes,12,opt,name=manifest_digest,json=manifestDigest,proto3" json:"manifest_digest,omitempty"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -3360,6 +3365,41 @@ func (x *AgentProviderInfo) GetDetectedAt() *timestamppb.Timestamp {
 		return x.DetectedAt
 	}
 	return nil
+}
+
+func (x *AgentProviderInfo) GetRuntimeStatus() string {
+	if x != nil {
+		return x.RuntimeStatus
+	}
+	return ""
+}
+
+func (x *AgentProviderInfo) GetCompatibilityLevel() string {
+	if x != nil {
+		return x.CompatibilityLevel
+	}
+	return ""
+}
+
+func (x *AgentProviderInfo) GetFailureMessage() string {
+	if x != nil {
+		return x.FailureMessage
+	}
+	return ""
+}
+
+func (x *AgentProviderInfo) GetPackageVersion() string {
+	if x != nil {
+		return x.PackageVersion
+	}
+	return ""
+}
+
+func (x *AgentProviderInfo) GetManifestDigest() string {
+	if x != nil {
+		return x.ManifestDigest
+	}
+	return ""
 }
 
 // AgentModelOption is one model selectable via the ACP session config option
@@ -4142,7 +4182,7 @@ const file_v1_agent_proto_rawDesc = "" +
 	" \x01(\v2\x19.laelia.v1.AgentACPConfigR\tacpConfig\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xcd\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa0\x04\n" +
 	"\x11AgentProviderInfo\x12\x1f\n" +
 	"\vprovider_id\x18\x01 \x01(\tR\n" +
 	"providerId\x12!\n" +
@@ -4152,7 +4192,13 @@ const file_v1_agent_proto_rawDesc = "" +
 	"\x06models\x18\x05 \x03(\v2\x1b.laelia.v1.AgentModelOptionR\x06models\x12?\n" +
 	"\x1csupports_model_config_option\x18\x06 \x01(\bR\x19supportsModelConfigOption\x12;\n" +
 	"\vdetected_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"detectedAt\"^\n" +
+	"detectedAt\x12%\n" +
+	"\x0eruntime_status\x18\b \x01(\tR\rruntimeStatus\x12/\n" +
+	"\x13compatibility_level\x18\t \x01(\tR\x12compatibilityLevel\x12'\n" +
+	"\x0ffailure_message\x18\n" +
+	" \x01(\tR\x0efailureMessage\x12'\n" +
+	"\x0fpackage_version\x18\v \x01(\tR\x0epackageVersion\x12'\n" +
+	"\x0fmanifest_digest\x18\f \x01(\tR\x0emanifestDigest\"^\n" +
 	"\x10AgentModelOption\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +

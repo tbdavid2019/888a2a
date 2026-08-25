@@ -53,10 +53,15 @@ type ACPConfig struct {
 	// flush threshold, startup timeout) defined once in executor.Limits.
 	Limits
 
-	Provider   string   `yaml:"provider"`
-	Model      string   `yaml:"model"`
-	Executable string   `yaml:"executable"`
-	Args       []string `yaml:"args"`
+	Provider            string   `yaml:"provider"`
+	ProviderVersion     string   `yaml:"provider_version"`
+	ManifestDigest      string   `yaml:"manifest_digest"`
+	PackageIntegrity    string   `yaml:"package_integrity"`
+	CacheIdentityDigest string   `yaml:"cache_identity_digest"`
+	BinarySha256        string   `yaml:"binary_sha256"`
+	Model               string   `yaml:"model"`
+	Executable          string   `yaml:"executable"`
+	Args                []string `yaml:"args"`
 	// Protocol is the declared ACP protocol generation ("acp-v1"/"acp-v2"),
 	// empty when inferred from the provider type.
 	Protocol      string `yaml:"protocol"`
@@ -101,8 +106,48 @@ func BuildACPConfig(user *v1pb.AgentACPConfig, machineID, agentID string) *ACPCo
 	}
 
 	executable, args := resolvedCommand(user, machineID, agentID)
+	return buildACPConfigValues(user, machineID, agentID, executable, args)
+}
+
+// BuildACPConfigWithCommand builds an ACPConfig using a previously resolved
+// executable, such as a binary returned by the Machine runtime preparer.
+func BuildACPConfigWithCommand(user *v1pb.AgentACPConfig, machineID, agentID, executable string, args []string) *ACPConfig {
+	return buildACPConfigValues(user, machineID, agentID, executable, args)
+}
+
+func buildACPConfigValues(user *v1pb.AgentACPConfig, machineID, agentID, executable string, args []string) *ACPConfig {
+	if user == nil {
+		return nil
+	}
 	if executable == "" {
 		return nil
+	}
+
+	var (
+		providerVersion     string
+		manifestDigest      string
+		packageIntegrity    string
+		cacheIdentityDigest string
+	)
+	if p, ok := provider.Default().Lookup(user.Provider); ok {
+		if m := p.Manifest(); m != nil {
+			manifestDigest = m.GetManifestIntegritySha256()
+			if npm := m.GetNpmPackage(); npm != nil {
+				providerVersion = npm.GetPackageVersion()
+				packageIntegrity = npm.GetIntegrity()
+			} else if sys := m.GetSystemExecutable(); sys != nil {
+				providerVersion = sys.GetPackageVersion()
+				packageIntegrity = sys.GetIntegritySha256()
+			} else if emb := m.GetEmbedded(); emb != nil {
+				providerVersion = emb.GetVersion()
+				packageIntegrity = emb.GetIntegritySha256()
+			} else if cust := m.GetCustom(); cust != nil {
+				providerVersion = cust.GetVersion()
+				packageIntegrity = cust.GetIntegritySha256()
+			} else {
+				providerVersion = m.GetManifestVersion()
+			}
+		}
 	}
 
 	cfg := &ACPConfig{
@@ -114,20 +159,24 @@ func BuildACPConfig(user *v1pb.AgentACPConfig, machineID, agentID string) *ACPCo
 			StartupTimeout:    defaultACPStartupTimeout,
 		},
 
-		Provider:           user.Provider,
-		Model:              user.Model,
-		Executable:         executable,
-		Args:               args,
-		Protocol:           user.Protocol,
-		PersonaPrompt:      user.PersonaPrompt,
-		CustomEnv:          user.CustomEnv,
-		AllowEnv:           user.AllowEnv,
-		WorkingDir:         AgentWorkingDir(machineID, agentID),
-		ReadTextFiles:      true,
-		WriteTextFiles:     true,
-		SupportsDiff:       true,
-		SupportsRawEvents:  true,
-		SupportsToolTraces: true,
+		Provider:            user.Provider,
+		ProviderVersion:     providerVersion,
+		ManifestDigest:      manifestDigest,
+		PackageIntegrity:    packageIntegrity,
+		CacheIdentityDigest: cacheIdentityDigest,
+		Model:               user.Model,
+		Executable:          executable,
+		Args:                args,
+		Protocol:            user.Protocol,
+		PersonaPrompt:       user.PersonaPrompt,
+		CustomEnv:           user.CustomEnv,
+		AllowEnv:            user.AllowEnv,
+		WorkingDir:          AgentWorkingDir(machineID, agentID),
+		ReadTextFiles:       true,
+		WriteTextFiles:      true,
+		SupportsDiff:        true,
+		SupportsRawEvents:   true,
+		SupportsToolTraces:  true,
 	}
 	return cfg
 }

@@ -46,6 +46,11 @@ func sessionFingerprint(cfg *ACPConfig, workingDir, protocol string) string {
 	h := sha256.New()
 	write := func(s string) { _, _ = h.Write([]byte(s)) }
 	write("provider\x00" + cfg.Provider + "\x00")
+	write("provider_version\x00" + cfg.ProviderVersion + "\x00")
+	write("manifest_digest\x00" + cfg.ManifestDigest + "\x00")
+	write("package_integrity\x00" + cfg.PackageIntegrity + "\x00")
+	write("cache_identity\x00" + cfg.CacheIdentityDigest + "\x00")
+	write("binary_sha256\x00" + cfg.BinarySha256 + "\x00")
 	write("model\x00" + cfg.Model + "\x00")
 	write("workdir\x00" + workingDir + "\x00")
 	write("protocol\x00" + protocol + "\x00")
@@ -62,9 +67,14 @@ func threadSessionFingerprint(cfg *ThreadConfig) string {
 		protocol = ProtocolV2
 	}
 	return sessionFingerprint(&ACPConfig{
-		Provider:      cfg.Provider,
-		Model:         cfg.Model,
-		PersonaPrompt: cfg.PersonaPrompt,
+		Provider:            cfg.Provider,
+		ProviderVersion:     cfg.ProviderVersion,
+		ManifestDigest:      cfg.ManifestDigest,
+		PackageIntegrity:    cfg.PackageIntegrity,
+		CacheIdentityDigest: cfg.CacheIdentityDigest,
+		BinarySha256:        cfg.BinarySha256,
+		Model:               cfg.Model,
+		PersonaPrompt:       cfg.PersonaPrompt,
 	}, cfg.WorkingDir, protocol)
 }
 

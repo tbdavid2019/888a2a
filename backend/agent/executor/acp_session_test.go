@@ -25,6 +25,11 @@ func TestSessionFingerprint_StableAndDistinguishing(t *testing.T) {
 
 	// Each session-defining input change must invalidate the fingerprint.
 	assert.NotEqual(t, a, sessionFingerprint(&ACPConfig{Provider: "claude", Model: "gpt-5"}, "/work", "v1"))
+	assert.NotEqual(t, a, sessionFingerprint(&ACPConfig{Provider: "opencode", ProviderVersion: "1.2.3", Model: "gpt-5"}, "/work", "v1"), "provider version change must invalidate the fingerprint")
+	assert.NotEqual(t, a, sessionFingerprint(&ACPConfig{Provider: "opencode", ManifestDigest: "new-manifest-digest", Model: "gpt-5"}, "/work", "v1"), "manifest digest change must invalidate the fingerprint")
+	assert.NotEqual(t, a, sessionFingerprint(&ACPConfig{Provider: "opencode", PackageIntegrity: "sha512-newintegrity", Model: "gpt-5"}, "/work", "v1"), "package integrity change must invalidate the fingerprint")
+	assert.NotEqual(t, a, sessionFingerprint(&ACPConfig{Provider: "opencode", CacheIdentityDigest: "new-identity", Model: "gpt-5"}, "/work", "v1"), "cache identity change must invalidate the fingerprint")
+	assert.NotEqual(t, a, sessionFingerprint(&ACPConfig{Provider: "opencode", BinarySha256: "new-bin-sha", Model: "gpt-5"}, "/work", "v1"), "binary sha256 change must invalidate the fingerprint")
 	assert.NotEqual(t, a, sessionFingerprint(&ACPConfig{Provider: "opencode", Model: "claude-4"}, "/work", "v1"))
 	assert.NotEqual(t, a, sessionFingerprint(&ACPConfig{Provider: "opencode", Model: "gpt-5"}, "/elsewhere", "v1"))
 	assert.NotEqual(t, a, sessionFingerprint(&ACPConfig{Provider: "opencode", Model: "gpt-5"}, "/work", "v2"), "protocol change must invalidate the fingerprint")

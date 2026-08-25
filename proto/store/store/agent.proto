@@ -60,6 +60,11 @@ message AgentProviderInfo {
   repeated AgentModelOption models = 5;
   bool supports_model_config_option = 6;
   google.protobuf.Timestamp detected_at = 7;
+  string runtime_status = 8;
+  string compatibility_level = 9;
+  string failure_message = 10;
+  string package_version = 11;
+  string manifest_digest = 12;
 }
 
 message AgentModelOption {

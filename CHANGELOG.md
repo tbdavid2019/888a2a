@@ -7,7 +7,41 @@ and the project uses [Semantic Versioning](https://semver.org/) for releases.
 
 ## [Unreleased]
 
-Future changes go here before the next release.
+### Added
+
+- Added durable per-Machine assignment storage and event logging in PostgreSQL (`machine_assignments` & `machine_assignment_events`) with strictly monotonic sequence numbers, idempotency keys, and transaction boundary integrity.
+- Added monotonic assignment stream cursor persistence (`state.LastAckCursor`) and replay protocol (`ApplyAssignmentReplay`) with gap/regression validation in `MachineClient`.
+- Added idempotent Machine assignment apply (`ApplyAssignmentEvent`) preventing duplicate runners and zombie processes.
+- Added full-roster reconciliation (`ReconcileRoster`) converging stale configs and reaping untracked zombie runners to authoritative high watermark and revision.
+- Added per-Agent workspace path confinement (`ConfinePathToAgentWorkspace`), strict ownership assertion (`AssertAgentOwnership`), and environment isolation (`BuildIsolatedEnvironment`) preventing cross-Agent data or credential leakage across concurrent agents.
+- Added Machine capacity and live Agent availability reporting (`IsAgentReadyForWork`, `GetAgentAvailability`, `GetCapacityReport`), advertising readiness only when agents and hosting machines are healthy, connected, and under saturation limits.
+- Added multi-agent runner concurrency, timeout, cancellation, and crash isolation verification ensuring peer runners continue unperturbed when an individual agent times out or crashes.
+- Added strict manifest digest calculation (`ComputeManifestDigest`) and validation across NPM, System, Embedded, and Custom runtime providers.
+- Added runtime preparation metadata tracking (`.runtime_meta.json`) recording identity digest, manifest digest, package SRI integrity, binary sha256, size, and preparation timestamp.
+- Added disk binary tamper detection and automatic isolation to quarantine directory (`quarantine/<identity_digest>.<timestamp>`) with path traversal protection.
+- Added retry capability for failed runtime preparations.
+- Added `RuntimeStatus` (`READY`, `BROKEN`, `QUARANTINED`, `UPDATE_AVAILABLE`, `DETECTED`) and `CompatibilityLevel` evidence fields to `AgentProviderInfo` proto definitions and manager validation.
+- Added session launch fingerprint validation binding provider version, manifest digest, package integrity, runtime cache identity, and binary sha256.
+- Connected Machine runtime preparation to Agent launch so ACP sessions use the verified local executable and runtime identity metadata.
+- Added npm lockfile version and SRI verification before a package can become READY.
+- Added system executable version probing and local executable resolution for system, embedded, and custom runtime manifests.
+- Added tenant-ready A2A 1.0 HTTP+JSON gateway with standard protocol version negotiation (`A2A-Version`) and official SDK compatibility (`github.com/a2aproject/a2a-go/v2`).
+- Added Agent Card projection from agent metadata, provider capabilities, and operational readiness, omitting disabled and private skills.
+- Added authenticated Agent Directory service with tenant isolation, skill filtering, and live readiness state reporting.
+- Added PostgreSQL durable storage for A2A work contexts, work records, artifact references, and monotonic event logs (`a2a888_work`, `a2a888_work_context`, `a2a888_work_artifact`, `a2a888_work_event`).
+- Added idempotent send-message acceptance, durable work creation before acknowledgement, and lost response retry safety.
+- Added get-task and tenant-isolated list-tasks with cursor pagination and peer work isolation.
+- Added event broker with durable event log replay from sequence markers and live subscription delivery across streaming clients.
+- Added terminal-state idempotent task cancellation preventing corruption of completed work.
+- Added additive projections linking A2A delegation, states, and artifacts to conversation and task message threads.
+- Added Manager restart recovery for active work, safely resuming or transitioning interrupted tasks without duplicate execution.
+
+### Changed
+
+- Updated Claude Code provider manifest to pinned `@agentclientprotocol/claude-agent-acp@0.70.0` with verified SRI integrity sha512 hash and eliminated turn-time npx download fallback.
+- Updated Manager API provider validation to prohibit quarantined, broken, and unverified detected-only providers from automatic execution.
+- Updated Manager frontend UI to display runtime status and compatibility evidence badges and disable unusable providers from selection.
+- Updated Dispatcher to check live machine connection, command in-flight saturation, and administrative status before routing work to agents.
 
 ## [2026-08-25]
 

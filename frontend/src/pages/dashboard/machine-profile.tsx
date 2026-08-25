@@ -1066,12 +1066,43 @@ export function MachineProfilePage() {
                   {t("machine.no-providers")}
                 </p>
               ) : (
-                <ul className="flex flex-col gap-1">
-                  {availableProviders.map((p) => (
-                    <li key={p.providerId} className="text-sm text-main">
-                      {providerDisplayName(p)}
-                    </li>
-                  ))}
+                <ul className="flex flex-col gap-2">
+                  {availableProviders.map((p) => {
+                    const isUnusable =
+                      p.runtimeStatus === "QUARANTINED" ||
+                      p.runtimeStatus === "BROKEN" ||
+                      p.runtimeStatus === "DETECTED" ||
+                      p.runtimeStatus === "UPDATE_AVAILABLE";
+                    return (
+                      <li
+                        key={p.providerId}
+                        className="flex items-center justify-between gap-2 text-sm text-main"
+                      >
+                        <span className="font-medium">
+                          {providerDisplayName(p)}
+                        </span>
+                        <div className="flex items-center gap-1.5 text-xs">
+                          {p.compatibilityLevel && (
+                            <span className="rounded bg-control-subtle px-1.5 py-0.5 text-[10px] font-medium text-main">
+                              {p.compatibilityLevel}
+                            </span>
+                          )}
+                          <span
+                            className={cn(
+                              "rounded px-1.5 py-0.5 text-[10px] font-medium",
+                              p.runtimeStatus === "READY"
+                                ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                                : isUnusable
+                                  ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                                  : "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+                            )}
+                          >
+                            {p.runtimeStatus || "DETECTED"}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </Card>
@@ -1228,11 +1259,27 @@ export function MachineProfilePage() {
                     <SelectItem value="builtin-pi">
                       {t("agent.acp-config-provider-builtin-pi")}
                     </SelectItem>
-                    {availableProviders.map((p) => (
-                      <SelectItem key={p.providerId} value={p.providerId}>
-                        {providerDisplayName(p)}
-                      </SelectItem>
-                    ))}
+                    {availableProviders.map((p) => {
+                      const isUnusable =
+                        p.runtimeStatus === "QUARANTINED" ||
+                        p.runtimeStatus === "BROKEN" ||
+                        p.runtimeStatus === "DETECTED" ||
+                        p.runtimeStatus === "UPDATE_AVAILABLE";
+                      return (
+                        <SelectItem
+                          key={p.providerId}
+                          value={p.providerId}
+                          disabled={isUnusable}
+                        >
+                          {providerDisplayName(p)}
+                          {p.runtimeStatus && p.runtimeStatus !== "READY" && (
+                            <span className="ml-2 text-xs text-control-light">
+                              ({p.runtimeStatus})
+                            </span>
+                          )}
+                        </SelectItem>
+                      );
+                    })}
                     <SelectItem value="custom">
                       {t("agent.acp-config-provider-custom")}
                     </SelectItem>

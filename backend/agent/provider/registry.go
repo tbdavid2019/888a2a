@@ -2,8 +2,14 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
+
+	a2a888pb "github.com/Ranxy/laelia/backend/generated-go/a2a888"
 )
 
 // probeTimeout bounds a single provider's model probe. Providers that take
@@ -46,6 +52,50 @@ func (r *Registry) Lookup(id string) (Provider, bool) {
 	return p, ok
 }
 
+// LookupManifest returns the ProviderManifest for the given id, or (nil, false) when unknown.
+func (r *Registry) LookupManifest(id string) (*a2a888pb.ProviderManifest, bool) {
+	if p, ok := r.Lookup(id); ok {
+		return p.Manifest(), true
+	}
+	return nil, false
+}
+
+// Manifests returns the manifests of all registered providers in registration order.
+func (r *Registry) Manifests() []*a2a888pb.ProviderManifest {
+	out := make([]*a2a888pb.ProviderManifest, 0, len(r.builtins))
+	for _, p := range r.builtins {
+		out = append(out, p.Manifest())
+	}
+	return out
+}
+
+// ResolveRuntimeManifest resolves a validated ProviderManifest by provider id,
+// covering registered built-in providers, embedded pi, and custom runtime commands.
+func (r *Registry) ResolveRuntimeManifest(id string, customCommand string, customArgs []string, customProtocol a2a888pb.AgentProtocol) (*a2a888pb.ProviderManifest, error) {
+	if p, ok := r.Lookup(id); ok {
+		m := p.Manifest()
+		if err := ValidateManifest(m); err != nil {
+			return nil, err
+		}
+		return m, nil
+	}
+	if id == "builtin-pi" {
+		m := BuiltinPiManifest()
+		if err := ValidateManifest(m); err != nil {
+			return nil, err
+		}
+		return m, nil
+	}
+	if id == "custom" {
+		m := CustomManifest(customCommand, customArgs, customProtocol)
+		if err := ValidateManifest(m); err != nil {
+			return nil, err
+		}
+		return m, nil
+	}
+	return nil, errors.Errorf("unknown provider %q", id)
+}
+
 // All returns every registered provider in registration order.
 func (r *Registry) All() []Provider {
 	out := make([]Provider, len(r.builtins))
@@ -83,10 +133,20 @@ func discoverOne(ctx context.Context, p Provider) Discovered {
 		return Discovered{}
 	}
 	d := Discovered{
-		ProviderID:     info.ProviderID,
-		DisplayName:    info.DisplayName,
-		Version:        info.Version,
-		ExecutablePath: info.ExecutablePath,
+		ProviderID:         info.ProviderID,
+		DisplayName:        info.DisplayName,
+		Version:            info.Version,
+		ExecutablePath:     info.ExecutablePath,
+		RuntimeStatus:      "DETECTED",
+		CompatibilityLevel: "DETECTED",
+	}
+	if manifest := p.Manifest(); manifest != nil && manifest.GetSystemExecutable() != nil {
+		expected := strings.TrimSpace(manifest.GetSystemExecutable().GetPackageVersion())
+		if expected != "" && !strings.Contains(info.Version, expected) {
+			d.RuntimeStatus = "UPDATE_AVAILABLE"
+			d.FailureMessage = fmt.Sprintf("detected version %q does not match pinned version %q", info.Version, expected)
+			return d
+		}
 	}
 	probeCtx, cancel := context.WithTimeout(ctx, probeTimeout)
 	defer cancel()
@@ -95,19 +155,36 @@ func discoverOne(ctx context.Context, p Provider) Discovered {
 		// passed directly via thread/start's model param instead of a v1
 		// config-option round trip.
 		models, err := tp.ProbeModelsV2(probeCtx, "")
-		if err == nil {
-			d.Models = models
-			d.SupportsModelConfigOption = true
+		if err != nil {
+			d.ProbeError = err
+			d.FailureMessage = err.Error()
+			return d
+		}
+		d.Models = models
+		d.SupportsModelConfigOption = true
+		d.RuntimeStatus = "READY"
+		d.CompatibilityLevel = "PROTOCOL_READY"
+		if len(models) > 0 {
+			d.CompatibilityLevel = "FULL_LOOP_VERIFIED"
 		}
 		return d
 	}
 	models, supports, err := p.ProbeModels(probeCtx, "")
 	if err != nil {
 		// Detection succeeded but probing failed: report the provider as
-		// available with no model info rather than dropping it entirely.
+		// detected with probe error rather than dropping it entirely.
+		d.ProbeError = err
+		d.FailureMessage = err.Error()
 		return d
 	}
 	d.Models = models
 	d.SupportsModelConfigOption = supports
+	if supports {
+		d.RuntimeStatus = "READY"
+		d.CompatibilityLevel = "PROTOCOL_READY"
+		if len(models) > 0 {
+			d.CompatibilityLevel = "FULL_LOOP_VERIFIED"
+		}
+	}
 	return d
 }

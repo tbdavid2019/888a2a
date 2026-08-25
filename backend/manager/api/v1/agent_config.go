@@ -519,7 +519,7 @@ func (s *AgentService) machineAvailableProviders(ctx context.Context, machineID 
 func providerAvailable(providerID string, available []*storepb.AgentProviderInfo) bool {
 	for _, p := range available {
 		if p.ProviderId == providerID {
-			return true
+			return p.RuntimeStatus == "READY"
 		}
 	}
 	return false

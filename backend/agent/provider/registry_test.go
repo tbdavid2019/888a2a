@@ -3,7 +3,10 @@ package provider
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
+
+	a2a888pb "github.com/Ranxy/laelia/backend/generated-go/a2a888"
 )
 
 type fakeProvider struct {
@@ -43,6 +46,35 @@ func (f *fakeProvider) ProbeModels(context.Context, string) ([]ModelOption, bool
 }
 
 func (*fakeProvider) ToolCallAdapter() ToolCallAdapter { return DefaultAdapter{} }
+
+func (f *fakeProvider) Manifest() *a2a888pb.ProviderManifest {
+	return &a2a888pb.ProviderManifest{
+		ProviderId:    f.id,
+		DisplayName:   f.display,
+		RuntimeKind:   a2a888pb.RuntimeKind_SYSTEM_EXECUTABLE,
+		AgentProtocol: a2a888pb.AgentProtocol_ACP_V1,
+		PlatformTargets: []*a2a888pb.PlatformTarget{
+			{OperatingSystem: "linux", Architecture: "amd64"},
+		},
+		RuntimeConfig: &a2a888pb.ProviderManifest_SystemExecutable{
+			SystemExecutable: &a2a888pb.SystemExecutableConfig{
+				Executable: f.id,
+			},
+		},
+		Capabilities: &a2a888pb.ProviderCapabilities{
+			ModelDiscovery: true,
+			Streaming:      true,
+		},
+		PermissionProfile: &a2a888pb.PermissionProfile{
+			ProcessExecution: true,
+		},
+		SessionBehavior: &a2a888pb.SessionBehavior{
+			Mode: a2a888pb.SessionMode_PERSISTENT,
+		},
+		ManifestVersion:         "1",
+		ManifestIntegritySha256: strings.Repeat("f", 64),
+	}
+}
 
 func TestRegistryLookup(t *testing.T) {
 	r := New(&fakeProvider{id: "opencode", display: "OpenCode"}, &fakeProvider{id: "claude-code", display: "Claude Code"})

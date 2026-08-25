@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/Ranxy/laelia/backend/agent/home"
 	"github.com/Ranxy/laelia/backend/agent/provider"
 	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
 )
@@ -26,6 +27,16 @@ func TestBuildACPConfigDerivesCommandFromProvider(t *testing.T) {
 	assert.Equal(t, "bar", cfg.CustomEnv["FOO"])
 	assert.Contains(t, cfg.WorkingDir, "agent-123")
 	assert.Contains(t, cfg.WorkingDir, "machine-1")
+}
+
+func TestBuildACPConfigWithPreparedCommand(t *testing.T) {
+	cfg := BuildACPConfigWithCommand(&v1pb.AgentACPConfig{
+		Provider: "claude-code",
+		Model:    "sonnet",
+	}, "machine-1", "agent-1", "/runtime/claude-agent-acp", []string{"--stdio"})
+	require.NotNil(t, cfg)
+	assert.Equal(t, "/runtime/claude-agent-acp", cfg.Executable)
+	assert.Equal(t, []string{"--stdio"}, cfg.Args)
 }
 
 func TestBuildACPConfigFallsBackToRawExecutableForCustom(t *testing.T) {
@@ -73,14 +84,14 @@ func TestBuildACPEnvBootstrapOverridesCustomEnv(t *testing.T) {
 }
 
 func TestBuildACPEnvPropagatesLaeliaHomeOutsideAllowEnv(t *testing.T) {
-	t.Setenv("LAELIA_HOME", "/custom/laelia")
+	t.Setenv(home.EnvDir, "/custom/laelia")
 	cfg := &ACPConfig{
 		AllowEnv:  []string{"PATH"},
-		CustomEnv: map[string]string{"LAELIA_HOME": "hijack"},
+		CustomEnv: map[string]string{home.EnvDir: "hijack"},
 	}
 	env := buildACPEnv(cfg, nil, Request{})
 	got := envSliceToMap(env)
-	assert.Equal(t, "/custom/laelia", got["LAELIA_HOME"], "parent LAELIA_HOME must be forced into child env even when not allowlisted")
+	assert.Equal(t, "/custom/laelia", got[home.EnvDir], "parent data root must be forced into child env even when not allowlisted")
 }
 
 func TestModelOptionContains(t *testing.T) {

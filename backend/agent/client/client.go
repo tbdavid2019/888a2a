@@ -31,8 +31,11 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	daemonsrv "github.com/Ranxy/laelia/backend/agent/daemon"
+	"github.com/Ranxy/laelia/backend/agent/home"
 	"github.com/Ranxy/laelia/backend/agent/provider"
+	agentruntime "github.com/Ranxy/laelia/backend/agent/runtime"
 	"github.com/Ranxy/laelia/backend/agent/version"
+	a2a888pb "github.com/Ranxy/laelia/backend/generated-go/a2a888"
 	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
 	"github.com/Ranxy/laelia/backend/generated-go/v1/v1connect"
 )
@@ -96,6 +99,7 @@ type MachineClient struct {
 	// probe to the MachineChannel control stream so the manager can persist the
 	// fresh list even when the probe finishes after ConnectMachine.
 	providerUpdateCh chan []provider.Discovered
+	runtimePreparer  *agentruntime.Preparer
 
 	// runners is the live set of per-agent drain loops, keyed by bare agent id.
 	// The MachineChannel receive pump mutates this on AgentAssignment /
@@ -215,6 +219,7 @@ func New(managerURL, machineID, refreshToken string, insecure bool, allowHTTP bo
 		runners:          make(map[string]*agentRunner),
 		machineVersion:   version.Version,
 		providerUpdateCh: make(chan []provider.Discovered, 1),
+		runtimePreparer:  agentruntime.NewPreparer(home.Join("runtime"), nil),
 	}, nil
 }
 
@@ -591,6 +596,7 @@ func (c *MachineClient) collectMachineInfo() *v1pb.MachineInfo {
 // fresh list in one probe.
 func (c *MachineClient) refreshProviders(ctx context.Context) []provider.Discovered {
 	discovered := provider.Default().Discover(ctx)
+	discovered = c.prepareDiscoveredProviders(ctx, discovered)
 	c.mu.Lock()
 	c.discoveredProviders = discovered
 	c.discoveredAt = time.Now()
@@ -603,6 +609,43 @@ func (c *MachineClient) refreshProviders(ctx context.Context) []provider.Discove
 		slog.Info("discovered LLM agent providers", "providers", ids)
 	} else {
 		slog.Info("no LLM agent providers discovered on host")
+	}
+	return discovered
+}
+
+func (c *MachineClient) prepareDiscoveredProviders(ctx context.Context, discovered []provider.Discovered) []provider.Discovered {
+	if c.runtimePreparer == nil {
+		return discovered
+	}
+	for i := range discovered {
+		if discovered[i].RuntimeStatus == "UPDATE_AVAILABLE" {
+			continue
+		}
+		manifest, ok := provider.Default().LookupManifest(discovered[i].ProviderID)
+		if !ok || manifest.GetRuntimeKind() != a2a888pb.RuntimeKind_NPM_PACKAGE {
+			continue
+		}
+		prepared, err := c.runtimePreparer.Prepare(ctx, manifest, agentruntime.CurrentPlatform())
+		if err != nil || prepared == nil {
+			if err != nil {
+				discovered[i].RuntimeStatus = "BROKEN"
+				discovered[i].CompatibilityLevel = "DETECTED"
+				discovered[i].FailureMessage = err.Error()
+			}
+			continue
+		}
+		if prepared.GetStatus().GetState() != a2a888pb.RuntimeState_READY {
+			discovered[i].RuntimeStatus = prepared.GetStatus().GetState().String()
+			discovered[i].CompatibilityLevel = "DETECTED"
+			discovered[i].FailureMessage = prepared.GetStatus().GetMessage()
+			continue
+		}
+		discovered[i].RuntimeStatus = "READY"
+		discovered[i].CompatibilityLevel = "PROTOCOL_READY"
+		discovered[i].FailureMessage = ""
+		if binary := prepared.GetResolvedBinary(); binary != nil {
+			discovered[i].ExecutablePath = binary.GetPath()
+		}
 	}
 	return discovered
 }
@@ -627,6 +670,31 @@ func discoveredToProto(in []provider.Discovered, at time.Time) []*v1pb.AgentProv
 				Description: m.Description,
 			})
 		}
+
+		runtimeStatus := d.RuntimeStatus
+		compatLevel := d.CompatibilityLevel
+		failureMsg := d.FailureMessage
+		if runtimeStatus == "" {
+			runtimeStatus = "DETECTED"
+			compatLevel = "DETECTED"
+			failureMsg = "provider detection succeeded but runtime verification did not complete"
+		}
+		if d.ProbeError != nil && failureMsg == "" {
+			failureMsg = d.ProbeError.Error()
+		}
+
+		var packageVersion, manifestDigest string
+		if p, ok := provider.Default().Lookup(d.ProviderID); ok {
+			if m := p.Manifest(); m != nil {
+				manifestDigest = m.GetManifestIntegritySha256()
+				if npm := m.GetNpmPackage(); npm != nil {
+					packageVersion = npm.GetPackageVersion()
+				} else if sys := m.GetSystemExecutable(); sys != nil {
+					packageVersion = sys.GetPackageVersion()
+				}
+			}
+		}
+
 		out = append(out, &v1pb.AgentProviderInfo{
 			ProviderId:                d.ProviderID,
 			DisplayName:               d.DisplayName,
@@ -635,6 +703,11 @@ func discoveredToProto(in []provider.Discovered, at time.Time) []*v1pb.AgentProv
 			Models:                    models,
 			SupportsModelConfigOption: d.SupportsModelConfigOption,
 			DetectedAt:                ts,
+			RuntimeStatus:             runtimeStatus,
+			CompatibilityLevel:        compatLevel,
+			FailureMessage:            failureMsg,
+			PackageVersion:            packageVersion,
+			ManifestDigest:            manifestDigest,
 		})
 	}
 	return out

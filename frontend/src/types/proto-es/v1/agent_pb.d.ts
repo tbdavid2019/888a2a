@@ -1633,6 +1633,35 @@ export declare type AgentProviderInfo = Message<"laelia.v1.AgentProviderInfo"> &
    * @generated from field: google.protobuf.Timestamp detected_at = 7;
    */
   detectedAt?: Timestamp | undefined;
+
+  /**
+   * READY, BROKEN, QUARANTINED, UPDATE_AVAILABLE, DETECTED
+   *
+   * @generated from field: string runtime_status = 8;
+   */
+  runtimeStatus: string;
+
+  /**
+   * DETECTED, PROTOCOL_READY, FUNCTIONALLY_VERIFIED, FULL_LOOP_VERIFIED
+   *
+   * @generated from field: string compatibility_level = 9;
+   */
+  compatibilityLevel: string;
+
+  /**
+   * @generated from field: string failure_message = 10;
+   */
+  failureMessage: string;
+
+  /**
+   * @generated from field: string package_version = 11;
+   */
+  packageVersion: string;
+
+  /**
+   * @generated from field: string manifest_digest = 12;
+   */
+  manifestDigest: string;
 };
 
 /**

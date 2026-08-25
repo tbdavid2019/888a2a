@@ -1246,11 +1246,28 @@ export function AgentProfilePage() {
                           <SelectItem value="builtin-pi">
                             {t("agent.acp-config-provider-builtin-pi")}
                           </SelectItem>
-                          {availableProviders.map((p) => (
-                            <SelectItem key={p.providerId} value={p.providerId}>
-                              {providerDisplayName(p)}
-                            </SelectItem>
-                          ))}
+                          {availableProviders.map((p) => {
+                            const isUnusable =
+                              p.runtimeStatus === "QUARANTINED" ||
+                              p.runtimeStatus === "BROKEN" ||
+                              p.runtimeStatus === "DETECTED" ||
+                              p.runtimeStatus === "UPDATE_AVAILABLE";
+                            return (
+                              <SelectItem
+                                key={p.providerId}
+                                value={p.providerId}
+                                disabled={isUnusable}
+                              >
+                                {providerDisplayName(p)}
+                                {p.runtimeStatus &&
+                                  p.runtimeStatus !== "READY" && (
+                                    <span className="ml-2 text-xs text-control-light">
+                                      ({p.runtimeStatus})
+                                    </span>
+                                  )}
+                              </SelectItem>
+                            );
+                          })}
                           <SelectItem value="custom">
                             {t("agent.acp-config-provider-custom")}
                           </SelectItem>

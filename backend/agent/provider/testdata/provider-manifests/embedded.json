@@ -14,5 +14,5 @@
   "permissionProfile": { "processExecution": true, "filesystemReadPaths": ["workspace"] },
   "sessionBehavior": { "mode": "EPHEMERAL" },
   "manifestVersion": "1",
-  "manifestIntegritySha256": "3333333333333333333333333333333333333333333333333333333333333333"
+  "manifestIntegritySha256": "dbc3d0e5f7b80451903e468174adb7d3746b8d4402b1c95e1ab466786ac374c3"
 }

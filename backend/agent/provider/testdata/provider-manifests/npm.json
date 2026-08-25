@@ -18,5 +18,5 @@
   "permissionProfile": { "processExecution": true, "filesystemReadPaths": ["workspace"], "filesystemWritePaths": ["workspace"] },
   "sessionBehavior": { "mode": "PERSISTENT", "supportsResume": true, "requiresCleanShutdown": true },
   "manifestVersion": "1",
-  "manifestIntegritySha256": "2222222222222222222222222222222222222222222222222222222222222222"
+  "manifestIntegritySha256": "05b3ca0c4658f36fc8012785a55a2a13867f4b5d74e7e30ce0ceaaabb6e53804"
 }

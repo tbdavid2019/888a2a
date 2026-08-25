@@ -17,5 +17,5 @@
   "permissionProfile": { "processExecution": true, "inheritEnvironment": true, "filesystemReadPaths": ["workspace"] },
   "sessionBehavior": { "mode": "PERSISTENT", "supportsResume": true, "idleTimeoutSeconds": 900 },
   "manifestVersion": "1",
-  "manifestIntegritySha256": "1111111111111111111111111111111111111111111111111111111111111111"
+  "manifestIntegritySha256": "e2c99d13dd55d2937ae7d0d04798e4e98123b6c3de10934a10ae9247a6b82c93"
 }

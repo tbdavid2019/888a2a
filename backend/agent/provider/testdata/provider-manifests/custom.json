@@ -15,5 +15,5 @@
   "permissionProfile": { "processExecution": true, "inheritEnvironment": true, "filesystemReadPaths": ["workspace"], "networkHosts": ["api.example.invalid"], "networkAccess": true },
   "sessionBehavior": { "mode": "PERSISTENT", "supportsResume": true, "supportsConcurrentSessions": true },
   "manifestVersion": "1",
-  "manifestIntegritySha256": "4444444444444444444444444444444444444444444444444444444444444444"
+  "manifestIntegritySha256": "30b1bb5c7a62d27b329d412f78d9c07be220ad2e58d06c6d98b1596dd71b5860"
 }

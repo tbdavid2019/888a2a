@@ -6,7 +6,11 @@
 // available as an escape hatch for providers that are not built in.
 package provider
 
-import "context"
+import (
+	"context"
+
+	a2a888pb "github.com/Ranxy/laelia/backend/generated-go/a2a888"
+)
 
 // ModelOption is one model selectable via the ACP session config option round
 // trip. Value is the valueId the client sends to SetSessionConfigOption.
@@ -27,6 +31,10 @@ type Discovered struct {
 	// option (SupportsModelConfigOption false).
 	Models                    []ModelOption
 	SupportsModelConfigOption bool
+	ProbeError                error
+	RuntimeStatus             string
+	CompatibilityLevel        string
+	FailureMessage            string
 }
 
 // Provider is the extension point for a built-in LLM agent provider.
@@ -36,6 +44,9 @@ type Provider interface {
 	ID() string
 	// DisplayName is the human-readable name shown in the UI.
 	DisplayName() string
+	// Manifest returns the validated ProviderManifest defining runtime kind,
+	// protocol, platform targets, capabilities, and permission profiles.
+	Manifest() *a2a888pb.ProviderManifest
 	// Detect reports whether the provider's binary is installed on the host
 	// (PATH lookup + --version). Returns (info, true, nil) when present,
 	// (nil, false, nil) when absent, and a non-nil error on probe failure.

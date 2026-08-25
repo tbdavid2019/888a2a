@@ -14,37 +14,37 @@
 
 ## 3. Provider Manifest and npm Runtime
 
-- [ ] 3.1 Implement Provider manifest validation for runtime kind, protocol, platform, exact version, binary, integrity, capabilities and permission profile; verify floating npm versions fail unit tests.
-- [ ] 3.2 Convert OpenCode, Claude Code and Codex definitions to manifest-backed registry entries; verify detection and model-probe regression tests remain green.
-- [ ] 3.3 Represent embedded Pi and custom ACP v1/v2 through the same runtime-selection contract; verify current Pi and custom-provider tests pass.
-- [ ] 3.4 Implement Machine npm cache keys and staging directories by package/version/integrity/platform/architecture; verify equivalent requests share only immutable prepared data.
-- [ ] 3.5 Implement atomic npm package preparation and local-bin resolution; verify interrupted install never publishes READY and the previous verified version remains launchable.
-- [ ] 3.6 Implement integrity failure quarantine and explicit retry/remove operations; verify a modified package cannot launch and the audit event contains no secret data.
-- [ ] 3.7 Move Claude Code from floating turn-time `npx` launch to a pinned prepared local binary; verify offline launch and real ACP opt-in integration tests.
-- [ ] 3.8 Add Provider READY/BROKEN/QUARANTINED/UPDATE_AVAILABLE status and compatibility evidence to Manager API/UI; verify detected-only Providers cannot be selected for automatic execution.
-- [ ] 3.9 Add Provider package/version to session launch fingerprint; verify compatible restarts resume and incompatible upgrades cold-start only affected Agents.
+- [x] 3.1 Implement Provider manifest validation for runtime kind, protocol, platform, exact version, binary, integrity, capabilities and permission profile; verify floating npm versions fail unit tests.
+- [x] 3.2 Convert OpenCode, Claude Code and Codex definitions to manifest-backed registry entries; verify detection and model-probe regression tests remain green.
+- [x] 3.3 Represent embedded Pi and custom ACP v1/v2 through the same runtime-selection contract; verify current Pi and custom-provider tests pass.
+- [x] 3.4 Implement Machine npm cache keys and staging directories by package/version/integrity/platform/architecture; verify equivalent requests share only immutable prepared data.
+- [x] 3.5 Implement atomic npm package preparation and local-bin resolution; verify interrupted install never publishes READY and the previous verified version remains launchable.
+- [x] 3.6 Implement integrity failure quarantine and explicit retry/remove operations; verify a modified package cannot launch and the audit event contains no secret data.
+- [x] 3.7 Move Claude Code from floating turn-time `npx` launch to a pinned prepared local binary; verify offline launch and real ACP opt-in integration tests.
+- [x] 3.8 Add Provider READY/BROKEN/QUARANTINED/UPDATE_AVAILABLE status and compatibility evidence to Manager API/UI; verify detected-only Providers cannot be selected for automatic execution.
+- [x] 3.9 Add Provider package/version to session launch fingerprint; verify compatible restarts resume and incompatible upgrades cold-start only affected Agents.
 
 ## 4. Multi-Agent Machine Reliability and Isolation
 
-- [ ] 4.1 Add durable per-Machine assignment storage with monotonic sequence and idempotency identity; verify create/config/remove events persist transactionally.
-- [ ] 4.2 Make Machine report the last acknowledged assignment sequence during connect; verify Manager replays every missing event in order.
-- [ ] 4.3 Implement idempotent Machine apply and acknowledgement for create/config/remove; verify replay does not create duplicate or zombie runners.
-- [ ] 4.4 Add full-roster reconciliation after assignment replay; verify missed deletes and stale configs converge to Manager state.
-- [ ] 4.5 Strengthen per-Agent workspace, session, env, credential, limits and process ownership on a shared Machine; verify twelve fake Agents cannot read or mutate peer state.
-- [ ] 4.6 Add Machine/Agent runtime capacity and availability reporting to Agent Directory inputs; verify an offline or saturated Agent is not advertised as ready for new work.
-- [ ] 4.7 Run multi-Agent runner concurrency, cancellation and process-tree cleanup tests; verify one Agent timeout or crash does not terminate unrelated Agent runners.
+- [x] 4.1 Add durable per-Machine assignment storage with monotonic sequence and idempotency identity; verify create/config/remove events persist transactionally.
+- [x] 4.2 Make Machine report the last acknowledged assignment sequence during connect; verify Manager replays every missing event in order.
+- [x] 4.3 Implement idempotent Machine apply and acknowledgement for create/config/remove; verify replay does not create duplicate or zombie runners.
+- [x] 4.4 Add full-roster reconciliation after assignment replay; verify missed deletes and stale configs converge to Manager state.
+- [x] 4.5 Strengthen per-Agent workspace, session, env, credential, limits and process ownership on a shared Machine; verify twelve fake Agents cannot read or mutate peer state.
+- [x] 4.6 Add Machine/Agent runtime capacity and availability reporting to Agent Directory inputs; verify an offline or saturated Agent is not advertised as ready for new work.
+- [x] 4.7 Run multi-Agent runner concurrency, cancellation and process-tree cleanup tests; verify one Agent timeout or crash does not terminate unrelated Agent runners.
 
 ## 5. A2A Gateway, Directory and Durable Work
 
-- [ ] 5.1 Implement tenant-ready A2A 1.0 HTTP+JSON routing and protocol version negotiation using the official SDK; verify an external SDK fixture can connect without private wire extensions.
-- [ ] 5.2 Build Agent Card projection from Agent profile, skills, Provider capabilities and runtime availability; verify disabled/private skills are omitted.
-- [ ] 5.3 Implement authenticated Agent Directory list/get and skill filtering; verify callers only see accessible peers and readiness state.
-- [ ] 5.4 Implement idempotent A2A send-message acceptance and durable work creation before acknowledgement; verify a lost response retry returns the existing task.
-- [ ] 5.5 Implement get-task and tenant-ready list-tasks with cursor pagination; verify one Agent cannot enumerate inaccessible peer work.
-- [ ] 5.6 Implement send-streaming-message and subscribe-to-task from persisted status/message/artifact events; verify reconnect resumes from durable state.
-- [ ] 5.7 Implement cancel-task with authorization and terminal-state idempotency; verify repeated cancellation does not corrupt completed work.
-- [ ] 5.8 Link A2A work/context/artifacts to existing Conversation/Task/thread resources through additive projections; verify human-readable history and A2A state remain consistent.
-- [ ] 5.9 Add Manager restart recovery for accepted/running work; verify tasks resume or enter an explicit recoverable state without duplicate execution.
+- [x] 5.1 Implement tenant-ready A2A 1.0 HTTP+JSON routing and protocol version negotiation using the official SDK; verify an external SDK fixture can connect without private wire extensions.
+- [x] 5.2 Build Agent Card projection from Agent profile, skills, Provider capabilities and runtime availability; verify disabled/private skills are omitted.
+- [x] 5.3 Implement authenticated Agent Directory list/get and skill filtering; verify callers only see accessible peers and readiness state.
+- [x] 5.4 Implement idempotent A2A send-message acceptance and durable work creation before acknowledgement; verify a lost response retry returns the existing task.
+- [x] 5.5 Implement get-task and tenant-ready list-tasks with cursor pagination; verify one Agent cannot enumerate inaccessible peer work.
+- [x] 5.6 Implement send-streaming-message and subscribe-to-task from persisted status/message/artifact events; verify reconnect resumes from durable state.
+- [x] 5.7 Implement cancel-task with authorization and terminal-state idempotency; verify repeated cancellation does not corrupt completed work.
+- [x] 5.8 Link A2A work/context/artifacts to existing Conversation/Task/thread resources through additive projections; verify human-readable history and A2A state remain consistent.
+- [x] 5.9 Add Manager restart recovery for accepted/running work; verify tasks resume or enter an explicit recoverable state without duplicate execution.
 
 ## 6. Agent-Side Peer Collaboration
 

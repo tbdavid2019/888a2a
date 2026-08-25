@@ -18,6 +18,7 @@ import (
 	"github.com/coder/acp-go-sdk"
 
 	"github.com/Ranxy/laelia/backend/agent/acp2"
+	a2a888pb "github.com/Ranxy/laelia/backend/generated-go/a2a888"
 )
 
 // CodexProvider discovers and launches the codex CLI's ACP v2 app-server. It
@@ -27,6 +28,55 @@ type CodexProvider struct{}
 
 func (*CodexProvider) ID() string          { return "codex" }
 func (*CodexProvider) DisplayName() string { return "Codex" }
+
+// Manifest returns the validated manifest for Codex.
+func (p *CodexProvider) Manifest() *a2a888pb.ProviderManifest {
+	m := &a2a888pb.ProviderManifest{
+		ProviderId:    p.ID(),
+		DisplayName:   p.DisplayName(),
+		RuntimeKind:   a2a888pb.RuntimeKind_SYSTEM_EXECUTABLE,
+		AgentProtocol: a2a888pb.AgentProtocol_ACP_V2,
+		PlatformTargets: []*a2a888pb.PlatformTarget{
+			{OperatingSystem: "linux", Architecture: "amd64"},
+			{OperatingSystem: "linux", Architecture: "arm64"},
+			{OperatingSystem: "darwin", Architecture: "amd64"},
+			{OperatingSystem: "darwin", Architecture: "arm64"},
+			{OperatingSystem: "windows", Architecture: "amd64"},
+		},
+		RuntimeConfig: &a2a888pb.ProviderManifest_SystemExecutable{
+			SystemExecutable: &a2a888pb.SystemExecutableConfig{
+				Executable:           "codex",
+				Arguments:            []string{"app-server", "--listen", "stdio://"},
+				VersionArgument:      "--version",
+				PackageVersion:       "0.146.0",
+				InheritedEnvironment: []string{"PATH", "HOME", "CODEX_HOME"},
+			},
+		},
+		Capabilities: &a2a888pb.ProviderCapabilities{
+			ModelDiscovery: true,
+			SessionResume:  true,
+			Streaming:      true,
+			Steering:       true,
+			Mcp:            true,
+			ToolTraces:     true,
+		},
+		PermissionProfile: &a2a888pb.PermissionProfile{
+			ProcessExecution:     true,
+			InheritEnvironment:   true,
+			FilesystemReadPaths:  []string{"workspace"},
+			FilesystemWritePaths: []string{"workspace"},
+		},
+		SessionBehavior: &a2a888pb.SessionBehavior{
+			Mode:                       a2a888pb.SessionMode_PERSISTENT,
+			SupportsResume:             true,
+			SupportsConcurrentSessions: true,
+			RequiresCleanShutdown:      true,
+		},
+		ManifestVersion: "1",
+	}
+	_ = SetManifestDigest(m)
+	return m
+}
 
 // ToolCallAdapter returns DefaultAdapter: codex speaks the v2 thread protocol,
 // so the v1 tool-call adapter is never used (the thread executor maps tool

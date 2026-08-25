@@ -36,10 +36,15 @@ type ThreadConfig struct {
 	// the resident (session) mode reads it; the per-turn executor ignores it.
 	IdleTimeout time.Duration
 
-	Provider      string
-	Model         string
-	WorkingDir    string
-	PersonaPrompt string
+	Provider            string
+	ProviderVersion     string
+	ManifestDigest      string
+	PackageIntegrity    string
+	CacheIdentityDigest string
+	BinarySha256        string
+	Model               string
+	WorkingDir          string
+	PersonaPrompt       string
 	// Protocol is the declared ACP protocol generation ("acp-v2"); empty
 	// defaults to acp-v2 (the thread executor only runs the v2 protocol).
 	Protocol string
@@ -61,17 +66,22 @@ func BuildThreadConfig(cfg *ACPConfig) *ThreadConfig {
 		return nil
 	}
 	return &ThreadConfig{
-		Limits:            cfg.Limits,
-		Provider:          cfg.Provider,
-		Model:             cfg.Model,
-		WorkingDir:        cfg.WorkingDir,
-		PersonaPrompt:     cfg.PersonaPrompt,
-		Protocol:          cfg.Protocol,
-		Env:               cfg.Env,
-		CustomEnv:         cfg.CustomEnv,
-		AllowEnv:          cfg.AllowEnv,
-		McpServers:        cfg.McpServers,
-		SupportsRawEvents: cfg.SupportsRawEvents,
+		Limits:              cfg.Limits,
+		Provider:            cfg.Provider,
+		ProviderVersion:     cfg.ProviderVersion,
+		ManifestDigest:      cfg.ManifestDigest,
+		PackageIntegrity:    cfg.PackageIntegrity,
+		CacheIdentityDigest: cfg.CacheIdentityDigest,
+		BinarySha256:        cfg.BinarySha256,
+		Model:               cfg.Model,
+		WorkingDir:          cfg.WorkingDir,
+		PersonaPrompt:       cfg.PersonaPrompt,
+		Protocol:            cfg.Protocol,
+		Env:                 cfg.Env,
+		CustomEnv:           cfg.CustomEnv,
+		AllowEnv:            cfg.AllowEnv,
+		McpServers:          cfg.McpServers,
+		SupportsRawEvents:   cfg.SupportsRawEvents,
 	}
 }
 

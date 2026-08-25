@@ -765,6 +765,11 @@ message AgentProviderInfo {
   repeated AgentModelOption models = 5; // empty when the provider does not advertise a model config option
   bool supports_model_config_option = 6; // whether probing observed a category=="model" config option
   google.protobuf.Timestamp detected_at = 7;
+  string runtime_status = 8; // READY, BROKEN, QUARANTINED, UPDATE_AVAILABLE, DETECTED
+  string compatibility_level = 9; // DETECTED, PROTOCOL_READY, FUNCTIONALLY_VERIFIED, FULL_LOOP_VERIFIED
+  string failure_message = 10;
+  string package_version = 11;
+  string manifest_digest = 12;
 }
 
 // AgentModelOption is one model selectable via the ACP session config option
