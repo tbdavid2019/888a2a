@@ -139,19 +139,19 @@ func FormatResultSummary(work *store.WorkMessage, artifacts []*store.WorkArtifac
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s **A2A Task `%s` %s**\n", icon, sanitizeSafeString(work.A2ATaskID), sanitizeSafeString(work.State)))
-	sb.WriteString(fmt.Sprintf("- **Executor**: `%s` (Requester: `%s`)\n", sanitizeSafeString(work.ExecutorAgentID), sanitizeSafeString(work.RequesterAgentID)))
+	fmt.Fprintf(&sb, "%s **A2A Task `%s` %s**\n", icon, sanitizeSafeString(work.A2ATaskID), sanitizeSafeString(work.State))
+	fmt.Fprintf(&sb, "- **Executor**: `%s` (Requester: `%s`)\n", sanitizeSafeString(work.ExecutorAgentID), sanitizeSafeString(work.RequesterAgentID))
 
 	if work.TraceID != "" {
-		sb.WriteString(fmt.Sprintf("- **Trace ID**: `%s`\n", sanitizeSafeString(work.TraceID)))
+		fmt.Fprintf(&sb, "- **Trace ID**: `%s`\n", sanitizeSafeString(work.TraceID))
 	}
 
 	if work.TerminalReason != "" {
-		sb.WriteString(fmt.Sprintf("- **Outcome**: %s\n", sanitizeSafeString(work.TerminalReason)))
+		fmt.Fprintf(&sb, "- **Outcome**: %s\n", sanitizeSafeString(work.TerminalReason))
 	}
 
 	if len(artifacts) > 0 {
-		sb.WriteString(fmt.Sprintf("- **Artifacts** (%d):\n", len(artifacts)))
+		fmt.Fprintf(&sb, "- **Artifacts** (%d):\n", len(artifacts))
 		for _, a := range artifacts {
 			name := a.Name
 			if name == "" {
@@ -164,9 +164,9 @@ func FormatResultSummary(work *store.WorkMessage, artifacts []*store.WorkArtifac
 				if a.SizeBytes > 0 {
 					meta += fmt.Sprintf(", %d bytes", a.SizeBytes)
 				}
-				sb.WriteString(fmt.Sprintf("  - [%s](%s) (%s)\n", name, sanitizeSafeString(a.ExternalURI), meta))
+				fmt.Fprintf(&sb, "  - [%s](%s) (%s)\n", name, sanitizeSafeString(a.ExternalURI), meta)
 			} else {
-				sb.WriteString(fmt.Sprintf("  - `%s`: %s\n", name, sanitizeSafeString(a.Description)))
+				fmt.Fprintf(&sb, "  - `%s`: %s\n", name, sanitizeSafeString(a.Description))
 			}
 		}
 	}
