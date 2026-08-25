@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -372,6 +372,8 @@ func ComputeFullRosterRevision(events []*a2a888.MachineAssignmentEvent) string {
 			}
 		case a2a888.AssignmentEventType_REMOVE:
 			delete(active, agentID)
+		default:
+			continue
 		}
 	}
 
@@ -379,7 +381,7 @@ func ComputeFullRosterRevision(events []*a2a888.MachineAssignmentEvent) string {
 	for k := range active {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
+	slices.Sort(keys)
 
 	var sb strings.Builder
 	for _, k := range keys {

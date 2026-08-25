@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -233,7 +232,7 @@ func TestPreparerNpmInterruptionLeavesPreviousIntact(t *testing.T) {
 
 	preparer.runner = &mockRunner{
 		onRun: func(_ context.Context, _ string, _ []string, _ string) ([]byte, error) {
-			return []byte("network timeout"), fmt.Errorf("connection reset by peer")
+			return []byte("network timeout"), errors.New("connection reset by peer")
 		},
 	}
 
@@ -322,7 +321,7 @@ func TestPreparerRetryOperation(t *testing.T) {
 			callCount++
 			if callCount == 1 {
 				// First call fails
-				return []byte("temporary failure"), fmt.Errorf("npm error")
+				return []byte("temporary failure"), errors.New("npm error")
 			}
 			// Second call succeeds
 			binDir := filepath.Join(dir, "node_modules", ".bin")

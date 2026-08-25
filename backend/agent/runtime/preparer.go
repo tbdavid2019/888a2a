@@ -29,7 +29,7 @@ type CommandRunner interface {
 
 type execRunner struct{}
 
-func (_ *execRunner) Run(ctx context.Context, name string, args []string, dir string, env []string) ([]byte, error) {
+func (*execRunner) Run(ctx context.Context, name string, args []string, dir string, env []string) ([]byte, error) {
 	c := exec.CommandContext(ctx, name, args...)
 	c.Dir = dir
 	if len(env) > 0 {

@@ -25,8 +25,8 @@ func FormatThreadSummary(work *store.WorkMessage, artifacts []*store.WorkArtifac
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("**A2A Task `%s`** [%s]\n", sanitizeSafeString(work.A2ATaskID), sanitizeSafeString(work.State)))
-	sb.WriteString(fmt.Sprintf("- **Executor**: `%s` (Requester: `%s`)\n", sanitizeSafeString(work.ExecutorAgentID), sanitizeSafeString(work.RequesterAgentID)))
+	fmt.Fprintf(&sb, "**A2A Task `%s`** [%s]\n", sanitizeSafeString(work.A2ATaskID), sanitizeSafeString(work.State))
+	fmt.Fprintf(&sb, "- **Executor**: `%s` (Requester: `%s`)\n", sanitizeSafeString(work.ExecutorAgentID), sanitizeSafeString(work.RequesterAgentID))
 
 	if work.TraceID != "" {
 		sb.WriteString(fmt.Sprintf("- **Trace**: `%s`", sanitizeSafeString(work.TraceID)))

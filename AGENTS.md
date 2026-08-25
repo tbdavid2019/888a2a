@@ -7,16 +7,19 @@ This file provides guidance to Copilot (codex/claude.ai/code) when working with 
 **LLMs MUST proactively update [`CHANGELOG.md`](CHANGELOG.md) for every
 meaningful change. Do not wait for the user to ask.**
 
-Before creating a commit, add the change to the `[Unreleased]` section of
-`CHANGELOG.md`. Use the appropriate category: `Added`, `Changed`, `Deprecated`,
-`Removed`, `Fixed`, or `Security`. Include behavior changes, bug fixes,
-architecture changes, CI/CD changes, dependency changes, migrations, and
-important documentation changes. Keep the entry concise and describe the
-user or developer impact.
+Before creating a commit, add the change directly to the section for today's
+date (`## [YYYY-MM-DD]`) in `CHANGELOG.md` (create the dated section if it does
+not exist yet). **DO NOT use `[Unreleased]` and do not use release version
+numbers; this project strictly organizes all changelog entries by date.**
 
-When a task contains multiple related edits, record them together in one
-changelog update. Never overwrite existing entries. Release work moves
-`[Unreleased]` entries into a dated version section.
+Use the appropriate category: `Added`, `Changed`, `Deprecated`, `Removed`,
+`Fixed`, or `Security`. Include behavior changes, bug fixes, architecture
+changes, CI/CD changes, dependency changes, migrations, and important
+documentation changes. Keep the entry concise and describe the user or
+developer impact.
+
+When a task contains multiple related edits, record them together under today's
+dated section. Never overwrite existing entries.
 
 
 ## Development Workflow

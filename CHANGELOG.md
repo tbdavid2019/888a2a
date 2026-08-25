@@ -5,7 +5,7 @@ All notable changes to 888a2a are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project uses [Semantic Versioning](https://semver.org/) for releases.
 
-## [Unreleased]
+## [2026-08-25]
 
 ### Added
 
@@ -47,19 +47,6 @@ and the project uses [Semantic Versioning](https://semver.org/) for releases.
 - Added Agent Network audit and trace recording (`TraceRecorder`, `SanitizeMetadata`) capturing discovery, delegation, runtime session, permission, budget, retry, cancellation, and terminal outcome events while scrubbing credentials and hidden reasoning.
 - Added comprehensive 12-Agent acceptance test suite (`TestTwelveAgentAcceptanceGate`) verifying 2-Machine topology, 10-specialist fan-out/join, Manager restart recovery, Machine disconnect/reconnect cursor replay, lost response deduplication, cancellation propagation, and cross-Agent security isolation.
 - Published the 888a2a Agent Network Operator Guide (`docs/guide/agent-network-operator-guide.md`) detailing architecture, environment variables, provider manifests, security defaults, step-by-step deployment, and troubleshooting runbooks.
-
-### Changed
-
-- Updated Agent prompt, communication guide, and re-anchor instructions to use A2A tasks for work delegation while retaining Channel/DM for conversational collaboration, and explicitly rejecting direct process control, shared memory, and busy-polling assumptions.
-- Updated Claude Code provider manifest to pinned `@agentclientprotocol/claude-agent-acp@0.70.0` with verified SRI integrity sha512 hash and eliminated turn-time npx download fallback.
-- Updated Manager API provider validation to prohibit quarantined, broken, and unverified detected-only providers from automatic execution.
-- Updated Manager frontend UI to display runtime status and compatibility evidence badges and disable unusable providers from selection.
-- Updated Dispatcher to check live machine connection, command in-flight saturation, and administrative status before routing work to agents.
-
-## [2026-08-25]
-
-### Added
-
 - Added the 888a2a project README and Traditional Chinese README with the
   project direction, upstream attribution, roadmap, and major TODO areas.
 - Added GitHub Actions CI for Agent Network naming checks, Go lint/tests/build,
@@ -69,6 +56,11 @@ and the project uses [Semantic Versioning](https://semver.org/) for releases.
 
 ### Changed
 
+- Updated Agent prompt, communication guide, and re-anchor instructions to use A2A tasks for work delegation while retaining Channel/DM for conversational collaboration, and explicitly rejecting direct process control, shared memory, and busy-polling assumptions.
+- Updated Claude Code provider manifest to pinned `@agentclientprotocol/claude-agent-acp@0.70.0` with verified SRI integrity sha512 hash and eliminated turn-time npx download fallback.
+- Updated Manager API provider validation to prohibit quarantined, broken, and unverified detected-only providers from automatic execution.
+- Updated Manager frontend UI to display runtime status and compatibility evidence badges and disable unusable providers from selection.
+- Updated Dispatcher to check live machine connection, command in-flight saturation, and administrative status before routing work to agents.
 - Established `tbdavid2019/888a2a` as the public repository while retaining
   `Ranxy/laelia` as the upstream source.
 - Normalized existing frontend imports so the Biome CI check passes.

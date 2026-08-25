@@ -168,7 +168,6 @@ func (o *Orchestrator) ExecuteFanOut(ctx context.Context, req FanOutRequest) (*J
 		}
 
 		wg.Go(func() {
-
 			select {
 			case sem <- struct{}{}:
 				defer func() { <-sem }()
