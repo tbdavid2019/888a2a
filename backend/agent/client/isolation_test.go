@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	pkgerrors "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -102,7 +103,7 @@ func TestTwelveFakeAgentsIsolation(t *testing.T) {
 			// Read back self data
 			content, err := os.ReadFile(ws)
 			if err != nil || string(content) != secretPayload {
-				errs[agentIndex-1] = fmt.Errorf("self read mismatch: %v", err)
+				errs[agentIndex-1] = pkgerrors.Errorf("self read mismatch: %v", err)
 				return
 			}
 
@@ -115,14 +116,14 @@ func TestTwelveFakeAgentsIsolation(t *testing.T) {
 
 				// Verify ownership assertion rejects peer access
 				if err := AssertAgentOwnership(agentID, peerID); err == nil {
-					errs[agentIndex-1] = fmt.Errorf("ownership assertion permitted cross access to %s", peerID)
+					errs[agentIndex-1] = pkgerrors.Errorf("ownership assertion permitted cross access to %s", peerID)
 					return
 				}
 
 				// Verify path confinement prevents constructing peer path
 				peerTargetPath := filepath.Join("..", peerID, "workspace", "data.txt")
 				if _, err := ConfinePathToAgentWorkspace(machineID, agentID, peerTargetPath); err == nil {
-					errs[agentIndex-1] = fmt.Errorf("path confinement allowed traversal to %s", peerID)
+					errs[agentIndex-1] = pkgerrors.Errorf("path confinement allowed traversal to %s", peerID)
 					return
 				}
 			}

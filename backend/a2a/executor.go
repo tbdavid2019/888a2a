@@ -72,7 +72,7 @@ func (a *AgentExecutorAdapter) Execute(ctx context.Context, execCtx *a2asrv.Exec
 }
 
 // Cancel cancels the task idempotently.
-func (a *AgentExecutorAdapter) Cancel(_ context.Context, execCtx *a2asrv.ExecutorContext) iter.Seq2[a2a.Event, error] {
+func (*AgentExecutorAdapter) Cancel(_ context.Context, execCtx *a2asrv.ExecutorContext) iter.Seq2[a2a.Event, error] {
 	return func(yield func(a2a.Event, error) bool) {
 		// If already in terminal state, yield nothing or current status
 		if execCtx.StoredTask != nil {

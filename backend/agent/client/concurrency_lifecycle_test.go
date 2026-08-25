@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	pkgerrors "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -88,7 +89,7 @@ func TestMultiAgentRunnerConcurrencyAndCancellation(t *testing.T) {
 				func() {
 					defer func() {
 						if r := recover(); r != nil {
-							results[agentIdx-1] = fmt.Errorf("recovered from crash: %v", r)
+							results[agentIdx-1] = pkgerrors.Errorf("recovered from crash: %v", r)
 						}
 					}()
 					time.Sleep(20 * time.Millisecond)

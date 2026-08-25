@@ -444,7 +444,7 @@ func extractRequesterFromContext(ctx context.Context, task *a2a.Task) string {
 }
 
 func extractExecutorFromContext(ctx context.Context, _ *a2a.Task) string {
-	if target, ok := ctx.Value("target_agent_id").(string); ok && target != "" {
+	if target, ok := ctx.Value(targetAgentContextKey{}).(string); ok && target != "" {
 		return target
 	}
 	return "default-executor"

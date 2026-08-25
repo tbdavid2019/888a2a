@@ -22,6 +22,8 @@ type GatewayOptions struct {
 	ExecutorFactory func(agentID string) a2asrv.AgentExecutor
 }
 
+type targetAgentContextKey struct{}
+
 // Gateway implements the tenant-ready A2A 1.0 HTTP+JSON gateway.
 type Gateway struct {
 	opts     GatewayOptions
@@ -123,7 +125,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			// Forward request to agent REST handler
 			ctx := a2a.AttachTenant(r.Context(), tenant)
-			ctx = context.WithValue(ctx, "target_agent_id", agentID)
+			ctx = context.WithValue(ctx, targetAgentContextKey{}, agentID)
 
 			reqClone := r.Clone(ctx)
 			reqClone.URL.Path = subPath
@@ -210,6 +212,6 @@ type defaultPublicCaller struct {
 	tenant string
 }
 
-func (d *defaultPublicCaller) GetPrincipalID() string { return "public" }
-func (d *defaultPublicCaller) GetTenantID() string    { return d.tenant }
-func (d *defaultPublicCaller) IsAuthenticated() bool  { return true }
+func (*defaultPublicCaller) GetPrincipalID() string  { return "public" }
+func (d *defaultPublicCaller) GetTenantID() string   { return d.tenant }
+func (d *defaultPublicCaller) IsAuthenticated() bool { return true }

@@ -68,7 +68,7 @@ func TestProjectAgentCard(t *testing.T) {
 		t.Errorf("expected description %q, got %q", agent.Description, card.Description)
 	}
 	if !card.Capabilities.Streaming {
-		t.Errorf("expected streaming capability to be true")
+		t.Error("expected streaming capability to be true")
 	}
 	if len(card.SupportedInterfaces) != 1 {
 		t.Fatalf("expected 1 interface, got %d", len(card.SupportedInterfaces))

@@ -113,7 +113,7 @@ func TestGateway_ExternalSDKConnection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("a2aclient.NewFromCard failed: %v", err)
 	}
-	defer client.Destroy()
+	defer func() { _ = client.Destroy() }()
 
 	// 1. Send message via official SDK client
 	msg := a2a.NewMessage(a2a.MessageRoleUser, a2a.NewTextPart("hello peer agent"))
@@ -206,7 +206,7 @@ func TestGateway_TenantNamespacedRouting(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFromCard: %v", err)
 	}
-	defer client.Destroy()
+	defer func() { _ = client.Destroy() }()
 
 	msg := a2a.NewMessage(a2a.MessageRoleUser, a2a.NewTextPart("tenant task test"))
 	result, err := client.SendMessage(ctx, &a2a.SendMessageRequest{Message: msg})
