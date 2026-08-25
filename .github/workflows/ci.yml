@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check Agent Network naming
+        run: scripts/tests/check_agent_network_naming_test.sh
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.13.1
+          args: --allow-parallel-runners
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build
+        run: go build -ldflags "-w -s" -p=16 -o ./build/laelia ./backend/manager/bin/server/main.go
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm --dir frontend install --frozen-lockfile
+
+      - name: Check formatting and lint
+        run: pnpm --dir frontend exec biome check src
+
+      - name: Check project rules
+        run: pnpm --dir frontend check
+
+      - name: Type check
+        run: pnpm --dir frontend type-check
+
+      - name: Test
+        run: pnpm --dir frontend test
+
+      - name: Build
+        run: pnpm --dir frontend build
