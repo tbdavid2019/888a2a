@@ -3,6 +3,7 @@ package agentruntime
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -98,7 +99,7 @@ func TestPreparerNpmAtomicSuccess(t *testing.T) {
 	preparer.runner = &mockRunner{
 		onRun: func(_ context.Context, _ string, _ []string, _ string) ([]byte, error) {
 			t.Fatal("npm should not be invoked on cached runtime")
-			return nil, fmt.Errorf("unexpected runner call")
+			return nil, errors.New("unexpected runner call")
 		},
 	}
 

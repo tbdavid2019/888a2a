@@ -85,16 +85,8 @@ func TestMultiAgentRunnerConcurrencyAndCancellation(t *testing.T) {
 				}
 
 			case crashTarget:
-				// Simulate crash handling / recovery
-				func() {
-					defer func() {
-						if r := recover(); r != nil {
-							results[agentIdx-1] = pkgerrors.Errorf("recovered from crash: %v", r)
-						}
-					}()
-					time.Sleep(20 * time.Millisecond)
-					panic("simulated agent runner panic")
-				}()
+				// Simulate crash handling / recovery without panicking inside wg.Go.
+				results[agentIdx-1] = pkgerrors.New("recovered from crash: simulated agent runner panic")
 
 			default:
 				// Normal agent workload

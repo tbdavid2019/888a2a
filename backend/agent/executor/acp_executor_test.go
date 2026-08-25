@@ -42,19 +42,46 @@ func TestACPValidatePath(t *testing.T) {
 }
 
 func TestACPRequestPermissionSelectsAllowOption(t *testing.T) {
-	kind := acp.ToolKindRead
-	client := &acpRuntimeClient{executor: &ACPExecutor{config: &ACPConfig{}}}
+	workspace := t.TempDir()
+	insideFile := filepath.Join(workspace, "file.txt")
+	require.NoError(t, os.WriteFile(insideFile, []byte("ok"), 0o644))
 
+	kind := acp.ToolKindRead
+	client := &acpRuntimeClient{executor: &ACPExecutor{
+		allowedRoots: []string{workspace},
+		config:       &ACPConfig{ReadTextFiles: true},
+	}}
+
+	// Read inside workspace: allowed
 	resp, err := client.RequestPermission(context.Background(), acp.RequestPermissionRequest{
 		Options: []acp.PermissionOption{
 			{OptionId: "reject", Kind: acp.PermissionOptionKindRejectOnce, Name: "Reject"},
 			{OptionId: "allow", Kind: acp.PermissionOptionKindAllowOnce, Name: "Allow once"},
 		},
-		ToolCall: acp.ToolCallUpdate{Kind: &kind},
+		ToolCall: acp.ToolCallUpdate{
+			Kind:     &kind,
+			RawInput: map[string]any{"path": insideFile},
+		},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, resp.Outcome.Selected)
 	assert.Equal(t, acp.PermissionOptionId("allow"), resp.Outcome.Selected.OptionId)
+
+	// Unapproved shell action: denied by default
+	execKind := acp.ToolKindExecute
+	respDeny, err := client.RequestPermission(context.Background(), acp.RequestPermissionRequest{
+		Options: []acp.PermissionOption{
+			{OptionId: "reject", Kind: acp.PermissionOptionKindRejectOnce, Name: "Reject"},
+			{OptionId: "allow", Kind: acp.PermissionOptionKindAllowOnce, Name: "Allow once"},
+		},
+		ToolCall: acp.ToolCallUpdate{
+			Kind:     &execKind,
+			RawInput: map[string]any{"command": "rm -rf /"},
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, respDeny.Outcome.Selected)
+	assert.Equal(t, acp.PermissionOptionId("reject"), respDeny.Outcome.Selected.OptionId)
 }
 
 func TestACPSessionUpdateEmitsDiffEvent(t *testing.T) {

@@ -866,4 +866,3 @@ func (s *Store) UpdateWorkUsage(ctx context.Context, tenantID, workID string, de
 	}
 	return nil
 }
-

@@ -22,6 +22,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/Ranxy/laelia/backend/a2a"
 	"github.com/Ranxy/laelia/backend/agent/home"
 	"github.com/Ranxy/laelia/backend/agent/provider"
 	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
@@ -875,13 +876,27 @@ func (c *acpRuntimeClient) WriteTextFile(_ context.Context, params acp.WriteText
 	return acp.WriteTextFileResponse{}, nil
 }
 
-func (*acpRuntimeClient) RequestPermission(_ context.Context, params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
-	// Permissions are granted automatically: the LLM agent is trusted to
-	// decide, so no human approval round-trip is ever surfaced.
+func (c *acpRuntimeClient) RequestPermission(_ context.Context, params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
+	policy := &a2a.RuntimePolicy{
+		AgentID:             c.executor.request.AgentResourceID,
+		AllowedRoots:        c.executor.allowedRoots,
+		AllowWorkspaceRead:  c.executor.config.ReadTextFiles,
+		AllowWorkspaceWrite: c.executor.config.WriteTextFiles,
+	}
+
+	optID, decision, reason := policy.EvaluateACPPermission(params)
+
+	if c.executor.config.SupportsToolTraces {
+		c.executor.sendEvent(Event{
+			Type:    v1pb.CommandEventType_WARNING,
+			Summary: fmt.Sprintf("ACP permission evaluation: %s (%s)", decision, reason),
+		})
+	}
+
 	return acp.RequestPermissionResponse{
 		Outcome: acp.RequestPermissionOutcome{Selected: &acp.RequestPermissionOutcomeSelected{
 			Outcome:  "selected",
-			OptionId: allowPermissionOption(params.Options),
+			OptionId: optID,
 		}},
 	}, nil
 }
