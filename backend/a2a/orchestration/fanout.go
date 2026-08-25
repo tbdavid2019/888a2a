@@ -167,16 +167,14 @@ func (o *Orchestrator) ExecuteFanOut(ctx context.Context, req FanOutRequest) (*J
 			State:           "SUBMITTED",
 		}
 
-		wg.Add(1)
-		go func(idx int, spec FanOutTaskSpec, taskWorkID string) {
-			defer wg.Done()
+		wg.Go(func() {
 
 			select {
 			case sem <- struct{}{}:
 				defer func() { <-sem }()
 			case <-runCtx.Done():
-				results[idx].State = "CANCELED"
-				results[idx].Error = "canceled before scheduling: " + runCtx.Err().Error()
+				results[taskIndex].State = "CANCELED"
+				results[taskIndex].Error = "canceled before scheduling: " + runCtx.Err().Error()
 				return
 			}
 
@@ -186,78 +184,78 @@ func (o *Orchestrator) ExecuteFanOut(ctx context.Context, req FanOutRequest) (*J
 			childWork, delErr := o.DelegateTask(runCtx, DelegateRequest{
 				TenantID:           tenant,
 				ParentWorkID:       req.ParentWorkID,
-				ChildWorkID:        taskWorkID,
-				ContextID:          taskWorkID,
+				ChildWorkID:        tID,
+				ContextID:          tID,
 				RequesterAgentID:   req.RequesterAgentID,
-				ExecutorAgentID:    spec.ExecutorAgentID,
+				ExecutorAgentID:    taskSpec.ExecutorAgentID,
 				EdgeType:           "fan_out",
-				Budget:             spec.Budget,
-				RequestedTokens:    spec.RequestedTokens,
-				RequestedWorkUnits: spec.RequestedWorkUnits,
+				Budget:             taskSpec.Budget,
+				RequestedTokens:    taskSpec.RequestedTokens,
+				RequestedWorkUnits: taskSpec.RequestedWorkUnits,
 				InitialState:       "WORKING",
 			})
 			if delErr != nil {
-				results[idx].State = "FAILED"
-				results[idx].Error = delErr.Error()
-				results[idx].Duration = time.Since(childStart)
+				results[taskIndex].State = "FAILED"
+				results[taskIndex].Error = delErr.Error()
+				results[taskIndex].Duration = time.Since(childStart)
 				return
 			}
 
 			// Register active cancellation func
 			taskCtx, taskCancel := context.WithCancel(runCtx)
 			defer taskCancel()
-			o.RegisterActiveTask(taskWorkID, taskCancel)
-			defer o.UnregisterActiveTask(taskWorkID)
+			o.RegisterActiveTask(tID, taskCancel)
+			defer o.UnregisterActiveTask(tID)
 
 			var output *TaskOutput
 			var execErr error
 
-			if spec.Executor != nil {
-				output, execErr = spec.Executor(taskCtx, childWork)
+			if taskSpec.Executor != nil {
+				output, execErr = taskSpec.Executor(taskCtx, childWork)
 			} else {
 				// Default mock/noop execution if no executor provided
 				output = &TaskOutput{
-					Output: fmt.Sprintf("Result from %s", spec.ExecutorAgentID),
+					Output: fmt.Sprintf("Result from %s", taskSpec.ExecutorAgentID),
 				}
 			}
 
 			childDuration := time.Since(childStart)
-			results[idx].Duration = childDuration
+			results[taskIndex].Duration = childDuration
 
 			if errors.Is(taskCtx.Err(), context.Canceled) || errors.Is(taskCtx.Err(), context.DeadlineExceeded) {
-				results[idx].State = "CANCELED"
-				results[idx].Error = "timed out or canceled"
+				results[taskIndex].State = "CANCELED"
+				results[taskIndex].Error = "timed out or canceled"
 				if o.store != nil {
-					_, _ = o.store.UpdateWorkState(ctx, tenant, taskWorkID, childWork.Version, "CANCELED", "fan-out timeout or cancel")
+					_, _ = o.store.UpdateWorkState(ctx, tenant, tID, childWork.Version, "CANCELED", "fan-out timeout or cancel")
 				}
 				return
 			}
 
 			if execErr != nil {
-				results[idx].State = "FAILED"
-				results[idx].Error = execErr.Error()
+				results[taskIndex].State = "FAILED"
+				results[taskIndex].Error = execErr.Error()
 				if o.store != nil {
-					_, _ = o.store.UpdateWorkState(ctx, tenant, taskWorkID, childWork.Version, "FAILED", execErr.Error())
+					_, _ = o.store.UpdateWorkState(ctx, tenant, tID, childWork.Version, "FAILED", execErr.Error())
 				}
 				return
 			}
 
-			results[idx].State = "COMPLETED"
+			results[taskIndex].State = "COMPLETED"
 			if output != nil {
-				results[idx].Output = output.Output
-				results[idx].Artifacts = output.Artifacts
-				results[idx].TokensUsed = output.TokensUsed
-				results[idx].WorkUnitsUsed = output.WorkUnitsUsed
+				results[taskIndex].Output = output.Output
+				results[taskIndex].Artifacts = output.Artifacts
+				results[taskIndex].TokensUsed = output.TokensUsed
+				results[taskIndex].WorkUnitsUsed = output.WorkUnitsUsed
 
 				if o.store != nil {
-					_, _ = o.store.UpdateWorkState(ctx, tenant, taskWorkID, childWork.Version, "COMPLETED", output.TerminalReason)
+					_, _ = o.store.UpdateWorkState(ctx, tenant, tID, childWork.Version, "COMPLETED", output.TerminalReason)
 					for _, art := range output.Artifacts {
 						_ = o.store.CreateWorkArtifact(ctx, art)
 					}
-					_ = o.store.UpdateWorkUsage(ctx, tenant, taskWorkID, 0, 0, childDuration.Milliseconds(), output.TokensUsed, output.WorkUnitsUsed)
+					_ = o.store.UpdateWorkUsage(ctx, tenant, tID, 0, 0, childDuration.Milliseconds(), output.TokensUsed, output.WorkUnitsUsed)
 				}
 			}
-		}(taskIndex, taskSpec, tID)
+		})
 	}
 
 	wg.Wait()
@@ -281,6 +279,8 @@ func (o *Orchestrator) ExecuteFanOut(ctx context.Context, req FanOutRequest) (*J
 			joinRes.FailedCount++
 		case "CANCELED":
 			joinRes.CanceledCount++
+		default:
+			joinRes.FailedCount++
 		}
 	}
 
@@ -314,6 +314,8 @@ func (o *Orchestrator) ExecuteFanOut(ctx context.Context, req FanOutRequest) (*J
 		if !joinRes.Success {
 			joinRes.Error = "first-success policy failed: no tasks completed"
 		}
+	default:
+		joinRes.Error = fmt.Sprintf("unsupported join policy %q", policy)
 	}
 
 	// Update parent usage with aggregated tokens, work units, and fan-out width

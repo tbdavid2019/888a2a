@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -214,7 +215,7 @@ func TestFanOutJoin_TenPeersDeterministicAggregation(t *testing.T) {
 			ExecutorAgentID: agentID,
 			Executor: func(_ context.Context, _ *store.WorkMessage) (*TaskOutput, error) {
 				if shouldFail {
-					return nil, fmt.Errorf("peer %s unavailable", agentID)
+					return nil, errors.Errorf("peer %s unavailable", agentID)
 				}
 				return &TaskOutput{
 					Output: fmt.Sprintf("OK from %s", agentID),
@@ -304,8 +305,7 @@ func TestCancellation_PropagationToDescendants(t *testing.T) {
 
 	// Verify terminal parent blocks new child delegation
 	terminalParent := &store.WorkMessage{
-		WorkID: "parent-cancelled",
-		State:  "CANCELED",
+		State: "CANCELED",
 	}
 	assert.True(t, isTerminalState(terminalParent.State))
 }

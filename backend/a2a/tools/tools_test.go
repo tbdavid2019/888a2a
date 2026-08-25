@@ -376,7 +376,7 @@ func TestTaskSend_IdempotencyAndTargetWakeUp(t *testing.T) {
 		t.Fatalf("second TaskSend failed: %v", err)
 	}
 	if !res2.IsDuplicate {
-		t.Errorf("second send must be identified as duplicate/idempotent replay")
+		t.Error("second send must be identified as duplicate/idempotent replay")
 	}
 	if res2.WorkID != res1.WorkID {
 		t.Errorf("expected same WorkID %s, got %s", res1.WorkID, res2.WorkID)
@@ -504,6 +504,6 @@ func TestTaskManage_LifecycleAndDelegatedReviewReply(t *testing.T) {
 		t.Fatalf("TaskCancel on completed task should not error: %v", err)
 	}
 	if !cancelRes.AlreadyDone {
-		t.Errorf("cancel on already-completed task should report AlreadyDone=true")
+		t.Error("cancel on already-completed task should report AlreadyDone=true")
 	}
 }

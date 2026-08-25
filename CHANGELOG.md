@@ -37,8 +37,14 @@ and the project uses [Semantic Versioning](https://semver.org/) for releases.
 - Added Manager restart recovery for active work, safely resuming or transitioning interrupted tasks without duplicate execution.
 - Added 888a2a Agent tools (`PeerList`, `PeerGet`) for peer and skill discovery with Agent Card capabilities and verified operational readiness (`READY`, `BUSY`, `OFFLINE`, `UNAVAILABLE`).
 - Added idempotent A2A task sending tool (`TaskSend`) supporting context ID, parent delegation edges, budget constraints, trace correlation, and target wake-up without polling.
-- Added A2A task lifecycle tools (`TaskGet`, `TaskList`, `TaskSubscribe`, `TaskCancel`, `TaskReply`) enabling task management, live event streaming, idempotent cancellation, and returning delegated review results with artifacts to originating contexts.
 - Added audit-safe A2A delegation, status update, and terminal outcome projections for source task threads (`FormatThreadSummary`, `FormatDelegationSummary`, `FormatStatusUpdateSummary`, `FormatResultSummary`) exposing peer, state, trace, and artifacts while strictly excluding hidden reasoning and secrets.
+- Added parent/child work edges and cycle detection (`CycleDetector`, `TaskGraph`) rejecting direct and indirect delegation cycles before commit.
+- Added delegation depth, child count, fan-out, concurrency, retry, and token/work-unit budget enforcement (`ValidateDelegationLimits`, `ValidateFanOutLimit`, `ValidateConcurrencyLimit`, `ValidateBudgetAvailability`, `AllocateChildBudget`) returning durable policy-limit events.
+- Added parallel fan-out coordinator (`ExecuteFanOut`) supporting `ALL_SUCCESS`, `PARTIAL_FAILURE`, `QUORUM`, and `FIRST_SUCCESS` join policies, concurrency bounds, timeout cancellation, and deterministic index-aligned aggregation of peer specialist results.
+- Added root tree cancellation propagation (`CancelWorkTree`, `EnsureTerminalState`) terminating active subprocess runtimes, blocking new child delegations, and driving all descendants to observable terminal states.
+- Added focused runtime safety policy (`RuntimePolicy`, `DefaultRuntimePolicy`, `EvaluateACPPermission`) replacing unconditional ACP permission approvals with default-deny rules for unapproved shell, write, network, secret, and side-effecting MCP operations.
+- Added canonical path confinement (`ValidatePathConfinement`) for configurable workspace-read access, strictly denying directory traversal, symlink escapes, and cross-Agent workspace probes.
+- Added Agent Network audit and trace recording (`TraceRecorder`, `SanitizeMetadata`) capturing discovery, delegation, runtime session, permission, budget, retry, cancellation, and terminal outcome events while scrubbing credentials and hidden reasoning.
 
 ### Changed
 

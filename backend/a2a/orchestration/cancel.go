@@ -2,7 +2,6 @@ package orchestration
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -154,7 +153,7 @@ func (o *Orchestrator) EnsureTerminalState(ctx context.Context, tenantID, rootWo
 		return false, err
 	}
 	if !isTerminalState(root.State) {
-		return false, fmt.Errorf("root %s is in non-terminal state %s", rootWorkID, root.State)
+		return false, errors.Errorf("root %s is in non-terminal state %s", rootWorkID, root.State)
 	}
 
 	descendants, err := o.store.ListDescendants(ctx, tenantID, rootWorkID)
@@ -163,7 +162,7 @@ func (o *Orchestrator) EnsureTerminalState(ctx context.Context, tenantID, rootWo
 	}
 	for _, d := range descendants {
 		if !isTerminalState(d.State) {
-			return false, fmt.Errorf("descendant %s is in non-terminal state %s", d.WorkID, d.State)
+			return false, errors.Errorf("descendant %s is in non-terminal state %s", d.WorkID, d.State)
 		}
 	}
 	return true, nil

@@ -56,14 +56,15 @@
 
 ## 7. Bounded Orchestration and Focused Safety
 
-- [ ] 7.1 Add parent/child work edges and cycle detection before commit; verify direct and indirect delegation cycles are rejected.
-- [ ] 7.2 Implement maximum depth, child count and fan-out limits; verify excess delegation returns a durable policy-limit event.
-- [ ] 7.3 Implement per-coordinator concurrency, retry, runtime and token/work-unit budgets; verify scheduling cannot exceed the remaining parent budget.
-- [ ] 7.4 Implement parallel fan-out and explicit join with success, partial-failure and timeout policy; verify deterministic aggregation of ten peer results.
-- [ ] 7.5 Propagate root cancellation to queued descendants and running runtimes; verify new children are blocked and every descendant reaches an observable terminal state.
-- [ ] 7.6 Replace unconditional ACP permission selection with focused runtime policy; verify unclassified shell/write/network/secret/side-effecting MCP requests are denied by default.
-- [ ] 7.7 Preserve configurable workspace-read access with canonical path confinement; verify symlink escape and cross-Agent path tests remain denied on Linux and macOS.
-- [ ] 7.8 Add Agent Network audit/trace events for discovery, delegation, Provider/session, permission, budget, retry, cancellation and terminal outcome; verify credentials and hidden reasoning are excluded.
+- [x] 7.1 Add parent/child work edges and cycle detection before commit; verify direct and indirect delegation cycles are rejected.
+- [x] 7.2 Implement maximum depth, child count and fan-out limits; verify excess delegation returns a durable policy-limit event.
+- [x] 7.3 Implement per-coordinator concurrency, retry, runtime and token/work-unit budgets; verify scheduling cannot exceed the remaining parent budget.
+- [x] 7.4 Implement parallel fan-out and explicit join with success, partial-failure and timeout policy; verify deterministic aggregation of ten peer results.
+- [x] 7.5 Propagate root cancellation to queued descendants and running runtimes; verify new children are blocked and every descendant reaches an observable terminal state.
+- [x] 7.6 Replace unconditional ACP permission selection with focused runtime policy; verify unclassified shell/write/network/secret/side-effecting MCP requests are denied by default.
+- [x] 7.7 Preserve configurable workspace-read access with canonical path confinement; verify symlink escape and cross-Agent path tests remain denied on Linux and macOS.
+- [x] 7.8 Add Agent Network audit/trace events for discovery, delegation, Provider/session, permission, budget, retry, cancellation and terminal outcome; verify credentials and hidden reasoning are excluded.
+
 
 ## 8. Twelve-Agent Acceptance Gate
 
