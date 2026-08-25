@@ -17,43 +17,43 @@ import (
 
 // TaskGetInput defines input parameters for retrieving a task.
 type TaskGetInput struct {
-	TenantID     string `json:"tenant,omitempty"`
-	WorkID       string `json:"workId"`
+	TenantID      string `json:"tenant,omitempty"`
+	WorkID        string `json:"workId"`
 	CallerAgentID string `json:"callerAgentId,omitempty"`
 }
 
 // WorkUsageOutput describes resource consumption.
 type WorkUsageOutput struct {
-	Depth       int32 `json:"depth"`
-	Children    int32 `json:"children"`
-	FanOut      int32 `json:"fanOut"`
-	RuntimeMs   int64 `json:"runtimeMs"`
-	Tokens      int64 `json:"tokens"`
-	WorkUnits   int64 `json:"workUnits"`
+	Depth     int32 `json:"depth"`
+	Children  int32 `json:"children"`
+	FanOut    int32 `json:"fanOut"`
+	RuntimeMs int64 `json:"runtimeMs"`
+	Tokens    int64 `json:"tokens"`
+	WorkUnits int64 `json:"workUnits"`
 }
 
 // TaskGetResult contains comprehensive task information.
 type TaskGetResult struct {
-	TenantID         string                     `json:"tenant"`
-	WorkID           string                     `json:"workId"`
-	A2ATaskID        string                     `json:"a2aTaskId"`
-	ContextID        string                     `json:"contextId"`
-	RequesterAgentID string                     `json:"requesterAgentId"`
-	ExecutorAgentID  string                     `json:"executorAgentId"`
-	State            string                     `json:"state"`
-	TerminalReason   string                     `json:"terminalReason,omitempty"`
-	ParentWorkID     string                     `json:"parentWorkId,omitempty"`
-	DelegationDepth  int32                      `json:"delegationDepth"`
-	IdempotencyKey   string                     `json:"idempotencyKey"`
-	Trace            *TraceCorrelationInput     `json:"trace,omitempty"`
-	Budget           *WorkBudgetInput           `json:"budget,omitempty"`
-	Usage            *WorkUsageOutput           `json:"usage,omitempty"`
+	TenantID         string                       `json:"tenant"`
+	WorkID           string                       `json:"workId"`
+	A2ATaskID        string                       `json:"a2aTaskId"`
+	ContextID        string                       `json:"contextId"`
+	RequesterAgentID string                       `json:"requesterAgentId"`
+	ExecutorAgentID  string                       `json:"executorAgentId"`
+	State            string                       `json:"state"`
+	TerminalReason   string                       `json:"terminalReason,omitempty"`
+	ParentWorkID     string                       `json:"parentWorkId,omitempty"`
+	DelegationDepth  int32                        `json:"delegationDepth"`
+	IdempotencyKey   string                       `json:"idempotencyKey"`
+	Trace            *TraceCorrelationInput       `json:"trace,omitempty"`
+	Budget           *WorkBudgetInput             `json:"budget,omitempty"`
+	Usage            *WorkUsageOutput             `json:"usage,omitempty"`
 	Artifacts        []*store.WorkArtifactMessage `json:"artifacts,omitempty"`
-	CreatedAt        time.Time                  `json:"createdAt"`
-	UpdatedAt        time.Time                  `json:"updatedAt"`
-	StartedAt        *time.Time                 `json:"startedAt,omitempty"`
-	CompletedAt      *time.Time                 `json:"completedAt,omitempty"`
-	Version          uint64                     `json:"version"`
+	CreatedAt        time.Time                    `json:"createdAt"`
+	UpdatedAt        time.Time                    `json:"updatedAt"`
+	StartedAt        *time.Time                   `json:"startedAt,omitempty"`
+	CompletedAt      *time.Time                   `json:"completedAt,omitempty"`
+	Version          uint64                       `json:"version"`
 }
 
 // TaskGet retrieves a work task by ID.

@@ -125,13 +125,15 @@ You can also leave a channel you are a member of (`channel leave`) — it stops 
 
 ### Delegating to a peer agent
 
-You can hand work to another agent through a direct message — the same `message send` you use for any conversation, addressed `dm:@<peer>`. The peer agent and the human both see it; the manager opens the DM if it does not exist.
+You can hand work to another agent using **A2A tasks** for structured work delegation, or through a direct message (`dm:@<peer>`) for conversational collaboration.
 
-**Discover first.** Run `laelia-machine agent list` to see every other agent with its display name, handle, connection state, and public description. Pick a peer whose public description fits the work and whose state is not `(stopped)` — a stopped peer is not processing sessions and will not reply until it is started again. Then address it as `dm:@<handle>` (e.g. `dm:@rei-agent-1`) — handles are unique, so no disambiguation is ever needed.
+**Discover peer capabilities and readiness.** Discover co-agents and their verified readiness and skills before delegating (`a2a_peer_list`, `a2a_peer_get`, or `agent list`). Check readiness status: a peer that is `OFFLINE`, `UNAVAILABLE`, or `(stopped)` is not processing sessions — do NOT delegate work to it.
 
-**Send the request, then stop.** Post the request with `laelia-machine message send dm:@<peer> --content "..." --base-version 0` (a brand-new DM starts at version 0). Delegation is **async**: end your turn after sending. The peer's reply is a normal new message in your shared DM — it wakes you on a later turn, exactly like a channel reply. **Do NOT poll, loop, or block waiting for the reply.** Reuse the same `dm:@<peer>` for the whole back-and-forth (read new replies with `message read dm:@<peer> --version <your processed_version>`, ack with `message ack dm:@<peer>` once handled).
+**A2A task delegation.** For structured work delegation, subtasks, or code review, send an A2A task (`a2a_task_send`) with the target agent, context ID, optional parent task ID, budget limits, and an idempotency key. The system persists the durable work record and wakes up the target agent asynchronously.
 
-**When delegation is the right move:** a peer agent is better suited (its public description matches), or the work is independent and parallelizable. When you delegate, say so in the channel the request came from (a one-line "delegating X to @<peer>" is enough) so the human knows who is on it. The peer claims/does the work in its own turn; you are not its supervisor — once you have delegated, your responsibility is to relay the result back to the human when the peer replies.
+**No direct process assumptions.** Agents run in isolated, decoupled runtimes across machines and nodes. You MUST NOT assume direct local process control, process-tree inspection, sending signals (kill/term) to peer processes, shared local memory, or synchronous busy-polling of peer processes. Work is accepted, tracked, and delivered asynchronously through event notifications.
+
+**Retain Channel/DM for collaboration context.** Use Channels and DMs for conversational alignment, questions, and owner approvals. When you delegate an A2A task, post a brief execution note in the originating conversation so humans remain informed. The peer's completion reply and artifacts return to the originating context and wake you when finished.
 
 ### Tasks
 

@@ -148,8 +148,8 @@ func (m *memoryWorkStore) ListWork(_ context.Context, filter store.ListWorkFilte
 		if filter.State != "" && w.State != filter.State {
 			continue
 		}
-		copy := *w
-		matching = append(matching, &copy)
+		cloned := *w
+		matching = append(matching, &cloned)
 	}
 
 	total := len(matching)
@@ -221,8 +221,8 @@ func (m *memoryWorkStore) ListPendingWorkForRecovery(_ context.Context) ([]*stor
 	var result []*store.WorkMessage
 	for _, w := range m.works {
 		if w.State == "SUBMITTED" || w.State == "WORKING" {
-			copy := *w
-			result = append(result, &copy)
+			cloned := *w
+			result = append(result, &cloned)
 		}
 	}
 	return result, nil

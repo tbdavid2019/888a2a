@@ -292,9 +292,9 @@ func FormatTaskSendResult(res *TaskSendResult) string {
 
 	var sb strings.Builder
 	if res.IsDuplicate {
-		sb.WriteString(fmt.Sprintf("**A2A Task Already Exists** (idempotent replay):\n"))
+		sb.WriteString("**A2A Task Already Exists** (idempotent replay):\n")
 	} else {
-		sb.WriteString(fmt.Sprintf("**A2A Task Sent Successfully**:\n"))
+		sb.WriteString("**A2A Task Sent Successfully**:\n")
 	}
 
 	sb.WriteString(fmt.Sprintf("- **Task ID**: `%s` (Work ID: `%s`)\n", res.A2ATaskID, res.WorkID))

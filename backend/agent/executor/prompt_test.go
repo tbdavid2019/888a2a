@@ -85,3 +85,42 @@ func TestBuildReanchorPromptCarriesOwner(t *testing.T) {
 		t.Fatalf("re-anchor must omit the owner line for a legacy agent, got:\n%s", got)
 	}
 }
+
+func TestBuildPrompt_A2ATaskDelegationAndDirectProcessRejection(t *testing.T) {
+	got := BuildPrompt("alice", "Alice Owner", "persona text")
+
+	// Verify A2A task delegation instructions are present
+	if !strings.Contains(got, "a2a_task_send") {
+		t.Fatalf("prompt must instruct A2A task delegation via a2a_task_send, got:\n%s", got)
+	}
+	if !strings.Contains(got, "a2a_peer_list") {
+		t.Fatalf("prompt must instruct peer discovery via a2a_peer_list, got:\n%s", got)
+	}
+
+	// Verify Channel/DM retained for collaboration context
+	if !strings.Contains(got, "Retain Channel and DM conversations for conversational collaboration") &&
+		!strings.Contains(got, "Retain Channel/DM for collaboration context") {
+		t.Fatalf("prompt must retain Channel/DM for conversational context, got:\n%s", got)
+	}
+
+	// Verify direct process assumptions are rejected
+	for _, rejectedAssumption := range []string{
+		"do NOT poll",
+		"shared memory",
+		"direct process control",
+	} {
+		if !strings.Contains(got, rejectedAssumption) {
+			t.Fatalf("prompt must explicitly reject direct process assumption %q, got:\n%s", rejectedAssumption, got)
+		}
+	}
+}
+
+func TestBuildReanchorPrompt_A2ADelegation(t *testing.T) {
+	got := BuildReanchorPrompt("bob", "")
+	if !strings.Contains(got, "Use A2A tasks for work delegation") {
+		t.Fatalf("re-anchor prompt must include A2A work delegation instruction, got:\n%s", got)
+	}
+	if !strings.Contains(got, "never assume direct process control or poll peer processes") {
+		t.Fatalf("re-anchor prompt must reject direct process assumptions, got:\n%s", got)
+	}
+}

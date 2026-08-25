@@ -35,9 +35,14 @@ and the project uses [Semantic Versioning](https://semver.org/) for releases.
 - Added terminal-state idempotent task cancellation preventing corruption of completed work.
 - Added additive projections linking A2A delegation, states, and artifacts to conversation and task message threads.
 - Added Manager restart recovery for active work, safely resuming or transitioning interrupted tasks without duplicate execution.
+- Added 888a2a Agent tools (`PeerList`, `PeerGet`) for peer and skill discovery with Agent Card capabilities and verified operational readiness (`READY`, `BUSY`, `OFFLINE`, `UNAVAILABLE`).
+- Added idempotent A2A task sending tool (`TaskSend`) supporting context ID, parent delegation edges, budget constraints, trace correlation, and target wake-up without polling.
+- Added A2A task lifecycle tools (`TaskGet`, `TaskList`, `TaskSubscribe`, `TaskCancel`, `TaskReply`) enabling task management, live event streaming, idempotent cancellation, and returning delegated review results with artifacts to originating contexts.
+- Added audit-safe A2A delegation, status update, and terminal outcome projections for source task threads (`FormatThreadSummary`, `FormatDelegationSummary`, `FormatStatusUpdateSummary`, `FormatResultSummary`) exposing peer, state, trace, and artifacts while strictly excluding hidden reasoning and secrets.
 
 ### Changed
 
+- Updated Agent prompt, communication guide, and re-anchor instructions to use A2A tasks for work delegation while retaining Channel/DM for conversational collaboration, and explicitly rejecting direct process control, shared memory, and busy-polling assumptions.
 - Updated Claude Code provider manifest to pinned `@agentclientprotocol/claude-agent-acp@0.70.0` with verified SRI integrity sha512 hash and eliminated turn-time npx download fallback.
 - Updated Manager API provider validation to prohibit quarantined, broken, and unverified detected-only providers from automatic execution.
 - Updated Manager frontend UI to display runtime status and compatibility evidence badges and disable unusable providers from selection.

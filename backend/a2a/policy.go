@@ -62,17 +62,17 @@ func DefaultRuntimePolicy(agentID string, workspaceRoots []string) *RuntimePolic
 
 // PermissionRequest represents an incoming permission probe.
 type PermissionRequest struct {
-	TenantID     string     `json:"tenant_id"`
-	WorkID       string     `json:"work_id"`
-	AgentID      string     `json:"agent_id"`
-	PeerAgentID  string     `json:"peer_agent_id"`
-	ActionKind   ActionKind `json:"action_kind"`
-	ToolName     string     `json:"tool_name"`
-	TargetPath   string     `json:"target_path"`
-	Command      string     `json:"command"`
-	MCPServer    string     `json:"mcp_server"`
-	MCPTool      string     `json:"mcp_tool"`
-	Description  string     `json:"description"`
+	TenantID    string     `json:"tenant_id"`
+	WorkID      string     `json:"work_id"`
+	AgentID     string     `json:"agent_id"`
+	PeerAgentID string     `json:"peer_agent_id"`
+	ActionKind  ActionKind `json:"action_kind"`
+	ToolName    string     `json:"tool_name"`
+	TargetPath  string     `json:"target_path"`
+	Command     string     `json:"command"`
+	MCPServer   string     `json:"mcp_server"`
+	MCPTool     string     `json:"mcp_tool"`
+	Description string     `json:"description"`
 }
 
 // PermissionResult captures the policy evaluation outcome.
@@ -373,6 +373,8 @@ func ClassifyACPRequest(params acp.RequestPermissionRequest) PermissionRequest {
 			req.ActionKind = ActionWrite
 		case acp.ToolKindExecute:
 			req.ActionKind = ActionShell
+		default:
+			req.ActionKind = ActionUnclassified
 		}
 	}
 

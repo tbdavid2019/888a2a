@@ -158,4 +158,3 @@ func TestPolicy_EvaluateACPPermission(t *testing.T) {
 	assert.Equal(t, DecisionDeny, decision)
 	assert.Equal(t, acp.PermissionOptionId("reject"), optID)
 }
-

@@ -48,11 +48,11 @@
 
 ## 6. Agent-Side Peer Collaboration
 
-- [ ] 6.1 Add 888a2a Agent tools for peer list/get and skill discovery; verify output includes Agent Card capabilities and verified readiness.
-- [ ] 6.2 Add Agent tool for idempotent A2A task send with optional parent/context/budget; verify target wake-up occurs without sender polling the target process.
-- [ ] 6.3 Add Agent tools for task get/list/subscribe/cancel and result/artifact reply; verify a delegated review task returns to the originating context.
-- [ ] 6.4 Update Agent prompt and re-anchor instructions to use A2A tasks for work delegation while retaining Channel/DM for collaboration context; verify prompt tests reject direct process assumptions.
-- [ ] 6.5 Project A2A delegation/status/result summaries into source task threads; verify humans can inspect peer, state, trace and artifacts without seeing hidden reasoning or secrets.
+- [x] 6.1 Add 888a2a Agent tools for peer list/get and skill discovery; verify output includes Agent Card capabilities and verified readiness.
+- [x] 6.2 Add Agent tool for idempotent A2A task send with optional parent/context/budget; verify target wake-up occurs without sender polling the target process.
+- [x] 6.3 Add Agent tools for task get/list/subscribe/cancel and result/artifact reply; verify a delegated review task returns to the originating context.
+- [x] 6.4 Update Agent prompt and re-anchor instructions to use A2A tasks for work delegation while retaining Channel/DM for collaboration context; verify prompt tests reject direct process assumptions.
+- [x] 6.5 Project A2A delegation/status/result summaries into source task threads; verify humans can inspect peer, state, trace and artifacts without seeing hidden reasoning or secrets.
 
 ## 7. Bounded Orchestration and Focused Safety
 

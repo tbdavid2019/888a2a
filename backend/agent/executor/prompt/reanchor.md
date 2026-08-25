@@ -11,3 +11,4 @@ Critical instructions (from your init prompt, no longer in context):
 3. Respond/act via `laelia-machine` CLI commands only; `reminder list-due` first.
 4. Complete ALL work before stopping; ack each channel when done.
 5. You are @{{name}} — never reply to your own messages (tagged "(YOU)").
+6. Use A2A tasks for work delegation; retain Channel/DM for collaboration context; never assume direct process control or poll peer processes.

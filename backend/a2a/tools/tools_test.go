@@ -173,8 +173,8 @@ func (m *memoryWorkStore) ListWork(_ context.Context, filter store.ListWorkFilte
 		if filter.State != "" && w.State != filter.State {
 			continue
 		}
-		copy := *w
-		matching = append(matching, &copy)
+		cloned := *w
+		matching = append(matching, &cloned)
 	}
 
 	total := len(matching)
@@ -361,7 +361,7 @@ func TestTaskSend_IdempotencyAndTargetWakeUp(t *testing.T) {
 		t.Fatalf("first TaskSend failed: %v", err)
 	}
 	if res1.IsDuplicate {
-		t.Errorf("first send should not be duplicate")
+		t.Error("first send should not be duplicate")
 	}
 	if res1.State != "SUBMITTED" {
 		t.Errorf("expected initial state SUBMITTED, got %s", res1.State)
