@@ -212,6 +212,6 @@ type defaultPublicCaller struct {
 	tenant string
 }
 
-func (*defaultPublicCaller) GetPrincipalID() string  { return "public" }
-func (d *defaultPublicCaller) GetTenantID() string   { return d.tenant }
-func (d *defaultPublicCaller) IsAuthenticated() bool { return true }
+func (*defaultPublicCaller) GetPrincipalID() string { return "public" }
+func (d *defaultPublicCaller) GetTenantID() string  { return d.tenant }
+func (*defaultPublicCaller) IsAuthenticated() bool  { return true }

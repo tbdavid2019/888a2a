@@ -54,11 +54,11 @@ func newCapacityTracker(defaultMaxCapacity int) *capacityTracker {
 	}
 }
 
-func (t *capacityTracker) setMaxCapacity(max int) {
+func (t *capacityTracker) setMaxCapacity(limit int) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if max > 0 {
-		t.maxCapacity = max
+	if limit > 0 {
+		t.maxCapacity = limit
 	}
 }
 

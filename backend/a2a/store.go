@@ -21,6 +21,8 @@ type DurableTaskStoreAdapter struct {
 	eventManager *EventManager
 }
 
+type idempotencyContextKey struct{}
+
 // NewDurableTaskStore creates a new task store adapter.
 func NewDurableTaskStore(store *store.Store, eventManager *EventManager) *DurableTaskStoreAdapter {
 	return &DurableTaskStoreAdapter{
@@ -451,7 +453,7 @@ func extractExecutorFromContext(ctx context.Context, _ *a2a.Task) string {
 }
 
 func extractIdempotencyKey(ctx context.Context, task *a2a.Task) string {
-	if key, ok := ctx.Value("idempotency_key").(string); ok && key != "" {
+	if key, ok := ctx.Value(idempotencyContextKey{}).(string); ok && key != "" {
 		return key
 	}
 	if task != nil && string(task.ID) != "" {

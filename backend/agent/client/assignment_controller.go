@@ -118,7 +118,7 @@ func (c *MachineClient) ApplyAssignmentReplay(ctx context.Context, replay *a2a88
 
 // ReconcileRoster reconciles the machine's active runners with the authoritative
 // assignment reducer state, terminating zombie runners and spawning missing agents.
-func (c *MachineClient) ReconcileRoster(ctx context.Context, highWatermark uint64, authoritativeRevision string) error {
+func (c *MachineClient) ReconcileRoster(ctx context.Context, _ uint64, authoritativeRevision string) error {
 	c.mu.Lock()
 	if c.reducer == nil {
 		c.reducer = assignment.NewReducer(c.machineID)

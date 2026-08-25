@@ -77,8 +77,8 @@ func (m *memoryWorkStore) GetWork(_ context.Context, tenantID, workID string) (*
 	if !ok {
 		return nil, store.ErrWorkNotFound
 	}
-	copy := *w
-	return &copy, nil
+	cloned := *w
+	return &cloned, nil
 }
 
 func (m *memoryWorkStore) GetWorkByA2ATaskID(_ context.Context, tenantID, a2aTaskID string) (*store.WorkMessage, error) {
@@ -86,8 +86,8 @@ func (m *memoryWorkStore) GetWorkByA2ATaskID(_ context.Context, tenantID, a2aTas
 	defer m.mu.RUnlock()
 	for _, w := range m.works {
 		if w.TenantID == tenantID && w.A2ATaskID == a2aTaskID {
-			copy := *w
-			return &copy, nil
+			cloned := *w
+			return &cloned, nil
 		}
 	}
 	return nil, store.ErrWorkNotFound
@@ -98,8 +98,8 @@ func (m *memoryWorkStore) GetWorkByIdempotencyKey(_ context.Context, tenantID, r
 	defer m.mu.RUnlock()
 	for _, w := range m.works {
 		if w.TenantID == tenantID && w.RequesterAgentID == requesterAgentID && w.IdempotencyKey == idempotencyKey {
-			copy := *w
-			return &copy, nil
+			cloned := *w
+			return &cloned, nil
 		}
 	}
 	return nil, store.ErrWorkNotFound
@@ -419,7 +419,7 @@ func TestDurableTaskStore_IdempotencyAndWorkCreation(t *testing.T) {
 		},
 	}
 
-	ctx = context.WithValue(ctx, "idempotency_key", "idem-abc-123")
+	ctx = context.WithValue(ctx, idempotencyContextKey{}, "idem-abc-123")
 	caller := &fakeCaller{id: "agent-caller-1", tenant: "default", authenticated: true}
 	ctx = WithCaller(ctx, caller)
 

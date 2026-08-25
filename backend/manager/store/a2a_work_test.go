@@ -56,4 +56,29 @@ func TestWorkSQLQueries(t *testing.T) {
 			t.Fatal("listWorkEventsSQL must order by sequence ASC")
 		}
 	})
+
+	t.Run("listChildrenSQL", func(t *testing.T) {
+		if !strings.Contains(listChildrenSQL, "parent_work_id = $2") {
+			t.Fatal("listChildrenSQL must filter by parent_work_id")
+		}
+	})
+
+	t.Run("countChildrenSQL", func(t *testing.T) {
+		if !strings.Contains(countChildrenSQL, "COUNT(*)") {
+			t.Fatal("countChildrenSQL must count rows")
+		}
+	})
+
+	t.Run("countActiveChildrenSQL", func(t *testing.T) {
+		if !strings.Contains(countActiveChildrenSQL, "SUBMITTED") || !strings.Contains(countActiveChildrenSQL, "WORKING") {
+			t.Fatal("countActiveChildrenSQL must filter active states")
+		}
+	})
+
+	t.Run("updateWorkUsageSQL", func(t *testing.T) {
+		if !strings.Contains(updateWorkUsageSQL, "used_children = used_children + $3") {
+			t.Fatal("updateWorkUsageSQL must increment used_children")
+		}
+	})
 }
+

@@ -78,7 +78,7 @@ func ComputeCacheIdentity(manifest *a2a888pb.ProviderManifest, platform *a2a888p
 		h.Write([]byte("custom_command:" + custom.GetCommand() + "\n"))
 		h.Write([]byte("custom_args:" + strings.Join(custom.GetArguments(), " ") + "\n"))
 	default:
-		return nil, fmt.Errorf("unsupported runtime kind %s", manifest.GetRuntimeKind())
+		return nil, errors.Errorf("unsupported runtime kind %s", manifest.GetRuntimeKind())
 	}
 
 	identity.IdentityDigest = hex.EncodeToString(h.Sum(nil))

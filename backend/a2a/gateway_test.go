@@ -152,7 +152,7 @@ func TestGateway_ExternalSDKConnection(t *testing.T) {
 		t.Fatalf("client.ListTasks failed: %v", err)
 	}
 	if len(listResp.Tasks) == 0 {
-		t.Fatalf("expected at least 1 task in ListTasks response")
+		t.Fatal("expected at least 1 task in ListTasks response")
 	}
 
 	// 4. CancelTask on an active working task

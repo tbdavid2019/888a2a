@@ -111,7 +111,7 @@ filter_compatibility_imports() {
 		printf '%s\n' "${line}"
 	done
 }
-for file in "${files[@]}"; do
+for file in ${files[@]+"${files[@]}"}; do
 	case "${file}" in
 		/*) absolute_path="${file}" ;;
 		*) absolute_path="${repo_root}/${file}" ;;

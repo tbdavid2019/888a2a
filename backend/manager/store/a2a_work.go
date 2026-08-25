@@ -702,3 +702,168 @@ func (s *Store) GetLatestWorkEventSequence(ctx context.Context, tenantID, workID
 	}
 	return seq, nil
 }
+
+const listChildrenSQL = `
+SELECT tenant_id, work_id, a2a_task_id, context_id, requester_agent_id, executor_agent_id,
+       source_conversation_id, source_task_id, state, terminal_reason, idempotency_key,
+       trace_id, root_trace_id, span_id, parent_span_id, parent_work_id, parent_edge_type,
+       delegation_depth, retry_count, max_depth, max_children, max_fan_out, max_concurrency,
+       max_runtime_ms, max_retries, max_tokens, max_work_units, used_children, used_fan_out,
+       used_runtime_ms, used_tokens, used_work_units, created_at, updated_at, started_at,
+       completed_at, version
+FROM a2a888_work
+WHERE tenant_id = $1 AND parent_work_id = $2
+ORDER BY created_at ASC;
+`
+
+// ListChildren retrieves direct children of a work record.
+func (s *Store) ListChildren(ctx context.Context, tenantID, parentWorkID string) ([]*WorkMessage, error) {
+	if tenantID == "" {
+		tenantID = "default"
+	}
+	rows, err := s.dbConnManager.GetDB().QueryContext(ctx, listChildrenSQL, tenantID, parentWorkID)
+	if err != nil {
+		return nil, errors.Wrap(err, "list children")
+	}
+	defer rows.Close()
+
+	var result []*WorkMessage
+	for rows.Next() {
+		w, err := scanWorkRow(rows)
+		if err != nil {
+			return nil, errors.Wrap(err, "scan child work row")
+		}
+		result = append(result, w)
+	}
+	return result, rows.Err()
+}
+
+const countChildrenSQL = `
+SELECT COUNT(*) FROM a2a888_work
+WHERE tenant_id = $1 AND parent_work_id = $2;
+`
+
+// CountChildren counts direct children of a work record.
+func (s *Store) CountChildren(ctx context.Context, tenantID, parentWorkID string) (int, error) {
+	if tenantID == "" {
+		tenantID = "default"
+	}
+	var count int
+	if err := s.dbConnManager.GetDB().QueryRowContext(ctx, countChildrenSQL, tenantID, parentWorkID).Scan(&count); err != nil {
+		return 0, errors.Wrap(err, "count children")
+	}
+	return count, nil
+}
+
+const countActiveChildrenSQL = `
+SELECT COUNT(*) FROM a2a888_work
+WHERE tenant_id = $1 AND parent_work_id = $2 AND state IN ('SUBMITTED', 'WORKING', 'INPUT_REQUIRED', 'AUTH_REQUIRED');
+`
+
+// CountActiveChildren counts direct children in non-terminal states.
+func (s *Store) CountActiveChildren(ctx context.Context, tenantID, parentWorkID string) (int, error) {
+	if tenantID == "" {
+		tenantID = "default"
+	}
+	var count int
+	if err := s.dbConnManager.GetDB().QueryRowContext(ctx, countActiveChildrenSQL, tenantID, parentWorkID).Scan(&count); err != nil {
+		return 0, errors.Wrap(err, "count active children")
+	}
+	return count, nil
+}
+
+// GetParentChain returns the ancestor chain from the immediate parent up to the root.
+// Returns an error if a cycle is detected or max depth (100) is exceeded.
+func (s *Store) GetParentChain(ctx context.Context, tenantID, workID string) ([]*WorkMessage, error) {
+	if tenantID == "" {
+		tenantID = "default"
+	}
+	var chain []*WorkMessage
+	seen := map[string]struct{}{workID: {}}
+	currentID := workID
+
+	for i := 0; i < 100; i++ {
+		current, err := s.GetWork(ctx, tenantID, currentID)
+		if err != nil {
+			return nil, err
+		}
+		if !current.ParentWorkID.Valid || current.ParentWorkID.String == "" {
+			break
+		}
+		parentID := current.ParentWorkID.String
+		if _, exists := seen[parentID]; exists {
+			return nil, errors.Errorf("cycle detected in parent chain: %s already seen", parentID)
+		}
+		seen[parentID] = struct{}{}
+
+		parent, err := s.GetWork(ctx, tenantID, parentID)
+		if err != nil {
+			return nil, errors.Wrapf(err, "get parent work %s", parentID)
+		}
+		chain = append(chain, parent)
+		currentID = parentID
+	}
+	return chain, nil
+}
+
+// ListDescendants performs a breadth-first search of all descendant work records.
+func (s *Store) ListDescendants(ctx context.Context, tenantID, rootWorkID string) ([]*WorkMessage, error) {
+	if tenantID == "" {
+		tenantID = "default"
+	}
+	var allDescendants []*WorkMessage
+	queue := []string{rootWorkID}
+	seen := map[string]struct{}{rootWorkID: {}}
+
+	for len(queue) > 0 {
+		curr := queue[0]
+		queue = queue[1:]
+
+		children, err := s.ListChildren(ctx, tenantID, curr)
+		if err != nil {
+			return nil, errors.Wrapf(err, "list children for %s", curr)
+		}
+		for _, child := range children {
+			if _, ok := seen[child.WorkID]; !ok {
+				seen[child.WorkID] = struct{}{}
+				allDescendants = append(allDescendants, child)
+				queue = append(queue, child.WorkID)
+			}
+		}
+	}
+	return allDescendants, nil
+}
+
+const updateWorkUsageSQL = `
+UPDATE a2a888_work
+SET used_children = used_children + $3,
+    used_fan_out = CASE WHEN $4 > used_fan_out THEN $4 ELSE used_fan_out END,
+    used_runtime_ms = used_runtime_ms + $5,
+    used_tokens = used_tokens + $6,
+    used_work_units = used_work_units + $7,
+    updated_at = now()
+WHERE tenant_id = $1 AND work_id = $2;
+`
+
+// UpdateWorkUsage increments or updates usage counters on a work record.
+func (s *Store) UpdateWorkUsage(ctx context.Context, tenantID, workID string, deltaChildren, fanOut int32, deltaRuntimeMs, deltaTokens, deltaWorkUnits int64) error {
+	if tenantID == "" {
+		tenantID = "default"
+	}
+	_, err := s.dbConnManager.GetDB().ExecContext(
+		ctx,
+		updateWorkUsageSQL,
+		tenantID,
+		workID,
+		deltaChildren,
+		fanOut,
+		deltaRuntimeMs,
+		deltaTokens,
+		deltaWorkUnits,
+	)
+	if err != nil {
+		return errors.Wrap(err, "update work usage")
+	}
+	return nil
+}
+

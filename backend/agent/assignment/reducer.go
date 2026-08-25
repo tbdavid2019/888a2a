@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"sort"
+	"slices"
 	"strings"
 
 	pkgerrors "github.com/pkg/errors"
@@ -191,7 +191,7 @@ func (r *Reducer) ActiveAgentIDs() []string {
 	for id := range r.assignments {
 		ids = append(ids, id)
 	}
-	sort.Strings(ids)
+	slices.Sort(ids)
 	return ids
 }
 
