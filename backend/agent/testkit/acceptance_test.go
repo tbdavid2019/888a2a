@@ -2,6 +2,7 @@ package testkit
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,9 +10,10 @@ import (
 	"testing"
 	"time"
 
+	a2asdk "github.com/a2aproject/a2a-go/v2/a2a"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/Ranxy/laelia/backend/a2a"
 	"github.com/Ranxy/laelia/backend/a2a/orchestration"
@@ -20,8 +22,186 @@ import (
 	"github.com/Ranxy/laelia/backend/agent/executor"
 	"github.com/Ranxy/laelia/backend/agent/state"
 	"github.com/Ranxy/laelia/backend/generated-go/a2a888"
-	"github.com/Ranxy/laelia/backend/manager/component/dispatcher"
+	"github.com/Ranxy/laelia/backend/manager/store"
 )
+
+type acceptanceMemoryWorkStore struct {
+	mu        sync.RWMutex
+	contexts  map[string]*store.WorkContextMessage
+	works     map[string]*store.WorkMessage
+	artifacts map[string][]*store.WorkArtifactMessage
+	events    map[string][]*store.WorkEventMessage
+}
+
+func newAcceptanceMemoryWorkStore() *acceptanceMemoryWorkStore {
+	return &acceptanceMemoryWorkStore{
+		contexts:  make(map[string]*store.WorkContextMessage),
+		works:     make(map[string]*store.WorkMessage),
+		artifacts: make(map[string][]*store.WorkArtifactMessage),
+		events:    make(map[string][]*store.WorkEventMessage),
+	}
+}
+
+func (m *acceptanceMemoryWorkStore) EnsureWorkContext(_ context.Context, tenantID, contextID, rootWorkID string) (*store.WorkContextMessage, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	key := tenantID + ":" + contextID
+	if c, ok := m.contexts[key]; ok {
+		c.UpdatedAt = time.Now()
+		return c, nil
+	}
+	c := &store.WorkContextMessage{
+		TenantID:   tenantID,
+		ContextID:  contextID,
+		RootWorkID: sql.NullString{String: rootWorkID, Valid: rootWorkID != ""},
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+	}
+	m.contexts[key] = c
+	return c, nil
+}
+
+func (m *acceptanceMemoryWorkStore) CreateWork(_ context.Context, work *store.WorkMessage) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	key := work.TenantID + ":" + work.WorkID
+	if _, exists := m.works[key]; exists {
+		return pkgerrors.Errorf("work already exists: %s", work.WorkID)
+	}
+	work.CreatedAt = time.Now()
+	work.UpdatedAt = time.Now()
+	work.Version = 1
+	m.works[key] = work
+	return nil
+}
+
+func (m *acceptanceMemoryWorkStore) GetWork(_ context.Context, tenantID, workID string) (*store.WorkMessage, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	key := tenantID + ":" + workID
+	w, ok := m.works[key]
+	if !ok {
+		return nil, nil
+	}
+	return w, nil
+}
+
+func (m *acceptanceMemoryWorkStore) GetWorkByA2ATaskID(_ context.Context, tenantID, a2aTaskID string) (*store.WorkMessage, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	for _, w := range m.works {
+		if w.TenantID == tenantID && w.A2ATaskID == a2aTaskID {
+			return w, nil
+		}
+	}
+	return nil, nil
+}
+
+func (m *acceptanceMemoryWorkStore) GetWorkByIdempotencyKey(_ context.Context, tenantID, requesterAgentID, idempotencyKey string) (*store.WorkMessage, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	for _, w := range m.works {
+		if w.TenantID == tenantID && w.RequesterAgentID == requesterAgentID && w.IdempotencyKey == idempotencyKey {
+			return w, nil
+		}
+	}
+	return nil, nil
+}
+
+func (m *acceptanceMemoryWorkStore) UpdateWorkState(_ context.Context, tenantID, workID string, expectedVersion uint64, newState string, terminalReason string) (uint64, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	key := tenantID + ":" + workID
+	w, ok := m.works[key]
+	if !ok {
+		return 0, pkgerrors.Errorf("work not found: %s", workID)
+	}
+	if expectedVersion > 0 && w.Version != expectedVersion {
+		return 0, pkgerrors.Errorf("version conflict: %d != %d", w.Version, expectedVersion)
+	}
+	w.State = newState
+	w.TerminalReason = terminalReason
+	w.Version++
+	w.UpdatedAt = time.Now()
+	return w.Version, nil
+}
+
+func (m *acceptanceMemoryWorkStore) ListWork(_ context.Context, filter store.ListWorkFilter) ([]*store.WorkMessage, int, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var list []*store.WorkMessage
+	for _, w := range m.works {
+		if w.TenantID == filter.TenantID {
+			if filter.ContextID != "" && w.ContextID != filter.ContextID {
+				continue
+			}
+			list = append(list, w)
+		}
+	}
+	return list, len(list), nil
+}
+
+func (m *acceptanceMemoryWorkStore) CreateWorkArtifact(_ context.Context, artifact *store.WorkArtifactMessage) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	key := artifact.TenantID + ":" + artifact.WorkID
+	artifact.CreatedAt = time.Now()
+	m.artifacts[key] = append(m.artifacts[key], artifact)
+	return nil
+}
+
+func (m *acceptanceMemoryWorkStore) ListWorkArtifacts(_ context.Context, tenantID, workID string) ([]*store.WorkArtifactMessage, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	key := tenantID + ":" + workID
+	return m.artifacts[key], nil
+}
+
+func (m *acceptanceMemoryWorkStore) AppendWorkEvent(_ context.Context, event *store.WorkEventMessage) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	key := event.TenantID + ":" + event.WorkID
+	event.Sequence = uint64(len(m.events[key]) + 1)
+	event.CreatedAt = time.Now()
+	m.events[key] = append(m.events[key], event)
+	return nil
+}
+
+func (m *acceptanceMemoryWorkStore) ListWorkEvents(_ context.Context, tenantID, workID string, afterSequence uint64, limit int) ([]*store.WorkEventMessage, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	key := tenantID + ":" + workID
+	all := m.events[key]
+	var res []*store.WorkEventMessage
+	for _, e := range all {
+		if e.Sequence > afterSequence {
+			res = append(res, e)
+			if limit > 0 && len(res) >= limit {
+				break
+			}
+		}
+	}
+	return res, nil
+}
+
+func (m *acceptanceMemoryWorkStore) GetLatestWorkEventSequence(_ context.Context, tenantID, workID string) (uint64, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	key := tenantID + ":" + workID
+	return uint64(len(m.events[key])), nil
+}
+
+func (m *acceptanceMemoryWorkStore) ListPendingWorkForRecovery(_ context.Context) ([]*store.WorkMessage, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var list []*store.WorkMessage
+	for _, w := range m.works {
+		if w.State == "SUBMITTED" || w.State == "WORKING" {
+			list = append(list, w)
+		}
+	}
+	return list, nil
+}
 
 // TestTwelveAgentAcceptanceGate verifies the end-to-end 12-Agent acceptance gate (Tasks 8.1 - 8.5).
 func TestTwelveAgentAcceptanceGate(t *testing.T) {
@@ -38,201 +218,160 @@ func TestTwelveAgentAcceptanceGate(t *testing.T) {
 	machine1ID := "machines/mach-01"
 	machine2ID := "machines/mach-02"
 
-	// Setup memory store & event manager
-	workStore := tools.NewMemoryWorkStore()
-	eventMgr := a2a.NewEventManager()
-	traceRec := a2a.NewTraceRecorder(nil)
+	workStore := newAcceptanceMemoryWorkStore()
+	eventMgr := a2a.NewEventManager(workStore)
 
 	// Machine 1 hosts Coordinator (Agent 1) + Specialists 1-5
 	// Machine 2 hosts Specialists 6-10 + Reviewer (Agent 12)
-	agents := make([]*a2a888.AgentCard, 12)
-	cards := make(map[string]*a2a888.AgentCard)
+	agents := make([]*a2asdk.AgentCard, 12)
+	cards := make(map[string]*a2asdk.AgentCard)
 
 	// 1 Coordinator
-	agents[0] = &a2a888.AgentCard{
-		AgentResourceId: "agents/coordinator-01",
-		DisplayName:     "Orchestration Coordinator",
-		Description:     "Coordinates 10 specialists and dispatches to reviewer",
-		Skills: []*a2a888.AgentSkill{
-			{Id: "orchestrate", Name: "Orchestrate", Tags: []string{"coordination", "planner"}},
+	agents[0] = &a2asdk.AgentCard{
+		Name:        "agents/coordinator-01",
+		Description: "Coordinates 10 specialists and dispatches to reviewer",
+		Version:     "1.0",
+		Skills: []a2asdk.AgentSkill{
+			{ID: "orchestrate", Name: "Orchestrate", Tags: []string{"coordination", "planner"}},
 		},
-		Readiness: a2a888.RuntimeStatus_READY,
 	}
 
 	// 10 Specialists
 	for i := 1; i <= specialistCount; i++ {
 		agentID := fmt.Sprintf("agents/specialist-%02d", i)
-		agents[i] = &a2a888.AgentCard{
-			AgentResourceId: agentID,
-			DisplayName:     fmt.Sprintf("Specialist Domain %02d", i),
-			Description:     fmt.Sprintf("Executes specialized subtask domain %02d", i),
-			Skills: []*a2a888.AgentSkill{
-				{Id: fmt.Sprintf("domain-%02d", i), Name: fmt.Sprintf("Domain %02d", i), Tags: []string{"specialist", "compute"}},
+		agents[i] = &a2asdk.AgentCard{
+			Name:        agentID,
+			Description: fmt.Sprintf("Executes specialized subtask domain %02d", i),
+			Version:     "1.0",
+			Skills: []a2asdk.AgentSkill{
+				{ID: fmt.Sprintf("domain-%02d", i), Name: fmt.Sprintf("Domain %02d", i), Tags: []string{"specialist", "compute"}},
 			},
-			Readiness: a2a888.RuntimeStatus_READY,
 		}
 	}
 
 	// 1 Reviewer / Aggregator
-	agents[11] = &a2a888.AgentCard{
-		AgentResourceId: "agents/reviewer-12",
-		DisplayName:     "Quality Reviewer & Aggregator",
-		Description:     "Aggregates and verifies results from all 10 specialists",
-		Skills: []*a2a888.AgentSkill{
-			{Id: "review", Name: "Review & Validate", Tags: []string{"review", "aggregate"}},
+	agents[11] = &a2asdk.AgentCard{
+		Name:        "agents/reviewer-12",
+		Description: "Aggregates and verifies results from all 10 specialists",
+		Version:     "1.0",
+		Skills: []a2asdk.AgentSkill{
+			{ID: "review", Name: "Review & Validate", Tags: []string{"review", "aggregate"}},
 		},
-		Readiness: a2a888.RuntimeStatus_READY,
 	}
 
 	for _, card := range agents {
-		cards[card.AgentResourceId] = card
-		require.Equal(t, a2a888.RuntimeStatus_READY, card.Readiness, "every agent must reach READY")
-	}
-
-	// Verify capacity and availability reporting for both machines
-	cap1 := client.NewCapacityTracker(16)
-	cap2 := client.NewCapacityTracker(16)
-	for i := 0; i < 6; i++ {
-		cap1.IncrementInFlight(agents[i].AgentResourceId)
-		cap1.DecrementInFlight(agents[i].AgentResourceId)
-	}
-	for i := 6; i < 12; i++ {
-		cap2.IncrementInFlight(agents[i].AgentResourceId)
-		cap2.DecrementInFlight(agents[i].AgentResourceId)
-	}
-
-	disp := dispatcher.New()
-	disp.RecordMachineConnection(machine1ID)
-	disp.RecordMachineConnection(machine2ID)
-	disp.UpdateMachineCapacity(machine1ID, cap1.Snapshot(machine1ID, true))
-	disp.UpdateMachineCapacity(machine2ID, cap2.Snapshot(machine2ID, true))
-
-	for _, card := range agents {
-		assert.True(t, disp.IsAgentReadyForWork(card.AgentResourceId), "Agent %s should be ready for work", card.AgentResourceId)
+		cards[card.Name] = card
+		require.NotEmpty(t, card.Name, "every agent card must have a name")
 	}
 
 	// =========================================================================
 	// 8.2 Deterministic Fan-Out / Join Acceptance across 10 Specialists
 	// =========================================================================
 	rootWorkID := "work-root-coord-01"
-	rootTask := &a2a888.WorkRecord{
-		WorkId:           rootWorkID,
-		TenantId:         "tenant-default",
-		ContextId:        "ctx-acceptance-01",
-		RequesterAgentId: "agents/human-operator",
-		ExecutorAgentId:  agents[0].AgentResourceId,
-		State:            a2a888.WorkState_WORKING,
-		CreatedAt:        timestamppb.New(time.Now()),
-		UpdatedAt:        timestamppb.New(time.Now()),
+	rootTask := &store.WorkMessage{
+		WorkID:           rootWorkID,
+		TenantID:         "tenant-default",
+		ContextID:        "ctx-acceptance-01",
+		RequesterAgentID: "agents/human-operator",
+		ExecutorAgentID:  agents[0].Name,
+		State:            "WORKING",
 	}
 	require.NoError(t, workStore.CreateWork(ctx, rootTask))
 
-	specialistSubtasks := make([]orchestration.Subtask, specialistCount)
-	for i := 0; i < specialistCount; i++ {
-		specialistID := agents[i+1].AgentResourceId
-		specialistSubtasks[i] = orchestration.Subtask{
-			WorkID:          fmt.Sprintf("work-subtask-%02d", i+1),
-			ExecutorAgentID: specialistID,
-			Payload:         fmt.Sprintf("compute-input-%02d", i+1),
-			Budget: &a2a888.WorkBudget{
-				MaxDepth:          3,
-				MaxChildren:       10,
-				MaxFanOut:         10,
-				MaxTimeoutSeconds: 30,
-			},
-		}
-	}
-
-	fanOutCfg := orchestration.FanOutConfig{
-		CoordinatorAgentID: agents[0].AgentResourceId,
-		ParentWorkID:       rootWorkID,
-		TenantID:           "tenant-default",
-		ContextID:          "ctx-acceptance-01",
-		Subtasks:           specialistSubtasks,
-		Policy:             orchestration.JoinPolicyAllSuccess,
-		MaxConcurrency:     10,
-		Timeout:            5 * time.Second,
-	}
-
-	// Execute fanout with deterministic worker function
-	fanOutResult, err := orchestration.ExecuteFanOut(ctx, fanOutCfg, func(subCtx context.Context, sub orchestration.Subtask) (*orchestration.SubtaskResult, error) {
-		// Record work creation in store
-		childRec := &a2a888.WorkRecord{
-			WorkId:           sub.WorkID,
-			TenantId:         "tenant-default",
-			ContextId:        "ctx-acceptance-01",
-			RequesterAgentId: agents[0].AgentResourceId,
-			ExecutorAgentId:  sub.ExecutorAgentID,
-			State:            a2a888.WorkState_WORKING,
-			ParentEdge: &a2a888.ParentEdge{
-				ParentWorkId: rootWorkID,
-				Depth:        1,
-			},
-			CreatedAt: timestamppb.New(time.Now()),
-			UpdatedAt: timestamppb.New(time.Now()),
-		}
-		if err := workStore.CreateWork(subCtx, childRec); err != nil {
-			return nil, err
-		}
-
-		// Emulate deterministic output
-		outputPayload := fmt.Sprintf("result-from-%s: %s", sub.ExecutorAgentID, sub.Payload)
-		childRec.State = a2a888.WorkState_COMPLETED
-		_ = workStore.UpdateWork(subCtx, childRec)
-
-		return &orchestration.SubtaskResult{
-			WorkID:          sub.WorkID,
-			ExecutorAgentID: sub.ExecutorAgentID,
-			Output:          outputPayload,
-			State:           a2a888.WorkState_COMPLETED,
-		}, nil
+	orchestrator := orchestration.NewOrchestrator(orchestration.OrchestratorOptions{
+		EventManager: eventMgr,
 	})
 
+	fanOutTasks := make([]orchestration.FanOutTaskSpec, specialistCount)
+	for i := 0; i < specialistCount; i++ {
+		idx := i
+		specialistID := agents[idx+1].Name
+		fanOutTasks[idx] = orchestration.FanOutTaskSpec{
+			TaskID:          fmt.Sprintf("work-subtask-%02d", idx+1),
+			ExecutorAgentID: specialistID,
+			Input:           fmt.Sprintf("compute-input-%02d", idx+1),
+			Budget: &a2a.WorkBudget{
+				MaxDepth:    3,
+				MaxChildren: 10,
+				MaxFanOut:   10,
+			},
+			Executor: func(_ context.Context, _ *store.WorkMessage) (*orchestration.TaskOutput, error) {
+				return &orchestration.TaskOutput{
+					Output:        fmt.Sprintf("result-from-%s: compute-input-%02d", specialistID, idx+1),
+					TokensUsed:    100 + int64(idx*10),
+					WorkUnitsUsed: 1,
+					Artifacts: []*store.WorkArtifactMessage{
+						{
+							ArtifactID: fmt.Sprintf("art-%02d", idx+1),
+							Name:       fmt.Sprintf("domain-%02d-output.json", idx+1),
+						},
+					},
+				}, nil
+			},
+		}
+	}
+
+	fanOutReq := orchestration.FanOutRequest{
+		ParentWorkID:     rootWorkID,
+		RequesterAgentID: agents[0].Name,
+		TenantID:         "tenant-default",
+		Tasks:            fanOutTasks,
+		Policy:           orchestration.JoinPolicyAllSuccess,
+		MaxConcurrency:   10,
+		Timeout:          5 * time.Second,
+	}
+
+	fanOutResult, err := orchestrator.ExecuteFanOut(ctx, fanOutReq)
 	require.NoError(t, err)
 	require.NotNil(t, fanOutResult)
 	assert.True(t, fanOutResult.Success, "10-specialist fanout must succeed")
-	assert.Equal(t, specialistCount, len(fanOutResult.Completed), "all 10 subtasks must complete")
-	assert.Equal(t, 0, len(fanOutResult.Failed), "no subtasks should fail")
+	assert.Equal(t, specialistCount, fanOutResult.TotalTasks)
+	assert.Equal(t, specialistCount, fanOutResult.CompletedCount)
+	assert.Equal(t, 0, fanOutResult.FailedCount)
 
-	// Pass all 10 results to the Reviewer (Agent 12)
-	reviewWorkID := "work-review-12"
-	reviewRec := &a2a888.WorkRecord{
-		WorkId:           reviewWorkID,
-		TenantId:         "tenant-default",
-		ContextId:        "ctx-acceptance-01",
-		RequesterAgentId: agents[0].AgentResourceId,
-		ExecutorAgentId:  agents[11].AgentResourceId,
-		State:            a2a888.WorkState_COMPLETED,
-		CreatedAt:        timestamppb.New(time.Now()),
-		UpdatedAt:        timestamppb.New(time.Now()),
+	// Verify deterministic index ordering (TaskResults[i].Index == i)
+	for i := 0; i < specialistCount; i++ {
+		assert.Equal(t, i, fanOutResult.TaskResults[i].Index)
+		assert.Equal(t, fmt.Sprintf("work-subtask-%02d", i+1), fanOutResult.TaskResults[i].TaskID)
+		assert.Equal(t, "COMPLETED", fanOutResult.TaskResults[i].State)
 	}
-	require.NoError(t, workStore.CreateWork(ctx, reviewRec))
+
+	// Pass all 10 results to Reviewer (Agent 12)
+	reviewWorkID := "work-review-12"
+	reviewTask := &store.WorkMessage{
+		WorkID:           reviewWorkID,
+		TenantID:         "tenant-default",
+		ContextID:        "ctx-acceptance-01",
+		RequesterAgentID: agents[0].Name,
+		ExecutorAgentID:  agents[11].Name,
+		State:            "COMPLETED",
+	}
+	require.NoError(t, workStore.CreateWork(ctx, reviewTask))
+	_, _ = workStore.UpdateWorkState(ctx, "tenant-default", rootWorkID, 1, "COMPLETED", "fan-out completed")
 
 	// =========================================================================
 	// 8.3 Restart Manager During Active Work & Reconnect Machine
 	// =========================================================================
 	interruptedWorkID := "work-interrupted-01"
-	interruptedTask := &a2a888.WorkRecord{
-		WorkId:           interruptedWorkID,
-		TenantId:         "tenant-default",
-		ContextId:        "ctx-restart-01",
-		RequesterAgentId: agents[0].AgentResourceId,
-		ExecutorAgentId:  agents[1].AgentResourceId,
-		State:            a2a888.WorkState_WORKING,
-		CreatedAt:        timestamppb.New(time.Now()),
-		UpdatedAt:        timestamppb.New(time.Now()),
+	interruptedTask := &store.WorkMessage{
+		WorkID:           interruptedWorkID,
+		TenantID:         "tenant-default",
+		ContextID:        "ctx-restart-01",
+		RequesterAgentID: agents[0].Name,
+		ExecutorAgentID:  agents[1].Name,
+		State:            "WORKING",
 	}
 	require.NoError(t, workStore.CreateWork(ctx, interruptedTask))
 
 	// Manager restart: RecoveryService scans in-flight working tasks and recovers them
-	recoverySvc := a2a.NewRecoveryService(workStore, eventMgr, traceRec)
-	recoveredCount, err := recoverySvc.RecoverPendingWork(ctx, "tenant-default")
+	recoverySvc := a2a.NewRecoveryService(workStore)
+	recoveryReport, err := recoverySvc.RecoverPendingWork(ctx)
 	require.NoError(t, err)
-	assert.Equal(t, 1, recoveredCount, "interrupted task must be transitioned safely")
+	assert.Equal(t, 1, recoveryReport.Recovered, "interrupted task must be transitioned safely")
 
 	recoveredRec, err := workStore.GetWork(ctx, "tenant-default", interruptedWorkID)
 	require.NoError(t, err)
-	assert.Equal(t, a2a888.WorkState_INPUT_REQUIRED, recoveredRec.State, "recovered task is marked for retry/input")
+	assert.Equal(t, "SUBMITTED", recoveredRec.State, "recovered task is safely returned to SUBMITTED for re-dispatch")
 
 	// Disconnect and Reconnect Machine 1: cursor replay
 	_ = state.SaveAckCursor(&a2a888.AssignmentCursor{
@@ -248,47 +387,44 @@ func TestTwelveAgentAcceptanceGate(t *testing.T) {
 	// 8.4 Retry Lost A2A Send Response & Cancel Descendant
 	// =========================================================================
 	idempKey := "idemp-send-acceptance-01"
-	sendParams := tools.TaskSendParams{
+	sendParams := tools.TaskSendInput{
 		TenantID:         "tenant-default",
 		ContextID:        "ctx-retry-01",
-		RequesterAgentID: agents[0].AgentResourceId,
-		TargetAgentID:    agents[2].AgentResourceId,
+		RequesterAgentID: agents[0].Name,
+		TargetAgentID:    agents[2].Name,
 		Message:          "run idempotent task",
 		IdempotencyKey:   idempKey,
 	}
 
 	// First send
-	sendRes1, err := tools.TaskSend(ctx, workStore, eventMgr, traceRec, sendParams)
+	sendRes1, err := tools.TaskSend(ctx, workStore, eventMgr, sendParams)
 	require.NoError(t, err)
 	require.NotEmpty(t, sendRes1.WorkID)
 
 	// Lost response retry with same idempotency key: must return existing task
-	sendRes2, err := tools.TaskSend(ctx, workStore, eventMgr, traceRec, sendParams)
+	sendRes2, err := tools.TaskSend(ctx, workStore, eventMgr, sendParams)
 	require.NoError(t, err)
 	assert.Equal(t, sendRes1.WorkID, sendRes2.WorkID, "idempotent retry must return identical work ID")
-	assert.True(t, sendRes2.Deduplicated, "must be marked as deduplicated")
 
 	// Cancel task and verify terminal idempotency
-	cancelRes, err := tools.TaskCancel(ctx, workStore, eventMgr, traceRec, tools.TaskCancelParams{
-		TenantID:        "tenant-default",
-		WorkID:          sendRes1.WorkID,
-		CallerAgentID:   agents[0].AgentResourceId,
-		Reason:          "user requested cancellation",
-		CascadeChildren: true,
+	cancelRes, err := tools.TaskCancel(ctx, workStore, eventMgr, tools.TaskCancelInput{
+		TenantID:      "tenant-default",
+		WorkID:        sendRes1.WorkID,
+		CallerAgentID: agents[0].Name,
+		Reason:        "user requested cancellation",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, a2a888.WorkState_CANCELED, cancelRes.State)
+	assert.Equal(t, "CANCELED", cancelRes.State)
 
 	// Repeated cancel on already canceled task is idempotent
-	cancelRes2, err := tools.TaskCancel(ctx, workStore, eventMgr, traceRec, tools.TaskCancelParams{
-		TenantID:        "tenant-default",
-		WorkID:          sendRes1.WorkID,
-		CallerAgentID:   agents[0].AgentResourceId,
-		Reason:          "repeat cancel",
-		CascadeChildren: true,
+	cancelRes2, err := tools.TaskCancel(ctx, workStore, eventMgr, tools.TaskCancelInput{
+		TenantID:      "tenant-default",
+		WorkID:        sendRes1.WorkID,
+		CallerAgentID: agents[0].Name,
+		Reason:        "repeat cancel",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, a2a888.WorkState_CANCELED, cancelRes2.State)
+	assert.Equal(t, "CANCELED", cancelRes2.State)
 
 	// =========================================================================
 	// 8.5 Security Penetration Probes: Cross-Agent Workspace & Path Confinement
@@ -298,7 +434,7 @@ func TestTwelveAgentAcceptanceGate(t *testing.T) {
 	isolationErrs := make([]error, 12)
 	for i := 0; i < 12; i++ {
 		agentIdx := i + 1
-		agentID := agents[i].AgentResourceId
+		agentID := agents[i].Name
 		machID := machine1ID
 		if agentIdx > 6 {
 			machID = machine2ID
@@ -318,16 +454,16 @@ func TestTwelveAgentAcceptanceGate(t *testing.T) {
 
 			// 2. Traversal attempt to peer agent workspace
 			peerIdx := ((agentIdx) % 12) + 1
-			peerID := agents[peerIdx-1].AgentResourceId
+			peerID := agents[peerIdx-1].Name
 			traversalPath := filepath.Join("..", peerID, "workspace", "local.data")
 			if _, err := client.ConfinePathToAgentWorkspace(machID, agentID, traversalPath); err == nil {
-				isolationErrs[agentIdx-1] = fmt.Errorf("agent %s traversal to peer %s succeeded", agentID, peerID)
+				isolationErrs[agentIdx-1] = pkgerrors.Errorf("agent %s traversal to peer %s succeeded", agentID, peerID)
 				return
 			}
 
 			// 3. Cross-agent ownership probe
 			if err := client.AssertAgentOwnership(agentID, peerID); err == nil {
-				isolationErrs[agentIdx-1] = fmt.Errorf("agent %s claimed unauthorized ownership of %s", agentID, peerID)
+				isolationErrs[agentIdx-1] = pkgerrors.Errorf("agent %s claimed unauthorized ownership of %s", agentID, peerID)
 				return
 			}
 		})

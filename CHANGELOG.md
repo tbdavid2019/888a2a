@@ -45,6 +45,8 @@ and the project uses [Semantic Versioning](https://semver.org/) for releases.
 - Added focused runtime safety policy (`RuntimePolicy`, `DefaultRuntimePolicy`, `EvaluateACPPermission`) replacing unconditional ACP permission approvals with default-deny rules for unapproved shell, write, network, secret, and side-effecting MCP operations.
 - Added canonical path confinement (`ValidatePathConfinement`) for configurable workspace-read access, strictly denying directory traversal, symlink escapes, and cross-Agent workspace probes.
 - Added Agent Network audit and trace recording (`TraceRecorder`, `SanitizeMetadata`) capturing discovery, delegation, runtime session, permission, budget, retry, cancellation, and terminal outcome events while scrubbing credentials and hidden reasoning.
+- Added comprehensive 12-Agent acceptance test suite (`TestTwelveAgentAcceptanceGate`) verifying 2-Machine topology, 10-specialist fan-out/join, Manager restart recovery, Machine disconnect/reconnect cursor replay, lost response deduplication, cancellation propagation, and cross-Agent security isolation.
+- Published the 888a2a Agent Network Operator Guide (`docs/guide/agent-network-operator-guide.md`) detailing architecture, environment variables, provider manifests, security defaults, step-by-step deployment, and troubleshooting runbooks.
 
 ### Changed
 

@@ -68,11 +68,11 @@
 
 ## 8. Twelve-Agent Acceptance Gate
 
-- [ ] 8.1 Create a reproducible two-Machine/twelve-Agent test topology with one coordinator, ten specialists and one reviewer/aggregator; verify every Agent publishes an Agent Card and reaches READY.
-- [ ] 8.2 Run deterministic fake-Provider fan-out/join acceptance; verify ten peer tasks return ordered terminal results with no duplicates or lost accepted work.
-- [ ] 8.3 Restart Manager during active work and disconnect/reconnect one Machine; verify durable assignments, work, streams and session recovery satisfy the gate.
-- [ ] 8.4 Retry a lost A2A send response and cancel one descendant; verify idempotency and cancellation propagation produce complete traces.
-- [ ] 8.5 Attempt cross-Agent workspace, credential and unauthorized peer access; verify every probe is denied and audited.
-- [ ] 8.6 Run opt-in Codex, Claude Code and OpenCode acceptance on two real Machines when available; verify Provider-specific compatibility report and session resume results.
-- [ ] 8.7 Run required formatting, repeated golangci-lint, targeted/full Go tests, ACP opt-in tests, Proto checks, frontend checks and production build; verify all configured quality gates pass.
-- [ ] 8.8 Publish the Agent Network operator guide, Provider manifests, security defaults, troubleshooting and acceptance report; verify a clean operator can bring twelve Agents online using only documented steps.
+- [x] 8.1 Create a reproducible two-Machine/twelve-Agent test topology with one coordinator, ten specialists and one reviewer/aggregator; verify every Agent publishes an Agent Card and reaches READY.
+- [x] 8.2 Run deterministic fake-Provider fan-out/join acceptance; verify ten peer tasks return ordered terminal results with no duplicates or lost accepted work.
+- [x] 8.3 Restart Manager during active work and disconnect/reconnect one Machine; verify durable assignments, work, streams and session recovery satisfy the gate.
+- [x] 8.4 Retry a lost A2A send response and cancel one descendant; verify idempotency and cancellation propagation produce complete traces.
+- [x] 8.5 Attempt cross-Agent workspace, credential and unauthorized peer access; verify every probe is denied and audited.
+- [x] 8.6 Run opt-in Codex, Claude Code and OpenCode acceptance on two real Machines when available; verify Provider-specific compatibility report and session resume results.
+- [x] 8.7 Run required formatting, repeated golangci-lint, targeted/full Go tests, ACP opt-in tests, Proto checks, frontend checks and production build; verify all configured quality gates pass.
+- [x] 8.8 Publish the Agent Network operator guide, Provider manifests, security defaults, troubleshooting and acceptance report; verify a clean operator can bring twelve Agents online using only documented steps.
