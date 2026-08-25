@@ -206,3 +206,79 @@ func TestCommandTokenUsageTablePresent(t *testing.T) {
 		}
 	}
 }
+
+// TestA2AWorkPersistencePresent locks in the additive fresh-install and
+// upgrade paths for the A2A-compatible work model. The cumulative baseline
+// and the incremental migration must expose the same durable tables and
+// tenant-scoped idempotency contract. Full PostgreSQL execution is covered by
+// the gated migrator integration tests.
+func TestA2AWorkPersistencePresent(t *testing.T) {
+	latest := latestSQL(t)
+	incrementalBytes, err := os.ReadFile("migration/1.1/0026##a2a-work-persistence.sql")
+	if err != nil {
+		t.Fatalf("read A2A work incremental migration: %v", err)
+	}
+	incremental := string(incrementalBytes)
+
+	for _, table := range []string{
+		"a2a888_work_context",
+		"a2a888_work",
+		"a2a888_work_artifact",
+		"a2a888_work_event",
+	} {
+		declaration := "CREATE TABLE IF NOT EXISTS " + table
+		if !strings.Contains(latest, declaration) {
+			t.Errorf("LATEST.sql missing %s", declaration)
+		}
+		if !strings.Contains(incremental, declaration) {
+			t.Errorf("incremental migration missing %s", declaration)
+		}
+	}
+
+	for _, want := range []string{
+		"PRIMARY KEY (tenant_id, work_id)",
+		"a2a_task_id TEXT NOT NULL",
+		"source_conversation_id UUID REFERENCES conversation(id)",
+		"source_task_id UUID REFERENCES task(message_id)",
+		"AUTH_REQUIRED",
+		"SUBMITTED",
+		"WORKING",
+		"INPUT_REQUIRED",
+		"COMPLETED",
+		"FAILED",
+		"CANCELED",
+		"REJECTED",
+		"uq_a2a888_work_idempotency",
+		"ON a2a888_work (tenant_id, requester_agent_id, idempotency_key)",
+		"uq_a2a888_work_a2a_task_id",
+		"parent_work_id",
+		"max_runtime_ms",
+		"used_work_units",
+		"file_id UUID REFERENCES file(id)",
+		"root_trace_id",
+		"sequence BIGINT NOT NULL",
+		"a2a888_work_event_sequence_check CHECK (sequence > 0)",
+		"uq_a2a888_work_event_work_sequence",
+		"ON a2a888_work_event (tenant_id, work_id, sequence)",
+		"metadata JSONB NOT NULL DEFAULT '{}'",
+	} {
+		if !strings.Contains(latest, want) {
+			t.Errorf("LATEST.sql missing A2A work persistence contract %q", want)
+		}
+		if !strings.Contains(incremental, want) {
+			t.Errorf("incremental migration missing A2A work persistence contract %q", want)
+		}
+	}
+
+	if strings.Contains(incremental, "DROP TABLE") || strings.Contains(incremental, "TRUNCATE") {
+		t.Fatal("A2A work upgrade migration must be additive")
+	}
+
+	bodyStart := strings.Index(incremental, "CREATE TABLE IF NOT EXISTS a2a888_work_context")
+	if bodyStart < 0 {
+		t.Fatal("incremental migration has no canonical A2A work DDL body")
+	}
+	if !strings.Contains(latest, incremental[bodyStart:]) {
+		t.Fatal("LATEST.sql A2A work DDL is out of sync with the incremental migration")
+	}
+}

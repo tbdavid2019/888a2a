@@ -1,0 +1,155 @@
+syntax = "proto3";
+
+package a2a888.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888";
+
+// WorkState is the durable state vocabulary used by the 888a2a work store.
+// The names follow the A2A 1.0 task lifecycle while remaining an internal
+// persistence contract rather than an SDK type.
+enum WorkState {
+  WORK_STATE_UNSPECIFIED = 0;
+  AUTH_REQUIRED = 1;
+  SUBMITTED = 2;
+  WORKING = 3;
+  INPUT_REQUIRED = 4;
+  COMPLETED = 5;
+  FAILED = 6;
+  CANCELED = 7;
+  REJECTED = 8;
+}
+
+// AgentIdentity is the stable 888a2a identity recorded for a requester or
+// executor. A resource name is preferred; the card URI is optional metadata
+// for discovery and audit views.
+message AgentIdentity {
+  string resource_name = 1;
+  string card_uri = 2;
+}
+
+// WorkRecord is the durable aggregate for one accepted A2A-compatible task.
+// Conversation and task identifiers are additive links to existing 888a2a
+// collaboration resources. The aggregate deliberately does not embed A2A SDK
+// messages so protocol upgrades do not change the store schema.
+message WorkRecord {
+  string tenant_id = 1;
+  string work_id = 2;
+  string context_id = 3;
+  AgentIdentity requester = 4;
+  AgentIdentity executor = 5;
+  string source_conversation_id = 6;
+  string source_task_id = 7;
+  WorkState state = 8;
+  string terminal_reason = 9;
+  string idempotency_key = 10;
+  TraceCorrelation trace = 11;
+  ParentEdge parent = 12;
+  WorkBudget budget = 13;
+  WorkUsage usage = 14;
+  uint32 retry_count = 15;
+  uint32 delegation_depth = 16;
+  repeated ArtifactReference artifacts = 17;
+  google.protobuf.Timestamp created_at = 18;
+  google.protobuf.Timestamp updated_at = 19;
+  google.protobuf.Timestamp started_at = 20;
+  google.protobuf.Timestamp completed_at = 21;
+  uint64 version = 22;
+  // A2A task identity is kept separate from the internal durable work key so
+  // protocol-facing identifiers can be rotated or mapped without rewriting
+  // the persistence identity.
+  string a2a_task_id = 23;
+}
+
+// WorkContext identifies the durable context shared by one or more work
+// records. A context is scoped by tenant and may outlive an individual task.
+message WorkContext {
+  string tenant_id = 1;
+  string context_id = 2;
+  string root_work_id = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+  uint64 version = 6;
+}
+
+// ParentEdge records a delegation relationship. Cycle detection and policy
+// validation are performed by the coordinator; persistence only enforces
+// identity, tenant scope, and a non-self edge.
+message ParentEdge {
+  string tenant_id = 1;
+  string parent_work_id = 2;
+  string child_work_id = 3;
+  string edge_type = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+// ArtifactReference stores metadata and a durable pointer to an output. The
+// file_id is an optional reference to the existing 888a2a file table; external
+// URI supports artifacts held by a remote Agent or object store.
+message ArtifactReference {
+  string tenant_id = 1;
+  string work_id = 2;
+  string artifact_id = 3;
+  string name = 4;
+  string description = 5;
+  string media_type = 6;
+  string external_uri = 7;
+  string file_id = 8;
+  string digest = 9;
+  uint64 size_bytes = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+// WorkBudget contains immutable or coordinator-controlled limits. Zero means
+// that a limit is not configured; the coordinator applies product defaults.
+message WorkBudget {
+  uint32 max_depth = 1;
+  uint32 max_children = 2;
+  uint32 max_fan_out = 3;
+  uint32 max_concurrency = 4;
+  uint64 max_runtime_ms = 5;
+  uint32 max_retries = 6;
+  uint64 max_tokens = 7;
+  uint64 max_work_units = 8;
+}
+
+// WorkUsage is the durable accounting snapshot used to enforce WorkBudget.
+message WorkUsage {
+  uint32 depth = 1;
+  uint32 children = 2;
+  uint32 fan_out = 3;
+  uint64 runtime_ms = 4;
+  uint32 retries = 5;
+  uint64 tokens = 6;
+  uint64 work_units = 7;
+}
+
+// TraceCorrelation carries correlation identities only. It must not contain
+// prompts, hidden reasoning, credentials, or provider secrets.
+message TraceCorrelation {
+  string trace_id = 1;
+  string root_trace_id = 2;
+  string span_id = 3;
+  string parent_span_id = 4;
+}
+
+// WorkTraceEvent is an audit-safe trace marker for a lifecycle or policy
+// event. Payload is bounded metadata, never hidden reasoning or credentials.
+message WorkTraceEvent {
+  string tenant_id = 1;
+  string event_id = 2;
+  string work_id = 3;
+  TraceCorrelation trace = 4;
+  string event_type = 5;
+  string provider_id = 6;
+  string session_id = 7;
+  string policy_decision = 8;
+  uint32 retry_count = 9;
+  string terminal_reason = 10;
+  map<string, string> metadata = 11;
+  google.protobuf.Timestamp created_at = 12;
+  // Monotonic per-work ordering key for durable replay and reconnect.
+  uint64 sequence = 13;
+}

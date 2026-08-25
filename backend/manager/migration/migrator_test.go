@@ -134,6 +134,16 @@ func ptrVersion(v string) *semver.Version {
 	return &s
 }
 
+func embeddedLatestVersion(t *testing.T) *semver.Version {
+	t.Helper()
+	files, err := getSortedVersionedFiles(migrationFS)
+	if err != nil {
+		t.Fatalf("get embedded migration versions: %v", err)
+	}
+	version := computeLatestVersion(files)
+	return &version
+}
+
 // --- Integration tests (gated) ---
 //
 // These exercise the migrator against a real Postgres. They are skipped unless
@@ -346,6 +356,7 @@ CREATE INDEX IF NOT EXISTS idx_conversation_agent_dm ON conversation (agent_dm_a
 func TestMigrateSchema_FreshInstall(t *testing.T) {
 	db := integrationDB(t)
 	ctx := context.Background()
+	latestVersion := embeddedLatestVersion(t).String()
 
 	if err := MigrateSchema(ctx, db); err != nil {
 		t.Fatalf("MigrateSchema (fresh): %v", err)
@@ -357,24 +368,28 @@ func TestMigrateSchema_FreshInstall(t *testing.T) {
 	if !tableExistsQ(t, db, schemaMigrationHistory) {
 		t.Fatal("schema_migration_history missing after fresh install")
 	}
-	assertHistoryVersions(t, db, "1.0.0")
+	assertHistoryVersions(t, db, latestVersion)
 
 	// Second run is a no-op: still one row, no error.
 	if err := MigrateSchema(ctx, db); err != nil {
 		t.Fatalf("MigrateSchema (idempotent re-run): %v", err)
 	}
-	assertHistoryVersions(t, db, "1.0.0")
+	assertHistoryVersions(t, db, latestVersion)
 }
 
 func TestMigrateSchema_Upgrade(t *testing.T) {
 	db := integrationDB(t)
 	ctx := context.Background()
+	latestVersion := embeddedLatestVersion(t)
+	nextVersion := *latestVersion
+	nextVersion.Patch++
+	nextPath := fmt.Sprintf("migration/%d.%d/%04d##test.sql", nextVersion.Major, nextVersion.Minor, nextVersion.Patch)
 
-	// Fresh install with the real embedded tree (no incrementals yet).
+	// Fresh install with the real embedded tree at the current latest version.
 	if err := MigrateSchema(ctx, db); err != nil {
 		t.Fatalf("MigrateSchema (fresh): %v", err)
 	}
-	assertHistoryVersions(t, db, "1.0.0")
+	assertHistoryVersions(t, db, latestVersion.String())
 
 	// Inject a fake newer incremental migration via a test FS. The upgrade path
 	// does not re-read LATEST.sql (schema already exists), so the test FS only
@@ -384,8 +399,8 @@ func TestMigrateSchema_Upgrade(t *testing.T) {
 		t.Fatalf("read embedded LATEST.sql: %v", err)
 	}
 	testFS := fstest.MapFS{
-		"migration/LATEST.sql":         {Data: latestBuf},
-		"migration/1.0/0001##test.sql": {Data: []byte("CREATE TABLE IF NOT EXISTS test_upgrade_marker (id int);")},
+		"migration/LATEST.sql": {Data: latestBuf},
+		nextPath:               {Data: []byte("CREATE TABLE IF NOT EXISTS test_upgrade_marker (id int);")},
 	}
 
 	if err := migrateSchemaFS(ctx, db, testFS); err != nil {
@@ -395,7 +410,59 @@ func TestMigrateSchema_Upgrade(t *testing.T) {
 	if !tableExistsQ(t, db, "test_upgrade_marker") {
 		t.Fatal("upgrade migration did not create test_upgrade_marker")
 	}
-	assertHistoryVersions(t, db, "1.0.0", "1.0.1")
+	assertHistoryVersions(t, db, latestVersion.String(), nextVersion.String())
+}
+
+func TestMigrateSchema_A2AWorkUpgrade(t *testing.T) {
+	db := integrationDB(t)
+	ctx := context.Background()
+
+	if err := MigrateSchema(ctx, db); err != nil {
+		t.Fatalf("MigrateSchema (fresh): %v", err)
+	}
+	assertHistoryVersions(t, db, "1.1.26")
+
+	// Remove only the four work tables from this throwaway database, in reverse
+	// dependency order, then rewind the sole history row to the preceding
+	// migration. The real incremental must recreate the tables on upgrade.
+	for _, table := range []string{
+		"a2a888_work_artifact",
+		"a2a888_work_event",
+		"a2a888_work",
+		"a2a888_work_context",
+	} {
+		if _, err := db.ExecContext(ctx, "DROP TABLE IF EXISTS "+table); err != nil {
+			t.Fatalf("drop %s: %v", table, err)
+		}
+	}
+	if _, err := db.ExecContext(ctx,
+		"UPDATE schema_migration_history SET version = $1", "1.1.25"); err != nil {
+		t.Fatalf("rewind schema history: %v", err)
+	}
+
+	incrementalPath := "migration/1.1/0026##a2a-work-persistence.sql"
+	incremental, err := fs.ReadFile(migrationFS, incrementalPath)
+	if err != nil {
+		t.Fatalf("read A2A work incremental: %v", err)
+	}
+	upgradeFS := fstest.MapFS{
+		latestSchemaFileName: {Data: []byte("-- existing schema")},
+		incrementalPath:      {Data: incremental},
+	}
+	if err := migrateSchemaFS(ctx, db, upgradeFS); err != nil {
+		t.Fatalf("MigrateSchema (A2A work upgrade): %v", err)
+	}
+	for _, table := range []string{
+		"a2a888_work_context",
+		"a2a888_work",
+		"a2a888_work_artifact",
+		"a2a888_work_event",
+	} {
+		if !tableExistsQ(t, db, table) {
+			t.Fatalf("A2A work upgrade did not recreate %s", table)
+		}
+	}
+	assertHistoryVersions(t, db, "1.1.25", "1.1.26")
 }
 
 // --- helpers ---

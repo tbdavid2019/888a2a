@@ -3,6 +3,20 @@
 
 ## Table of Contents
 
+- [a2a888/a2a_work.proto](#a2a888_a2a_work-proto)
+    - [AgentIdentity](#a2a888-v1-AgentIdentity)
+    - [ArtifactReference](#a2a888-v1-ArtifactReference)
+    - [ParentEdge](#a2a888-v1-ParentEdge)
+    - [TraceCorrelation](#a2a888-v1-TraceCorrelation)
+    - [WorkBudget](#a2a888-v1-WorkBudget)
+    - [WorkContext](#a2a888-v1-WorkContext)
+    - [WorkRecord](#a2a888-v1-WorkRecord)
+    - [WorkTraceEvent](#a2a888-v1-WorkTraceEvent)
+    - [WorkTraceEvent.MetadataEntry](#a2a888-v1-WorkTraceEvent-MetadataEntry)
+    - [WorkUsage](#a2a888-v1-WorkUsage)
+
+    - [WorkState](#a2a888-v1-WorkState)
+
 - [a2a888/agent_runtime.proto](#a2a888_agent_runtime-proto)
     - [CacheIdentity](#a2a888-v1-CacheIdentity)
     - [CompatibilityEvidence](#a2a888-v1-CompatibilityEvidence)
@@ -37,6 +51,278 @@
     - [AssignmentEventType](#a2a888-v1-AssignmentEventType)
 
 - [Scalar Value Types](#scalar-value-types)
+
+
+
+<a name="a2a888_a2a_work-proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## a2a888/a2a_work.proto
+
+
+
+<a name="a2a888-v1-AgentIdentity"></a>
+
+### AgentIdentity
+AgentIdentity is the stable 888a2a identity recorded for a requester or
+executor. A resource name is preferred; the card URI is optional metadata
+for discovery and audit views.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| resource_name | [string](#string) |  |  |
+| card_uri | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-ArtifactReference"></a>
+
+### ArtifactReference
+ArtifactReference stores metadata and a durable pointer to an output. The
+file_id is an optional reference to the existing 888a2a file table; external
+URI supports artifacts held by a remote Agent or object store.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| tenant_id | [string](#string) |  |  |
+| work_id | [string](#string) |  |  |
+| artifact_id | [string](#string) |  |  |
+| name | [string](#string) |  |  |
+| description | [string](#string) |  |  |
+| media_type | [string](#string) |  |  |
+| external_uri | [string](#string) |  |  |
+| file_id | [string](#string) |  |  |
+| digest | [string](#string) |  |  |
+| size_bytes | [uint64](#uint64) |  |  |
+| created_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| updated_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-ParentEdge"></a>
+
+### ParentEdge
+ParentEdge records a delegation relationship. Cycle detection and policy
+validation are performed by the coordinator; persistence only enforces
+identity, tenant scope, and a non-self edge.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| tenant_id | [string](#string) |  |  |
+| parent_work_id | [string](#string) |  |  |
+| child_work_id | [string](#string) |  |  |
+| edge_type | [string](#string) |  |  |
+| created_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-TraceCorrelation"></a>
+
+### TraceCorrelation
+TraceCorrelation carries correlation identities only. It must not contain
+prompts, hidden reasoning, credentials, or provider secrets.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| trace_id | [string](#string) |  |  |
+| root_trace_id | [string](#string) |  |  |
+| span_id | [string](#string) |  |  |
+| parent_span_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-WorkBudget"></a>
+
+### WorkBudget
+WorkBudget contains immutable or coordinator-controlled limits. Zero means
+that a limit is not configured; the coordinator applies product defaults.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| max_depth | [uint32](#uint32) |  |  |
+| max_children | [uint32](#uint32) |  |  |
+| max_fan_out | [uint32](#uint32) |  |  |
+| max_concurrency | [uint32](#uint32) |  |  |
+| max_runtime_ms | [uint64](#uint64) |  |  |
+| max_retries | [uint32](#uint32) |  |  |
+| max_tokens | [uint64](#uint64) |  |  |
+| max_work_units | [uint64](#uint64) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-WorkContext"></a>
+
+### WorkContext
+WorkContext identifies the durable context shared by one or more work
+records. A context is scoped by tenant and may outlive an individual task.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| tenant_id | [string](#string) |  |  |
+| context_id | [string](#string) |  |  |
+| root_work_id | [string](#string) |  |  |
+| created_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| updated_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| version | [uint64](#uint64) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-WorkRecord"></a>
+
+### WorkRecord
+WorkRecord is the durable aggregate for one accepted A2A-compatible task.
+Conversation and task identifiers are additive links to existing 888a2a
+collaboration resources. The aggregate deliberately does not embed A2A SDK
+messages so protocol upgrades do not change the store schema.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| tenant_id | [string](#string) |  |  |
+| work_id | [string](#string) |  |  |
+| context_id | [string](#string) |  |  |
+| requester | [AgentIdentity](#a2a888-v1-AgentIdentity) |  |  |
+| executor | [AgentIdentity](#a2a888-v1-AgentIdentity) |  |  |
+| source_conversation_id | [string](#string) |  |  |
+| source_task_id | [string](#string) |  |  |
+| state | [WorkState](#a2a888-v1-WorkState) |  |  |
+| terminal_reason | [string](#string) |  |  |
+| idempotency_key | [string](#string) |  |  |
+| trace | [TraceCorrelation](#a2a888-v1-TraceCorrelation) |  |  |
+| parent | [ParentEdge](#a2a888-v1-ParentEdge) |  |  |
+| budget | [WorkBudget](#a2a888-v1-WorkBudget) |  |  |
+| usage | [WorkUsage](#a2a888-v1-WorkUsage) |  |  |
+| retry_count | [uint32](#uint32) |  |  |
+| delegation_depth | [uint32](#uint32) |  |  |
+| artifacts | [ArtifactReference](#a2a888-v1-ArtifactReference) | repeated |  |
+| created_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| updated_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| started_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| completed_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| version | [uint64](#uint64) |  |  |
+| a2a_task_id | [string](#string) |  | A2A task identity is kept separate from the internal durable work key so protocol-facing identifiers can be rotated or mapped without rewriting the persistence identity. |
+
+
+
+
+
+
+<a name="a2a888-v1-WorkTraceEvent"></a>
+
+### WorkTraceEvent
+WorkTraceEvent is an audit-safe trace marker for a lifecycle or policy
+event. Payload is bounded metadata, never hidden reasoning or credentials.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| tenant_id | [string](#string) |  |  |
+| event_id | [string](#string) |  |  |
+| work_id | [string](#string) |  |  |
+| trace | [TraceCorrelation](#a2a888-v1-TraceCorrelation) |  |  |
+| event_type | [string](#string) |  |  |
+| provider_id | [string](#string) |  |  |
+| session_id | [string](#string) |  |  |
+| policy_decision | [string](#string) |  |  |
+| retry_count | [uint32](#uint32) |  |  |
+| terminal_reason | [string](#string) |  |  |
+| metadata | [WorkTraceEvent.MetadataEntry](#a2a888-v1-WorkTraceEvent-MetadataEntry) | repeated |  |
+| created_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| sequence | [uint64](#uint64) |  | Monotonic per-work ordering key for durable replay and reconnect. |
+
+
+
+
+
+
+<a name="a2a888-v1-WorkTraceEvent-MetadataEntry"></a>
+
+### WorkTraceEvent.MetadataEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-WorkUsage"></a>
+
+### WorkUsage
+WorkUsage is the durable accounting snapshot used to enforce WorkBudget.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| depth | [uint32](#uint32) |  |  |
+| children | [uint32](#uint32) |  |  |
+| fan_out | [uint32](#uint32) |  |  |
+| runtime_ms | [uint64](#uint64) |  |  |
+| retries | [uint32](#uint32) |  |  |
+| tokens | [uint64](#uint64) |  |  |
+| work_units | [uint64](#uint64) |  |  |
+
+
+
+
+
+
+
+
+<a name="a2a888-v1-WorkState"></a>
+
+### WorkState
+WorkState is the durable state vocabulary used by the 888a2a work store.
+The names follow the A2A 1.0 task lifecycle while remaining an internal
+persistence contract rather than an SDK type.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| WORK_STATE_UNSPECIFIED | 0 |  |
+| AUTH_REQUIRED | 1 |  |
+| SUBMITTED | 2 |  |
+| WORKING | 3 |  |
+| INPUT_REQUIRED | 4 |  |
+| COMPLETED | 5 |  |
+| FAILED | 6 |  |
+| CANCELED | 7 |  |
+| REJECTED | 8 |  |
+
+
+
+
+
+
+
 
 
 

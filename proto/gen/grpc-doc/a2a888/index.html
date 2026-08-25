@@ -175,6 +175,61 @@
 
 
           <li>
+            <a href="#a2a888%2fa2a_work.proto">a2a888/a2a_work.proto</a>
+            <ul>
+
+                <li>
+                  <a href="#a2a888.v1.AgentIdentity"><span class="badge">M</span>AgentIdentity</a>
+                </li>
+
+                <li>
+                  <a href="#a2a888.v1.ArtifactReference"><span class="badge">M</span>ArtifactReference</a>
+                </li>
+
+                <li>
+                  <a href="#a2a888.v1.ParentEdge"><span class="badge">M</span>ParentEdge</a>
+                </li>
+
+                <li>
+                  <a href="#a2a888.v1.TraceCorrelation"><span class="badge">M</span>TraceCorrelation</a>
+                </li>
+
+                <li>
+                  <a href="#a2a888.v1.WorkBudget"><span class="badge">M</span>WorkBudget</a>
+                </li>
+
+                <li>
+                  <a href="#a2a888.v1.WorkContext"><span class="badge">M</span>WorkContext</a>
+                </li>
+
+                <li>
+                  <a href="#a2a888.v1.WorkRecord"><span class="badge">M</span>WorkRecord</a>
+                </li>
+
+                <li>
+                  <a href="#a2a888.v1.WorkTraceEvent"><span class="badge">M</span>WorkTraceEvent</a>
+                </li>
+
+                <li>
+                  <a href="#a2a888.v1.WorkTraceEvent.MetadataEntry"><span class="badge">M</span>WorkTraceEvent.MetadataEntry</a>
+                </li>
+
+                <li>
+                  <a href="#a2a888.v1.WorkUsage"><span class="badge">M</span>WorkUsage</a>
+                </li>
+
+
+                <li>
+                  <a href="#a2a888.v1.WorkState"><span class="badge">E</span>WorkState</a>
+                </li>
+
+
+
+            </ul>
+          </li>
+
+
+          <li>
             <a href="#a2a888%2fagent_runtime.proto">a2a888/agent_runtime.proto</a>
             <ul>
 
@@ -306,6 +361,831 @@
         <li><a href="#scalar-value-types">Scalar Value Types</a></li>
       </ul>
     </div>
+
+
+
+      <div class="file-heading">
+        <h2 id="a2a888/a2a_work.proto">a2a888/a2a_work.proto</h2><a href="#title">Top</a>
+      </div>
+      <p></p>
+
+
+        <h3 id="a2a888.v1.AgentIdentity">AgentIdentity</h3>
+        <p>AgentIdentity is the stable 888a2a identity recorded for a requester or</p><p>executor. A resource name is preferred; the card URI is optional metadata</p><p>for discovery and audit views.</p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>resource_name</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>card_uri</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+        <h3 id="a2a888.v1.ArtifactReference">ArtifactReference</h3>
+        <p>ArtifactReference stores metadata and a durable pointer to an output. The</p><p>file_id is an optional reference to the existing 888a2a file table; external</p><p>URI supports artifacts held by a remote Agent or object store.</p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>tenant_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>work_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>artifact_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>name</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>description</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>media_type</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>external_uri</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>file_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>digest</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>size_bytes</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>created_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>updated_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+        <h3 id="a2a888.v1.ParentEdge">ParentEdge</h3>
+        <p>ParentEdge records a delegation relationship. Cycle detection and policy</p><p>validation are performed by the coordinator; persistence only enforces</p><p>identity, tenant scope, and a non-self edge.</p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>tenant_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>parent_work_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>child_work_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>edge_type</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>created_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+        <h3 id="a2a888.v1.TraceCorrelation">TraceCorrelation</h3>
+        <p>TraceCorrelation carries correlation identities only. It must not contain</p><p>prompts, hidden reasoning, credentials, or provider secrets.</p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>trace_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>root_trace_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>span_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>parent_span_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+        <h3 id="a2a888.v1.WorkBudget">WorkBudget</h3>
+        <p>WorkBudget contains immutable or coordinator-controlled limits. Zero means</p><p>that a limit is not configured; the coordinator applies product defaults.</p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>max_depth</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>max_children</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>max_fan_out</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>max_concurrency</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>max_runtime_ms</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>max_retries</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>max_tokens</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>max_work_units</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+        <h3 id="a2a888.v1.WorkContext">WorkContext</h3>
+        <p>WorkContext identifies the durable context shared by one or more work</p><p>records. A context is scoped by tenant and may outlive an individual task.</p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>tenant_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>context_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>root_work_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>created_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>updated_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>version</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+        <h3 id="a2a888.v1.WorkRecord">WorkRecord</h3>
+        <p>WorkRecord is the durable aggregate for one accepted A2A-compatible task.</p><p>Conversation and task identifiers are additive links to existing 888a2a</p><p>collaboration resources. The aggregate deliberately does not embed A2A SDK</p><p>messages so protocol upgrades do not change the store schema.</p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>tenant_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>work_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>context_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>requester</td>
+                  <td><a href="#a2a888.v1.AgentIdentity">AgentIdentity</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>executor</td>
+                  <td><a href="#a2a888.v1.AgentIdentity">AgentIdentity</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>source_conversation_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>source_task_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>state</td>
+                  <td><a href="#a2a888.v1.WorkState">WorkState</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>terminal_reason</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>idempotency_key</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>trace</td>
+                  <td><a href="#a2a888.v1.TraceCorrelation">TraceCorrelation</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>parent</td>
+                  <td><a href="#a2a888.v1.ParentEdge">ParentEdge</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>budget</td>
+                  <td><a href="#a2a888.v1.WorkBudget">WorkBudget</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>usage</td>
+                  <td><a href="#a2a888.v1.WorkUsage">WorkUsage</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>retry_count</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>delegation_depth</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>artifacts</td>
+                  <td><a href="#a2a888.v1.ArtifactReference">ArtifactReference</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>created_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>updated_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>started_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>completed_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>version</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>a2a_task_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p>A2A task identity is kept separate from the internal durable work key so
+protocol-facing identifiers can be rotated or mapped without rewriting
+the persistence identity. </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+        <h3 id="a2a888.v1.WorkTraceEvent">WorkTraceEvent</h3>
+        <p>WorkTraceEvent is an audit-safe trace marker for a lifecycle or policy</p><p>event. Payload is bounded metadata, never hidden reasoning or credentials.</p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>tenant_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>event_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>work_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>trace</td>
+                  <td><a href="#a2a888.v1.TraceCorrelation">TraceCorrelation</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>event_type</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>provider_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>session_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>policy_decision</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>retry_count</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>terminal_reason</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>metadata</td>
+                  <td><a href="#a2a888.v1.WorkTraceEvent.MetadataEntry">WorkTraceEvent.MetadataEntry</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>created_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>sequence</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p>Monotonic per-work ordering key for durable replay and reconnect. </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+        <h3 id="a2a888.v1.WorkTraceEvent.MetadataEntry">WorkTraceEvent.MetadataEntry</h3>
+        <p></p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>key</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>value</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+        <h3 id="a2a888.v1.WorkUsage">WorkUsage</h3>
+        <p>WorkUsage is the durable accounting snapshot used to enforce WorkBudget.</p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>depth</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>children</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>fan_out</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>runtime_ms</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>retries</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>tokens</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>work_units</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+
+
+        <h3 id="a2a888.v1.WorkState">WorkState</h3>
+        <p>WorkState is the durable state vocabulary used by the 888a2a work store.</p><p>The names follow the A2A 1.0 task lifecycle while remaining an internal</p><p>persistence contract rather than an SDK type.</p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+
+              <tr>
+                <td>WORK_STATE_UNSPECIFIED</td>
+                <td>0</td>
+                <td><p></p></td>
+              </tr>
+
+              <tr>
+                <td>AUTH_REQUIRED</td>
+                <td>1</td>
+                <td><p></p></td>
+              </tr>
+
+              <tr>
+                <td>SUBMITTED</td>
+                <td>2</td>
+                <td><p></p></td>
+              </tr>
+
+              <tr>
+                <td>WORKING</td>
+                <td>3</td>
+                <td><p></p></td>
+              </tr>
+
+              <tr>
+                <td>INPUT_REQUIRED</td>
+                <td>4</td>
+                <td><p></p></td>
+              </tr>
+
+              <tr>
+                <td>COMPLETED</td>
+                <td>5</td>
+                <td><p></p></td>
+              </tr>
+
+              <tr>
+                <td>FAILED</td>
+                <td>6</td>
+                <td><p></p></td>
+              </tr>
+
+              <tr>
+                <td>CANCELED</td>
+                <td>7</td>
+                <td><p></p></td>
+              </tr>
+
+              <tr>
+                <td>REJECTED</td>
+                <td>8</td>
+                <td><p></p></td>
+              </tr>
+
+          </tbody>
+        </table>
+
+
+
+
 
 
 
