@@ -1,8 +1,8 @@
 ## 1. Product Identity and Baseline
 
-- [ ] 1.1 Inventory Agent Network files that will be changed and define their 888a2a binary, CLI, API, environment and documentation names; verify the mapping is reviewed and uses `A2A888_` for new environment variables.
-- [ ] 1.2 Add a changed-file naming gate for Agent Network work; verify an unapproved legacy identifier fixture fails while migration/attribution allowlist fixtures pass.
-- [ ] 1.3 Capture baseline Provider, executor, Machine multi-Agent, session, chattool and dispatcher tests; verify the targeted Go packages and production build pass before behavior changes.
+- [x] 1.1 Inventory Agent Network files that will be changed and define their 888a2a binary, CLI, API, environment and documentation names; verify the mapping is reviewed and uses `A2A888_` for new environment variables.
+- [x] 1.2 Add a changed-file naming gate for Agent Network work; verify an unapproved legacy identifier fixture fails while migration/attribution allowlist fixtures pass.
+- [x] 1.3 Capture baseline Provider, executor, Machine multi-Agent, session, chattool and dispatcher tests; verify the targeted Go packages and production build pass before behavior changes.
 
 ## 2. Contracts and Deterministic Harnesses
 
