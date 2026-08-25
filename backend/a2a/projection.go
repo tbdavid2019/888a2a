@@ -72,16 +72,16 @@ func FormatDelegationSummary(work *store.WorkMessage) string {
 	fmt.Fprintf(&sb, "- **Context ID**: `%s`\n", sanitizeSafeString(work.ContextID))
 
 	if work.ParentWorkID.Valid && work.ParentWorkID.String != "" {
-		sb.WriteString(fmt.Sprintf("- **Parent Task**: `%s` (Depth: %d)\n", sanitizeSafeString(work.ParentWorkID.String), work.DelegationDepth))
+		fmt.Fprintf(&sb, "- **Parent Task**: `%s` (Depth: %d)\n", sanitizeSafeString(work.ParentWorkID.String), work.DelegationDepth)
 	}
 
 	if work.TraceID != "" {
-		sb.WriteString(fmt.Sprintf("- **Trace ID**: `%s`\n", sanitizeSafeString(work.TraceID)))
+		fmt.Fprintf(&sb, "- **Trace ID**: `%s`\n", sanitizeSafeString(work.TraceID))
 	}
 
 	if work.MaxDepth > 0 || work.MaxRuntimeMs > 0 || work.MaxTokens > 0 || work.MaxChildren > 0 {
-		sb.WriteString(fmt.Sprintf("- **Budget Limits**: MaxDepth=%d, MaxChildren=%d, MaxRuntimeMs=%d, MaxTokens=%d\n",
-			work.MaxDepth, work.MaxChildren, work.MaxRuntimeMs, work.MaxTokens))
+		fmt.Fprintf(&sb, "- **Budget Limits**: MaxDepth=%d, MaxChildren=%d, MaxRuntimeMs=%d, MaxTokens=%d\n",
+			work.MaxDepth, work.MaxChildren, work.MaxRuntimeMs, work.MaxTokens)
 	}
 
 	return sb.String()
