@@ -311,7 +311,7 @@ describe("AgentProfilePage", () => {
     renderPage();
 
     fireEvent.click(await screen.findByLabelText("common.edit"));
-    const textarea = screen.getByPlaceholderText(
+    const textarea = await screen.findByPlaceholderText(
       "agent.profile.persona-prompt-placeholder"
     );
     fireEvent.change(textarea, { target: { value: "Be concise" } });
@@ -334,10 +334,10 @@ describe("AgentProfilePage", () => {
     renderPage();
 
     fireEvent.click(await screen.findByLabelText("common.edit"));
-    fireEvent.change(
-      screen.getByPlaceholderText("agent.profile.persona-prompt-placeholder"),
-      { target: { value: "Draft" } }
+    const textarea = await screen.findByPlaceholderText(
+      "agent.profile.persona-prompt-placeholder"
     );
+    fireEvent.change(textarea, { target: { value: "Draft" } });
     fireEvent.click(screen.getByRole("button", { name: "common.cancel" }));
 
     expect(mock.updateAgentACPConfig).not.toHaveBeenCalled();
@@ -621,10 +621,10 @@ describe("AgentProfilePage", () => {
     renderPage();
 
     fireEvent.click(await screen.findByLabelText("common.edit"));
-    fireEvent.change(
-      screen.getByPlaceholderText("agent.profile.persona-prompt-placeholder"),
-      { target: { value: "New persona" } }
+    const textarea = await screen.findByPlaceholderText(
+      "agent.profile.persona-prompt-placeholder"
     );
+    fireEvent.change(textarea, { target: { value: "New persona" } });
     fireEvent.click(screen.getByRole("button", { name: "common.save" }));
 
     expect(
