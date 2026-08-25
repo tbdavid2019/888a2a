@@ -7,6 +7,7 @@ require (
 	connectrpc.com/cors v0.1.0
 	connectrpc.com/grpcreflect v1.3.0
 	github.com/SherClockHolmes/webpush-go v1.4.0
+	github.com/a2aproject/a2a-go/v2 v2.4.0
 	github.com/aws/aws-sdk-go-v2 v1.42.0
 	github.com/aws/aws-sdk-go-v2/config v1.32.25
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.24

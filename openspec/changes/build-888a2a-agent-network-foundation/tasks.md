@@ -6,7 +6,7 @@
 
 ## 2. Contracts and Deterministic Harnesses
 
-- [ ] 2.1 Add the official A2A Go SDK at a pinned version behind a dedicated package boundary; verify the project builds and reports the supported A2A protocol version.
+- [x] 2.1 Add the official A2A Go SDK at a pinned version behind a dedicated package boundary; verify the project builds and reports the supported A2A protocol version.
 - [ ] 2.2 Define Provider manifest, prepared-runtime, compatibility-level and runtime-status contracts; verify `buf format`, `buf lint`, generation and manifest validation fixtures pass.
 - [ ] 2.3 Define durable Machine assignment event/ack/replay contracts; verify malformed sequence, wrong Machine and duplicate acknowledgement cases are rejected or idempotent.
 - [ ] 2.4 Define A2A work, context, parent edge, artifact reference, budget and trace persistence contracts; verify fresh migration and upgrade migration tests pass.
