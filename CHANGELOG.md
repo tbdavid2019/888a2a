@@ -7,6 +7,10 @@ and the project uses [Semantic Versioning](https://semver.org/) for releases.
 
 ## [Unreleased]
 
+Future changes go here before the next release.
+
+## [2026-08-25]
+
 ### Added
 
 - Added the 888a2a project README and Traditional Chinese README with the
@@ -31,5 +35,4 @@ and the project uses [Semantic Versioning](https://semver.org/) for releases.
 ## How to update this file
 
 Add every meaningful change to the `[Unreleased]` section before committing.
-Move the unreleased entries into a dated version section when creating a
-release.
+Move those entries into a dated section when creating a release.
