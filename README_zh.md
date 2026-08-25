@@ -30,26 +30,18 @@ Bot、外部 A2A Agent，以及各種全通路對話入口。
 以下是接下來的大方向；詳細提案與驗收條件請見
 [`openspec/changes/`](openspec/changes/)。
 
-- [ ] **產品識別與遷移** — 將公開與營運介面統一為 888a2a，建立相容性映射，
-  並安全遷移既有設定、憑證與資料。
-- [ ] **Agent Runtime 基礎** — 完善 Provider manifest、本機 npm/npx runtime、
-  ACP v1/v2 執行、Session resume 與多 Machine hosting。
-- [ ] **A2A 1.0 互通** — 透過官方協議邊界支援 Agent Card、Discovery、Task、
-  Streaming、Polling、Artifact、取消、授權與 durable work record。
-- [ ] **多 Agent Orchestration** — 加入受限制的委派、Fan-out/Fan-in、Task graph、
-  Retry、Budget、Timeout，以及可追蹤的父子工作關係。
-- [ ] **安全與 Approval** — 落實 Organization、Workspace、Agent、Skill 與資料
-  邊界；隔離工作區與憑證；加入風險分級、審批與升級流程。
-- [ ] **Organization-ready SaaS** — 建立 Organization tenancy、Entitlement、
-  Usage metering、Quota、可銜接 Billing 的邊界、稽核能力與無狀態 Manager 擴展。
-- [ ] **全通路協作** — 整合 Slack、Teams、LINE、WhatsApp、Web Widget 等入口，
-  同時保留一致且受治理的對話與任務模型。
-- [ ] **可靠性與營運** — 補齊共享即時事件、Tracing、Metrics、SLO、Load test、
-  斷線恢復、備份、升級與 production deployment 文件。
+- [x] **產品識別與基準** — 建立 888a2a 命名防護閘門、盤點清單與遷移邊界。
+- [x] **Agent Runtime 基礎** — 實作安全驗證的 Provider Manifest、固定運行環境快取（`@agentclientprotocol/claude-agent-acp@0.70.0`）、防篡改隔離區、啟動指紋與多 Machine 狀態回放。
+- [x] **A2A 1.0 互通** — 透過標準官方協議（`github.com/a2aproject/a2a-go/v2`）支援 Agent Card 投影、目錄發現、PostgreSQL durable work 與重啟復原。
+- [x] **多 Agent Orchestration** — 加入 DAG 循環依賴防護、並行扇出/聚合、預算與併發限制，以及根任務級聯取消。
+- [x] **安全與聚焦政策** — 落實工作區路徑限制、所有權斷言、預設拒絕運行權限，以及脫敏審計日誌。
+- [x] **Twelve-Agent 驗收閘門** — 跨 2 台 Machine 運行 12 個 Agent（1 Coordinator, 10 Specialists, 1 Reviewer），通過確定性扇出、丟包重試、Manager 重啟復原與跨 Agent 滲透隔離驗證。
+- [ ] **Organization-ready SaaS** — 建立 Organization tenancy、Entitlement、Usage metering、Quota、可銜接 Billing 的邊界、稽核能力與無狀態 Manager 擴展。
+- [ ] **全通路協作** — 整合 Slack、Teams、LINE、WhatsApp、Web Widget 等入口，同時保留一致且受治理的對話與任務模型。
+- [ ] **可靠性與營運** — 補齊共享即時事件、Tracing、Metrics、SLO、Load test、備份與零停機升級。
 
-第一個里程碑是 **Agent Network Foundation**：至少 12 個 Agent 分布在 2 台
-Machine 上，可以互相發現、交換受限制的工作、回傳 Artifact、恢復 Session、
-承受斷線重連並取消工作，同時不跨越 Workspace 或憑證邊界。
+第一個里程碑 **Agent Network Foundation** 已全數建置並通過驗收。
+如需多節點部署指南，請參閱 [Agent Network 運維指南](docs/guide/agent-network-operator-guide.md)。
 
 ## 快速開始
 
@@ -78,11 +70,13 @@ go run ./backend/manager/bin/server/main.go --port 8181 --debug
 # Frontend
 pnpm --dir frontend dev
 
-# Build
-go build -ldflags "-w -s" -p=16 -o ./build/laelia ./backend/manager/bin/server/main.go
+# Build Manager & Machine 二進位檔
+go build -ldflags "-w -s" -p=16 -o ./build/888a2a ./backend/manager/bin/server/main.go
+go build -ldflags "-w -s" -p=16 -o ./build/888a2a-machine ./backend/agent/bin/agent/main.go
 ```
 
-完整的建置、測試、Lint 與發布流程請見 [`AGENTS.md`](AGENTS.md)。
+完整的建置、測試、Lint 與開發流程請見 [`AGENTS.md`](AGENTS.md)。
+多 Agent 網路架構與部署指引請參閱 [`docs/guide/agent-network-operator-guide.md`](docs/guide/agent-network-operator-guide.md)。
 
 ## 架構
 

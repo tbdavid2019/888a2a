@@ -34,21 +34,20 @@ The following are the major development directions. Detailed proposals and
 acceptance criteria live in
 [`openspec/changes/`](openspec/changes/).
 
-- [ ] **Product identity and migration** — move public and operational surfaces
-  to 888a2a, define compatibility mappings, and provide safe migration for
-  existing configuration, credentials, and data.
-- [ ] **Agent runtime foundation** — make provider manifests, local npm/npx
-  runtimes, ACP v1/v2 execution, session resume, and multi-Machine hosting
-  reliable and portable.
-- [ ] **A2A 1.0 interoperability** — support Agent Cards, discovery, task
-  creation, streaming, polling, artifacts, cancellation, authorization, and
-  durable work records through the official protocol boundary.
-- [ ] **Multi-agent orchestration** — add bounded delegation, fan-out/fan-in,
-  task graphs, retries, budgets, timeouts, and observable parent-child work
-  relationships.
-- [ ] **Security and approvals** — enforce tenant, workspace, Agent, skill, and
-  data boundaries; isolate workspaces and credentials; add risk-based approval
-  and escalation flows.
+- [x] **Product identity and baseline** — establish 888a2a naming gates, inventory,
+  and migration boundaries.
+- [x] **Agent runtime foundation** — verified provider manifests, pinned runtime
+  caches (`@agentclientprotocol/claude-agent-acp@0.70.0`), tamper-detection quarantine,
+  launch fingerprints, and monotonic assignment replay across Machines.
+- [x] **A2A 1.0 interoperability** — standard HTTP+JSON gateway (`github.com/a2aproject/a2a-go/v2`),
+  Agent Card projection, directory discovery, PostgreSQL durable work, and restart recovery.
+- [x] **Multi-agent orchestration** — DAG cycle detection, fan-out/fan-in deterministic
+  aggregation, budget/concurrency limits, and root cancellation propagation.
+- [x] **Security and focused policy** — canonical workspace path confinement,
+  ownership assertions, default-deny runtime permissions, and desensitized audit traces.
+- [x] **Twelve-Agent Acceptance Gate** — 12 Agents across 2 Machines (1 Coordinator,
+  10 Specialists, 1 Reviewer) verified with deterministic fan-out, lost response retry,
+  Manager restart recovery, and cross-agent penetration defense.
 - [ ] **Organization-ready SaaS** — introduce organization tenancy, entitlements,
   usage metering, quotas, billing-ready boundaries, auditability, and stateless
   Manager scaling.
@@ -56,13 +55,10 @@ acceptance criteria live in
   web widgets, and other channels while preserving one governed conversation
   and task model.
 - [ ] **Reliability and operations** — add shared realtime events, tracing,
-  metrics, SLOs, load tests, reconnect recovery, backups, upgrades, and
-  production deployment documentation.
+  metrics, SLOs, load tests, backups, and zero-downtime upgrades.
 
-The first milestone is the **Agent Network Foundation**: at least twelve
-Agents across two Machines should be able to discover peers, exchange bounded
-work, return artifacts, resume sessions, survive reconnects, and cancel work
-without crossing workspace or credential boundaries.
+The first milestone, **Agent Network Foundation**, is complete and verified.
+For deployment instructions, see the [Agent Network Operator Guide](docs/guide/agent-network-operator-guide.md).
 
 ## Quick start
 
@@ -92,12 +88,13 @@ go run ./backend/manager/bin/server/main.go --port 8181 --debug
 # Frontend
 pnpm --dir frontend dev
 
-# Build
-go build -ldflags "-w -s" -p=16 -o ./build/laelia ./backend/manager/bin/server/main.go
+# Build Manager & Machine binaries
+go build -ldflags "-w -s" -p=16 -o ./build/888a2a ./backend/manager/bin/server/main.go
+go build -ldflags "-w -s" -p=16 -o ./build/888a2a-machine ./backend/agent/bin/agent/main.go
 ```
 
-See [`AGENTS.md`](AGENTS.md) for the complete build, test, lint, and release
-workflow.
+See [`AGENTS.md`](AGENTS.md) for the complete build, test, lint, and development workflow.
+See [`docs/guide/agent-network-operator-guide.md`](docs/guide/agent-network-operator-guide.md) for multi-agent networking and deployment.
 
 ## Architecture
 
