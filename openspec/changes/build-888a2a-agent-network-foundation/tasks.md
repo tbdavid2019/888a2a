@@ -10,7 +10,7 @@
 - [x] 2.2 Define Provider manifest, prepared-runtime, compatibility-level and runtime-status contracts; verify `buf format`, `buf lint`, generation and manifest validation fixtures pass.
 - [x] 2.3 Define durable Machine assignment event/ack/replay contracts; verify malformed sequence, wrong Machine and duplicate acknowledgement cases are rejected or idempotent.
 - [x] 2.4 Define A2A work, context, parent edge, artifact reference, budget and trace persistence contracts; verify fresh migration and upgrade migration tests pass.
-- [ ] 2.5 Build deterministic fake ACP v1, ACP v2 and A2A peer harnesses; verify ordinary CI can simulate twelve Agents without external credentials.
+- [x] 2.5 Build deterministic fake ACP v1, ACP v2 and A2A peer harnesses; verify ordinary CI can simulate twelve Agents without external credentials.
 
 ## 3. Provider Manifest and npm Runtime
 
