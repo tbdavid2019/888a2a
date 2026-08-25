@@ -26,6 +26,16 @@
     - [RuntimeState](#a2a888-v1-RuntimeState)
     - [SessionMode](#a2a888-v1-SessionMode)
 
+- [a2a888/machine_assignment.proto](#a2a888_machine_assignment-proto)
+    - [AssignmentConfig](#a2a888-v1-AssignmentConfig)
+    - [AssignmentCursor](#a2a888-v1-AssignmentCursor)
+    - [MachineAssignmentAck](#a2a888-v1-MachineAssignmentAck)
+    - [MachineAssignmentEvent](#a2a888-v1-MachineAssignmentEvent)
+    - [MachineAssignmentReplayRequest](#a2a888-v1-MachineAssignmentReplayRequest)
+    - [MachineAssignmentReplayResponse](#a2a888-v1-MachineAssignmentReplayResponse)
+
+    - [AssignmentEventType](#a2a888-v1-AssignmentEventType)
+
 - [Scalar Value Types](#scalar-value-types)
 
 
@@ -424,6 +434,150 @@ provided by the host operating system.
 | SESSION_MODE_UNSPECIFIED | 0 |  |
 | EPHEMERAL | 1 |  |
 | PERSISTENT | 2 |  |
+
+
+
+
+
+
+
+
+
+
+<a name="a2a888_machine_assignment-proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## a2a888/machine_assignment.proto
+
+
+
+<a name="a2a888-v1-AssignmentConfig"></a>
+
+### AssignmentConfig
+AssignmentConfig identifies the immutable configuration revision that a
+Machine must apply. Configuration contents are kept outside this event.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| revision | [string](#string) |  |  |
+| payload_reference | [string](#string) |  |  |
+| payload_digest | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-AssignmentCursor"></a>
+
+### AssignmentCursor
+AssignmentCursor identifies a position in one Machine&#39;s assignment log.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| sequence | [uint64](#uint64) |  |  |
+| event_id | [string](#string) |  |  |
+| idempotency_key | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-MachineAssignmentAck"></a>
+
+### MachineAssignmentAck
+MachineAssignmentAck confirms that a Machine has applied all events through
+acknowledged_through. The cursor identity must match the event at that
+sequence. A zero cursor is valid only when no event has been applied.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| machine_resource_id | [string](#string) |  |  |
+| acknowledged_through | [AssignmentCursor](#a2a888-v1-AssignmentCursor) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-MachineAssignmentEvent"></a>
+
+### MachineAssignmentEvent
+MachineAssignmentEvent is an immutable, ordered instruction for one
+Machine. Sequence values start at one and increase without gaps per
+machine_resource_id.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| machine_resource_id | [string](#string) |  |  |
+| agent_resource_id | [string](#string) |  |  |
+| sequence | [uint64](#uint64) |  |  |
+| event_id | [string](#string) |  |  |
+| idempotency_key | [string](#string) |  |  |
+| event_type | [AssignmentEventType](#a2a888-v1-AssignmentEventType) |  |  |
+| config | [AssignmentConfig](#a2a888-v1-AssignmentConfig) |  |  |
+| created_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-MachineAssignmentReplayRequest"></a>
+
+### MachineAssignmentReplayRequest
+MachineAssignmentReplayRequest asks for events after the Machine&#39;s last
+durable acknowledgement.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| machine_resource_id | [string](#string) |  |  |
+| last_acknowledged | [AssignmentCursor](#a2a888-v1-AssignmentCursor) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-MachineAssignmentReplayResponse"></a>
+
+### MachineAssignmentReplayResponse
+MachineAssignmentReplayResponse contains ordered missing events and the
+Manager&#39;s authoritative roster markers for reconciliation.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| machine_resource_id | [string](#string) |  |  |
+| events | [MachineAssignmentEvent](#a2a888-v1-MachineAssignmentEvent) | repeated |  |
+| authoritative_high_watermark | [uint64](#uint64) |  |  |
+| full_roster_revision | [string](#string) |  |  |
+
+
+
+
+
+
+
+
+<a name="a2a888-v1-AssignmentEventType"></a>
+
+### AssignmentEventType
+AssignmentEventType identifies the lifecycle operation represented by an
+assignment event.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| ASSIGNMENT_EVENT_TYPE_UNSPECIFIED | 0 |  |
+| CREATE | 1 |  |
+| CONFIG_UPDATE | 2 |  |
+| REMOVE | 3 |  |
 
 
 

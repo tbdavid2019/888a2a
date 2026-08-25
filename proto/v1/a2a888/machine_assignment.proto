@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package a2a888.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888";
+
+// AssignmentEventType identifies the lifecycle operation represented by an
+// assignment event.
+enum AssignmentEventType {
+  ASSIGNMENT_EVENT_TYPE_UNSPECIFIED = 0;
+  CREATE = 1;
+  CONFIG_UPDATE = 2;
+  REMOVE = 3;
+}
+
+// AssignmentConfig identifies the immutable configuration revision that a
+// Machine must apply. Configuration contents are kept outside this event.
+message AssignmentConfig {
+  string revision = 1;
+  string payload_reference = 2;
+  string payload_digest = 3;
+}
+
+// AssignmentCursor identifies a position in one Machine's assignment log.
+message AssignmentCursor {
+  uint64 sequence = 1;
+  string event_id = 2;
+  string idempotency_key = 3;
+}
+
+// MachineAssignmentEvent is an immutable, ordered instruction for one
+// Machine. Sequence values start at one and increase without gaps per
+// machine_resource_id.
+message MachineAssignmentEvent {
+  string machine_resource_id = 1;
+  string agent_resource_id = 2;
+  uint64 sequence = 3;
+  string event_id = 4;
+  string idempotency_key = 5;
+  AssignmentEventType event_type = 6;
+  AssignmentConfig config = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+// MachineAssignmentAck confirms that a Machine has applied all events through
+// acknowledged_through. The cursor identity must match the event at that
+// sequence. A zero cursor is valid only when no event has been applied.
+message MachineAssignmentAck {
+  string machine_resource_id = 1;
+  AssignmentCursor acknowledged_through = 2;
+}
+
+// MachineAssignmentReplayRequest asks for events after the Machine's last
+// durable acknowledgement.
+message MachineAssignmentReplayRequest {
+  string machine_resource_id = 1;
+  AssignmentCursor last_acknowledged = 2;
+}
+
+// MachineAssignmentReplayResponse contains ordered missing events and the
+// Manager's authoritative roster markers for reconciliation.
+message MachineAssignmentReplayResponse {
+  string machine_resource_id = 1;
+  repeated MachineAssignmentEvent events = 2;
+  uint64 authoritative_high_watermark = 3;
+  string full_roster_revision = 4;
+}

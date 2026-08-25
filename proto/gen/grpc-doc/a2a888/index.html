@@ -264,6 +264,45 @@
             </ul>
           </li>
 
+
+          <li>
+            <a href="#a2a888%2fmachine_assignment.proto">a2a888/machine_assignment.proto</a>
+            <ul>
+
+                <li>
+                  <a href="#a2a888.v1.AssignmentConfig"><span class="badge">M</span>AssignmentConfig</a>
+                </li>
+
+                <li>
+                  <a href="#a2a888.v1.AssignmentCursor"><span class="badge">M</span>AssignmentCursor</a>
+                </li>
+
+                <li>
+                  <a href="#a2a888.v1.MachineAssignmentAck"><span class="badge">M</span>MachineAssignmentAck</a>
+                </li>
+
+                <li>
+                  <a href="#a2a888.v1.MachineAssignmentEvent"><span class="badge">M</span>MachineAssignmentEvent</a>
+                </li>
+
+                <li>
+                  <a href="#a2a888.v1.MachineAssignmentReplayRequest"><span class="badge">M</span>MachineAssignmentReplayRequest</a>
+                </li>
+
+                <li>
+                  <a href="#a2a888.v1.MachineAssignmentReplayResponse"><span class="badge">M</span>MachineAssignmentReplayResponse</a>
+                </li>
+
+
+                <li>
+                  <a href="#a2a888.v1.AssignmentEventType"><span class="badge">E</span>AssignmentEventType</a>
+                </li>
+
+
+
+            </ul>
+          </li>
+
         <li><a href="#scalar-value-types">Scalar Value Types</a></li>
       </ul>
     </div>
@@ -1385,6 +1424,311 @@ supplied by the runtime host and are never stored in the manifest. </p></td>
               <tr>
                 <td>PERSISTENT</td>
                 <td>2</td>
+                <td><p></p></td>
+              </tr>
+
+          </tbody>
+        </table>
+
+
+
+
+
+
+
+      <div class="file-heading">
+        <h2 id="a2a888/machine_assignment.proto">a2a888/machine_assignment.proto</h2><a href="#title">Top</a>
+      </div>
+      <p></p>
+
+
+        <h3 id="a2a888.v1.AssignmentConfig">AssignmentConfig</h3>
+        <p>AssignmentConfig identifies the immutable configuration revision that a</p><p>Machine must apply. Configuration contents are kept outside this event.</p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>revision</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>payload_reference</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>payload_digest</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+        <h3 id="a2a888.v1.AssignmentCursor">AssignmentCursor</h3>
+        <p>AssignmentCursor identifies a position in one Machine's assignment log.</p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>sequence</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>event_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>idempotency_key</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+        <h3 id="a2a888.v1.MachineAssignmentAck">MachineAssignmentAck</h3>
+        <p>MachineAssignmentAck confirms that a Machine has applied all events through</p><p>acknowledged_through. The cursor identity must match the event at that</p><p>sequence. A zero cursor is valid only when no event has been applied.</p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>machine_resource_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>acknowledged_through</td>
+                  <td><a href="#a2a888.v1.AssignmentCursor">AssignmentCursor</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+        <h3 id="a2a888.v1.MachineAssignmentEvent">MachineAssignmentEvent</h3>
+        <p>MachineAssignmentEvent is an immutable, ordered instruction for one</p><p>Machine. Sequence values start at one and increase without gaps per</p><p>machine_resource_id.</p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>machine_resource_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>agent_resource_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>sequence</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>event_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>idempotency_key</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>event_type</td>
+                  <td><a href="#a2a888.v1.AssignmentEventType">AssignmentEventType</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>config</td>
+                  <td><a href="#a2a888.v1.AssignmentConfig">AssignmentConfig</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>created_at</td>
+                  <td><a href="#google.protobuf.Timestamp">google.protobuf.Timestamp</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+        <h3 id="a2a888.v1.MachineAssignmentReplayRequest">MachineAssignmentReplayRequest</h3>
+        <p>MachineAssignmentReplayRequest asks for events after the Machine's last</p><p>durable acknowledgement.</p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>machine_resource_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>last_acknowledged</td>
+                  <td><a href="#a2a888.v1.AssignmentCursor">AssignmentCursor</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+        <h3 id="a2a888.v1.MachineAssignmentReplayResponse">MachineAssignmentReplayResponse</h3>
+        <p>MachineAssignmentReplayResponse contains ordered missing events and the</p><p>Manager's authoritative roster markers for reconciliation.</p>
+
+
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                  <td>machine_resource_id</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>events</td>
+                  <td><a href="#a2a888.v1.MachineAssignmentEvent">MachineAssignmentEvent</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>authoritative_high_watermark</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+                <tr>
+                  <td>full_roster_revision</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+
+            </tbody>
+          </table>
+
+
+
+
+
+
+
+        <h3 id="a2a888.v1.AssignmentEventType">AssignmentEventType</h3>
+        <p>AssignmentEventType identifies the lifecycle operation represented by an</p><p>assignment event.</p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+
+              <tr>
+                <td>ASSIGNMENT_EVENT_TYPE_UNSPECIFIED</td>
+                <td>0</td>
+                <td><p></p></td>
+              </tr>
+
+              <tr>
+                <td>CREATE</td>
+                <td>1</td>
+                <td><p></p></td>
+              </tr>
+
+              <tr>
+                <td>CONFIG_UPDATE</td>
+                <td>2</td>
+                <td><p></p></td>
+              </tr>
+
+              <tr>
+                <td>REMOVE</td>
+                <td>3</td>
                 <td><p></p></td>
               </tr>
 
