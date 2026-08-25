@@ -1,0 +1,222 @@
+syntax = "proto3";
+
+package a2a888.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888";
+
+// ProviderManifest describes how a provider runtime is identified, installed,
+// started, and authorized on a supported platform.
+message ProviderManifest {
+  // Stable provider identifier. Provider IDs are intentionally strings so that
+  // providers can be added without changing this contract.
+  string provider_id = 1;
+  string display_name = 2;
+  RuntimeKind runtime_kind = 3;
+  AgentProtocol agent_protocol = 4;
+  repeated PlatformTarget platform_targets = 5;
+
+  // Exactly one runtime configuration must be supplied.
+  oneof runtime_config {
+    SystemExecutableConfig system_executable = 6;
+    NpmPackageConfig npm_package = 7;
+    EmbeddedRuntimeConfig embedded = 13;
+    CustomRuntimeConfig custom = 14;
+  }
+
+  ProviderCapabilities capabilities = 8;
+  PermissionProfile permission_profile = 9;
+  SessionBehavior session_behavior = 10;
+  string manifest_version = 11;
+  string manifest_integrity_sha256 = 12;
+}
+
+enum RuntimeKind {
+  RUNTIME_KIND_UNSPECIFIED = 0;
+  SYSTEM_EXECUTABLE = 1;
+  NPM_PACKAGE = 2;
+  EMBEDDED = 3;
+  CUSTOM_RUNTIME = 4;
+}
+
+enum AgentProtocol {
+  AGENT_PROTOCOL_UNSPECIFIED = 0;
+  ACP_V1 = 1;
+  ACP_V2 = 2;
+  A2A = 3;
+  CUSTOM_PROTOCOL = 4;
+}
+
+// PlatformTarget uses normalized runtime platform names, such as linux,
+// darwin, windows, amd64, arm64, and glibc.
+message PlatformTarget {
+  string operating_system = 1;
+  string architecture = 2;
+  string libc = 3;
+  string variant = 4;
+}
+
+// SystemExecutableConfig identifies an executable already installed or
+// provided by the host operating system.
+message SystemExecutableConfig {
+  string executable = 1;
+  repeated string arguments = 2;
+  string version_argument = 3;
+  string version_pattern = 4;
+  string package_manager = 5;
+  string package_name = 6;
+  string package_version = 7;
+  string integrity_sha256 = 8;
+  // Names of host environment variables that may be inherited; values are
+  // supplied by the runtime host and are never stored in the manifest.
+  repeated string inherited_environment = 9;
+}
+
+// NpmPackageConfig pins every value needed to resolve an npm runtime.
+message NpmPackageConfig {
+  string package_name = 1;
+  string package_version = 2;
+  string binary = 3;
+  // Subresource Integrity (SRI) value for the exact package artifact.
+  string integrity = 4;
+  string registry = 5;
+  repeated string arguments = 6;
+}
+
+// EmbeddedRuntimeConfig identifies a runtime shipped with the host service.
+message EmbeddedRuntimeConfig {
+  string artifact = 1;
+  string version = 2;
+  string binary = 3;
+  string integrity_sha256 = 4;
+}
+
+// CustomRuntimeConfig describes a provider-specific launch command.
+message CustomRuntimeConfig {
+  string command = 1;
+  repeated string arguments = 2;
+  // Names of host environment variables that may be inherited; values are
+  // supplied by the runtime host and are never stored in the manifest.
+  repeated string inherited_environment = 3;
+  string version = 4;
+  string integrity_sha256 = 5;
+}
+
+// ProviderCapabilities is a typed capability declaration for runtime
+// discovery and session orchestration.
+message ProviderCapabilities {
+  bool model_discovery = 1;
+  bool session_resume = 2;
+  bool streaming = 3;
+  bool steering = 4;
+  bool mcp = 5;
+  bool tool_traces = 6;
+}
+
+// PermissionProfile records the least-privilege permissions requested by a
+// runtime. Empty allowlists mean that the corresponding access is denied.
+message PermissionProfile {
+  bool process_execution = 1;
+  bool inherit_environment = 2;
+  repeated string filesystem_read_paths = 3;
+  repeated string filesystem_write_paths = 4;
+  repeated string network_hosts = 5;
+  bool network_access = 6;
+}
+
+enum SessionMode {
+  SESSION_MODE_UNSPECIFIED = 0;
+  EPHEMERAL = 1;
+  PERSISTENT = 2;
+}
+
+// SessionBehavior defines lifecycle and resume expectations for provider
+// sessions.
+message SessionBehavior {
+  SessionMode mode = 1;
+  bool supports_resume = 2;
+  bool supports_concurrent_sessions = 3;
+  uint32 idle_timeout_seconds = 4;
+  bool requires_clean_shutdown = 5;
+}
+
+// PreparedRuntime is the immutable result of resolving and verifying a
+// ProviderManifest for one platform.
+message PreparedRuntime {
+  string provider_id = 1;
+  CacheIdentity cache_identity = 2;
+  ResolvedBinary resolved_binary = 3;
+  RuntimeStatus status = 4;
+  CompatibilityReport compatibility = 5;
+  google.protobuf.Timestamp prepared_at = 6;
+}
+
+// CacheIdentity is content-addressed and must not change for the lifetime of a
+// prepared runtime. A changed manifest or artifact creates a new identity.
+message CacheIdentity {
+  string identity_digest = 1;
+  string provider_id = 2;
+  string manifest_digest = 3;
+  string runtime_version = 4;
+  PlatformTarget platform = 5;
+  string lock_digest = 6;
+  string package_name = 7;
+  string package_version = 8;
+  // SRI integrity value for package-backed runtimes.
+  string integrity = 9;
+}
+
+// ResolvedBinary identifies the exact executable selected for a prepared
+// runtime, including its content digest.
+message ResolvedBinary {
+  string path = 1;
+  string binary = 2;
+  string version = 3;
+  string sha256 = 4;
+  uint64 size_bytes = 5;
+  string source = 6;
+  repeated string arguments = 7;
+}
+
+enum RuntimeState {
+  RUNTIME_STATE_UNSPECIFIED = 0;
+  UNAVAILABLE = 1;
+  INSTALLING = 2;
+  VERIFYING = 3;
+  READY = 4;
+  BROKEN = 5;
+  QUARANTINED = 6;
+  UPDATE_AVAILABLE = 7;
+}
+
+message RuntimeStatus {
+  RuntimeState state = 1;
+  string message = 2;
+  string observed_version = 3;
+  google.protobuf.Timestamp observed_at = 4;
+  string failure_code = 5;
+}
+
+enum CompatibilityLevel {
+  COMPATIBILITY_LEVEL_UNSPECIFIED = 0;
+  DETECTED = 1;
+  PROTOCOL_READY = 2;
+  FUNCTIONALLY_VERIFIED = 3;
+  FULL_LOOP_VERIFIED = 4;
+}
+
+// CompatibilityReport records the strongest verified compatibility level and
+// the evidence that supports it.
+message CompatibilityReport {
+  CompatibilityLevel level = 1;
+  repeated CompatibilityEvidence evidence = 2;
+}
+
+// CompatibilityEvidence is an auditable result from a detection or test run.
+message CompatibilityEvidence {
+  string version = 1;
+  PlatformTarget platform = 2;
+  google.protobuf.Timestamp tested_at = 3;
+  string details = 4;
+}

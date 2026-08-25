@@ -1,0 +1,19 @@
+{
+  "providerId": "fixture-custom-acp2",
+  "displayName": "Fixture Custom ACP v2",
+  "runtimeKind": "CUSTOM_RUNTIME",
+  "agentProtocol": "ACP_V2",
+  "platformTargets": [{ "operatingSystem": "windows", "architecture": "amd64" }],
+  "custom": {
+    "command": "fixture-agent.exe",
+    "arguments": ["app-server", "--listen", "stdio://"],
+    "inheritedEnvironment": ["PATH"],
+    "version": "1.2.3",
+    "integritySha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "capabilities": { "modelDiscovery": true, "sessionResume": true, "streaming": true, "steering": true, "mcp": true, "toolTraces": true },
+  "permissionProfile": { "processExecution": true, "inheritEnvironment": true, "filesystemReadPaths": ["workspace"], "networkHosts": ["api.example.invalid"], "networkAccess": true },
+  "sessionBehavior": { "mode": "PERSISTENT", "supportsResume": true, "supportsConcurrentSessions": true },
+  "manifestVersion": "1",
+  "manifestIntegritySha256": "4444444444444444444444444444444444444444444444444444444444444444"
+}

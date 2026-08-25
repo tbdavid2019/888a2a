@@ -1,0 +1,21 @@
+{
+  "providerId": "fixture-system-acp",
+  "displayName": "Fixture System ACP",
+  "runtimeKind": "SYSTEM_EXECUTABLE",
+  "agentProtocol": "ACP_V1",
+  "platformTargets": [{ "operatingSystem": "linux", "architecture": "amd64" }],
+  "systemExecutable": {
+    "executable": "fixture-acp",
+    "arguments": ["serve"],
+    "versionArgument": "--version",
+    "versionPattern": "^fixture-acp 1\\.2\\.3$",
+    "packageVersion": "1.2.3",
+    "integritySha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "inheritedEnvironment": ["PATH"]
+  },
+  "capabilities": { "modelDiscovery": true, "streaming": true, "mcp": true, "toolTraces": true },
+  "permissionProfile": { "processExecution": true, "inheritEnvironment": true, "filesystemReadPaths": ["workspace"] },
+  "sessionBehavior": { "mode": "PERSISTENT", "supportsResume": true, "idleTimeoutSeconds": 900 },
+  "manifestVersion": "1",
+  "manifestIntegritySha256": "1111111111111111111111111111111111111111111111111111111111111111"
+}

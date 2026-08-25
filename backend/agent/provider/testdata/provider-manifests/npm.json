@@ -1,0 +1,22 @@
+{
+  "providerId": "fixture-npm-acp",
+  "displayName": "Fixture npm ACP",
+  "runtimeKind": "NPM_PACKAGE",
+  "agentProtocol": "ACP_V1",
+  "platformTargets": [
+    { "operatingSystem": "linux", "architecture": "amd64" },
+    { "operatingSystem": "darwin", "architecture": "arm64" }
+  ],
+  "npmPackage": {
+    "packageName": "@888a2a/fixture-acp",
+    "packageVersion": "1.2.3",
+    "binary": "fixture-acp",
+    "integrity": "sha512-Zml4dHVyZS1wcm92aWRlci1wYWNrYWdlLWludGVncml0eQ==",
+    "registry": "https://registry.npmjs.org"
+  },
+  "capabilities": { "modelDiscovery": true, "sessionResume": true, "streaming": true, "steering": true, "mcp": true },
+  "permissionProfile": { "processExecution": true, "filesystemReadPaths": ["workspace"], "filesystemWritePaths": ["workspace"] },
+  "sessionBehavior": { "mode": "PERSISTENT", "supportsResume": true, "requiresCleanShutdown": true },
+  "manifestVersion": "1",
+  "manifestIntegritySha256": "2222222222222222222222222222222222222222222222222222222222222222"
+}

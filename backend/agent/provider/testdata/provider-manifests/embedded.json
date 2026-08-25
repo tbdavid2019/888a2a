@@ -1,0 +1,18 @@
+{
+  "providerId": "fixture-embedded",
+  "displayName": "Fixture Embedded Runtime",
+  "runtimeKind": "EMBEDDED",
+  "agentProtocol": "CUSTOM_PROTOCOL",
+  "platformTargets": [{ "operatingSystem": "linux", "architecture": "arm64" }],
+  "embedded": {
+    "artifact": "fixture-runtime-linux-arm64",
+    "version": "1.2.3",
+    "binary": "fixture-runtime",
+    "integritySha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "capabilities": { "streaming": true, "toolTraces": true },
+  "permissionProfile": { "processExecution": true, "filesystemReadPaths": ["workspace"] },
+  "sessionBehavior": { "mode": "EPHEMERAL" },
+  "manifestVersion": "1",
+  "manifestIntegritySha256": "3333333333333333333333333333333333333333333333333333333333333333"
+}
