@@ -67,9 +67,9 @@ func FormatDelegationSummary(work *store.WorkMessage) string {
 
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "📋 **A2A Task Delegated**: `%s`\n", sanitizeSafeString(work.A2ATaskID))
-	sb.WriteString(fmt.Sprintf("- **Target Executor**: `%s`\n", sanitizeSafeString(work.ExecutorAgentID)))
-	sb.WriteString(fmt.Sprintf("- **Requester**: `%s`\n", sanitizeSafeString(work.RequesterAgentID)))
-	sb.WriteString(fmt.Sprintf("- **Context ID**: `%s`\n", sanitizeSafeString(work.ContextID)))
+	fmt.Fprintf(&sb, "- **Target Executor**: `%s`\n", sanitizeSafeString(work.ExecutorAgentID))
+	fmt.Fprintf(&sb, "- **Requester**: `%s`\n", sanitizeSafeString(work.RequesterAgentID))
+	fmt.Fprintf(&sb, "- **Context ID**: `%s`\n", sanitizeSafeString(work.ContextID))
 
 	if work.ParentWorkID.Valid && work.ParentWorkID.String != "" {
 		sb.WriteString(fmt.Sprintf("- **Parent Task**: `%s` (Depth: %d)\n", sanitizeSafeString(work.ParentWorkID.String), work.DelegationDepth))
