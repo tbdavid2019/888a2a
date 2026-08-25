@@ -117,7 +117,7 @@ func (s *Supervisor) Run(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "open daemon log")
 	}
-	defer logFile.Close()
+	defer func() { _ = logFile.Close() }()
 	slog.SetDefault(slog.New(slog.NewTextHandler(io.MultiWriter(os.Stderr, logFile), nil)))
 
 	slog.Info("machine supervisor starting", "version", version.Version, "pid", os.Getpid(), "foreground", s.foreground)
@@ -342,7 +342,7 @@ func (s *Supervisor) startWorker() (chan struct{}, error) {
 	if err == nil {
 		cmd.Stdout = logFile
 		cmd.Stderr = logFile
-		defer logFile.Close()
+		defer func() { _ = logFile.Close() }()
 	}
 	if err := cmd.Start(); err != nil {
 		return nil, err
@@ -464,7 +464,7 @@ func (s *Supervisor) download(req UpgradeRequest) (binPath string, err error) {
 	if err != nil {
 		return "", errors.Wrap(err, "download binary")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return "", errors.Errorf("download returned %s", resp.Status)
 	}
@@ -494,13 +494,13 @@ func (s *Supervisor) download(req UpgradeRequest) (binPath string, err error) {
 	if err != nil {
 		return "", errors.Wrap(err, "reopen download")
 	}
-	defer in.Close()
+	defer func() { _ = in.Close() }()
 	zr, err := gzip.NewReader(in)
 	if err != nil {
 		_ = os.Remove(gzPath)
 		return "", errors.Wrap(err, "gunzip binary")
 	}
-	defer zr.Close()
+	defer func() { _ = zr.Close() }()
 	binPath = s.exePath + ".new"
 	binFile, err := os.OpenFile(binPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o700)
 	if err != nil {

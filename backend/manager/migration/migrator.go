@@ -266,7 +266,7 @@ func executeMigration(ctx context.Context, conn *sql.Conn, statement string, ver
 	if err != nil {
 		return errors.Wrap(err, "failed to begin transaction")
 	}
-	defer txn.Rollback()
+	defer func() { _ = txn.Rollback() }()
 
 	if _, err := txn.ExecContext(ctx, statement); err != nil {
 		var sqlState string

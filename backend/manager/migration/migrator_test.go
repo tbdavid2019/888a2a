@@ -270,7 +270,7 @@ func TestExecuteMigration_MultiStatementDollarQuote(t *testing.T) {
 	if err != nil {
 		t.Fatalf("acquire conn: %v", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	if _, err := conn.ExecContext(ctx, fmt.Sprintf(`SET search_path = "%s"`, schema)); err != nil {
 		t.Fatalf("set search_path: %v", err)
 	}
@@ -530,7 +530,7 @@ func assertHistoryVersions(t *testing.T, db *sql.DB, want ...string) {
 	if err != nil {
 		t.Fatalf("query history: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var got []string
 	for rows.Next() {
@@ -575,7 +575,7 @@ func assertHistoryVersionsConn(t *testing.T, conn *sql.Conn, want ...string) {
 	if err != nil {
 		t.Fatalf("query history: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var got []string
 	for rows.Next() {
