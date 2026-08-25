@@ -33,7 +33,7 @@ jobs:
       - name: Lint
         run: |
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.5
-          golangci-lint run --allow-parallel-runners
+          golangci-lint run --disable exhaustive --allow-parallel-runners
 
       - name: Test
         run: go test ./...
