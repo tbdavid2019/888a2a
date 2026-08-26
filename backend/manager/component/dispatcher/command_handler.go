@@ -2,6 +2,7 @@ package dispatcher
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"strconv"
 	"time"
@@ -195,6 +196,14 @@ func (d *Dispatcher) HandleResult(ctx context.Context, agentID int, result *v1pb
 	}
 	if err := d.store.UpdateCommandResultSummary(ctx, cmdID, result.FinalSummary, resultJSON); err != nil {
 		slog.Error("failed to update command result summary", "commandID", cmdID, "error", err)
+	}
+	completionStatus := "completed"
+	if result.ExitCode != 0 {
+		completionStatus = "failed"
+	}
+	completionPayload := fmt.Sprintf(`{"status":%q}`, completionStatus)
+	if err := d.store.AppendCommandExecutionEvent(ctx, cmdID, "COMMAND_COMPLETED", completionPayload); err != nil {
+		slog.Error("failed to record conversation command completion", "commandID", cmdID, "error", err)
 	}
 
 	output := &v1pb.CommandOutput{

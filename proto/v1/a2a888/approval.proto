@@ -1,0 +1,127 @@
+syntax = "proto3";
+
+package a2a888.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888";
+
+// ApprovalRiskLevel classifies the side-effect risk of a bound action.
+enum ApprovalRiskLevel {
+  APPROVAL_RISK_LEVEL_UNSPECIFIED = 0;
+  APPROVAL_RISK_LEVEL_LOW = 1;
+  APPROVAL_RISK_LEVEL_MODERATE = 2;
+  APPROVAL_RISK_LEVEL_HIGH = 3;
+  APPROVAL_RISK_LEVEL_CRITICAL = 4;
+}
+
+// ApprovalTimeoutAction defines the policy behavior when quorum is not reached.
+enum ApprovalTimeoutAction {
+  APPROVAL_TIMEOUT_ACTION_UNSPECIFIED = 0;
+  APPROVAL_TIMEOUT_ACTION_DENY = 1;
+  APPROVAL_TIMEOUT_ACTION_ESCALATE = 2;
+}
+
+// ApprovalRequestState is the durable lifecycle of an approval request.
+enum ApprovalRequestState {
+  APPROVAL_REQUEST_STATE_UNSPECIFIED = 0;
+  APPROVAL_REQUEST_STATE_PENDING = 1;
+  APPROVAL_REQUEST_STATE_APPROVED = 2;
+  APPROVAL_REQUEST_STATE_DENIED = 3;
+  APPROVAL_REQUEST_STATE_EXPIRED = 4;
+  APPROVAL_REQUEST_STATE_CANCELLED = 5;
+  APPROVAL_REQUEST_STATE_SUPERSEDED = 6;
+  APPROVAL_REQUEST_STATE_EXECUTED = 7;
+}
+
+// ApprovalDecisionOutcome is the decision recorded by one eligible approver.
+enum ApprovalDecisionOutcome {
+  APPROVAL_DECISION_OUTCOME_UNSPECIFIED = 0;
+  APPROVAL_DECISION_OUTCOME_APPROVE = 1;
+  APPROVAL_DECISION_OUTCOME_DENY = 2;
+}
+
+// ApprovalPolicy describes one versioned, organization-scoped approval rule.
+message ApprovalPolicy {
+  string name = 1;
+  string organization_id = 2;
+  string workspace_id = 3;
+  string resource_pattern = 4;
+  string agent_id = 5;
+  string skill = 6;
+  string action_type = 7;
+  string destination_pattern = 8;
+  string requester_class = 9;
+  ApprovalRiskLevel risk_level = 10;
+  repeated string approver_principal_ids = 11;
+  repeated string approver_group_ids = 12;
+  repeated string approver_roles = 13;
+  uint32 required_approvals = 14;
+  uint32 timeout_seconds = 15;
+  ApprovalTimeoutAction on_timeout = 16;
+  repeated string escalation_principal_ids = 17;
+  repeated string escalation_group_ids = 18;
+  repeated string escalation_roles = 19;
+  bool prohibit_requester_approval = 20;
+  bool prohibit_agent_owner_sole_approval = 21;
+  string version = 22;
+  bool enabled = 23;
+  google.protobuf.Timestamp created_at = 24;
+  google.protobuf.Timestamp updated_at = 25;
+}
+
+// BoundAction is the immutable, normalized action that an approval authorizes.
+// normalized_parameters_json is the canonical serialization used to calculate
+// intent_hash; normalized_parameters is the structured review representation.
+message BoundAction {
+  string organization_id = 1;
+  string workspace_id = 2;
+  string resource_name = 3;
+  string agent_id = 4;
+  string skill = 5;
+  string action_type = 6;
+  string destination = 7;
+  ApprovalRiskLevel risk_level = 8;
+  google.protobuf.Struct normalized_parameters = 9;
+  string normalized_parameters_json = 10;
+  string intent_hash = 11;
+  string task_id = 12;
+  string command_id = 13;
+}
+
+// ApprovalRequest binds a policy decision to one requester, Agent, action and
+// single-use execution nonce.
+message ApprovalRequest {
+  string name = 1;
+  string organization_id = 2;
+  string workspace_id = 3;
+  string policy_name = 4;
+  string policy_version = 5;
+  string requester_principal_id = 6;
+  string executing_agent_id = 7;
+  string executing_agent_owner_id = 8;
+  BoundAction action = 9;
+  ApprovalRequestState state = 10;
+  uint32 required_approvals = 11;
+  uint32 approval_count = 12;
+  string execution_nonce = 13;
+  google.protobuf.Timestamp expires_at = 14;
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp updated_at = 16;
+  google.protobuf.Timestamp completed_at = 17;
+  string terminal_reason = 18;
+}
+
+// ApprovalDecision is an immutable decision made by one eligible principal.
+message ApprovalDecision {
+  string name = 1;
+  string request_name = 2;
+  string organization_id = 3;
+  string approver_principal_id = 4;
+  string approver_role = 5;
+  ApprovalDecisionOutcome outcome = 6;
+  string reason = 7;
+  string intent_hash = 8;
+  google.protobuf.Timestamp created_at = 9;
+}

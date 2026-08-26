@@ -170,6 +170,9 @@ func (s *Store) LinkCommandConversation(ctx context.Context, commandID, conversa
 	`, conversationID, commandID); err != nil {
 		return errors.Wrapf(err, "failed to set command primary conversation")
 	}
+	if err := s.AppendCommandExecutionEvent(ctx, commandID, "COMMAND_STARTED", "{}"); err != nil {
+		return err
+	}
 	return nil
 }
 

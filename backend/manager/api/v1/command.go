@@ -158,6 +158,9 @@ func (s *CommandService) CancelCommand(ctx context.Context, req *connect.Request
 	}
 
 	cmd.Status = status
+	if err := s.store.AppendCommandExecutionEvent(ctx, cmd.ID, "COMMAND_CANCELLED", "{}"); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to record conversation cancellation"))
+	}
 	return connect.NewResponse(convertToV1Command(cmd)), nil
 }
 
@@ -181,6 +184,10 @@ func (s *CommandService) SteerCommand(ctx context.Context, req *connect.Request[
 	}
 	if err := s.dispatcher.SteerCommand(ctx, cmd.AgentID, cmd.ID.String(), text); err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
+	}
+	payload, _ := json.Marshal(map[string]string{"text": text})
+	if err := s.store.AppendCommandExecutionEvent(ctx, cmd.ID, "COMMAND_STEERED", string(payload)); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to record conversation steer"))
 	}
 	return connect.NewResponse(convertToV1Command(cmd)), nil
 }
