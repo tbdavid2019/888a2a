@@ -82,14 +82,14 @@ Tasks 4.3 and 4.4 are proven by GitHub Actions run `32943879682`, where the Post
 - [x] 4.7 Add edit, recall and moderation policies with audit/legal-hold behavior; verify normal readers lose recalled content while authorized hold access remains.
 - [x] 4.8 Add presence, typing and delivery/read capability contracts; verify unsupported surfaces return explicit capability state rather than simulated success.
 - [x] 4.9 Add Message Plane reconciliation for channel membership and conversation projection; verify drift is repaired or quarantined with an audit event.
-- [ ] 4.10 Cut native chat reads/writes to the new Collaboration API behind an Organization feature flag; verify per-tenant rollback to the old read path remains possible.
+- [x] 4.10 Cut native chat reads/writes to the new Collaboration API behind an Organization feature flag; verify per-tenant rollback to the old read path remains possible.
 
 Evidence notes (2026-08-26): Task 4.2 has an internal-only `WuKongIMAdapter` with private-host, redirect, tenant, cursor, and endpoint-boundary checks plus an opt-in `TestWuKongIMExternalReadinessGate`. The real-service gate remains pending until `A2A888_WUKONGIM_URL` points to a controlled WuKongIM deployment; ordering, reconnect, offline-sync, failover, backup, and restore evidence must still be collected before checking 4.2.
 Task 4.6 has tenant-bound per-device user cursors and per-Agent cursors with monotonic acknowledgements and sequence replay coverage. It is proven by GitHub Actions run `32946209448`, where the PostgreSQL message cursor replay gate passed independent device cursors, monotonic user/Agent acknowledgements, tenant-bound cursor lookup, and ordered offline message recovery.
 Task 4.5 is proven by GitHub Actions run `32947569098`, where the PostgreSQL MessagePlane dual projection gate passed canonical/projection parity for text, attachments, mentions, thread roots, reactions, tenant-bound projection cursors, and idempotent upgrade backfill.
 Tasks 4.7 and 4.8 are proven by GitHub Actions run `32948484188`, where the moderation/capability contract gate passed bounded author edit/recall windows, moderator-only redaction, legal-hold visibility, audit-safe payload checks, and explicit unsupported states/errors for presence, typing, delivery receipts, and read receipts.
 Task 4.9 has tenant-scoped MessagePlane reconciliation that repairs missing/divergent canonical projections and memberships while quarantining unknown memberships with audit records. Its PostgreSQL reconciliation gate is wired as `TestPostgresPlaneReconcileRepairsDriftAndQuarantinesUnknownMembership` and passed in GitHub Actions run `32949575134`.
-Task 4.10 has a durable per-Organization LEGACY/DUAL/MESSAGE_PLANE selector, native regular-message read/write adapter, and fail-safe rollback to LEGACY. The checkbox remains pending until a CI gate exercises switching and rollback against a live PostgreSQL schema.
+Task 4.10 has a durable per-Organization LEGACY/DUAL/MESSAGE_PLANE selector, native regular-message read/write adapter, and fail-safe rollback to LEGACY. The PostgreSQL switching and rollback gate passed in GitHub Actions run `32950969518`.
 
 ## 5. Native Web Collaboration and Web Widget
 
