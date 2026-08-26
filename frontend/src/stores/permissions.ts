@@ -12,16 +12,32 @@ import { useAppStore } from "./index";
 // represented here — agents.edit is surfaced per-agent as Agent.canEdit, since
 // the creator (agentEditor binding) and workspace admins resolve it per
 // resource. Subscribe via the hook so UI re-renders when the session loads.
+function hasPermissionValue(
+  permissions: string[] | undefined,
+  permission: string
+): boolean {
+  if (!permissions) return false;
+  if (permissions.includes(permission)) return true;
+  if (permission.startsWith("888a2a.")) {
+    return permissions.includes(`laelia.${permission.slice("888a2a.".length)}`);
+  }
+  if (permission.startsWith("laelia.")) {
+    return permissions.includes(`888a2a.${permission.slice("laelia.".length)}`);
+  }
+  return false;
+}
+
 export function useHasPermission(perm: string): boolean {
-  return useAppStore(
-    (s) => s.currentUser?.permissions?.includes(perm) ?? false
+  return useAppStore((s) =>
+    hasPermissionValue(s.currentUser?.permissions, perm)
   );
 }
 
 // hasPermission is the non-reactive variant for use inside callbacks/effects
 // where subscribing to the store is undesirable.
 export function hasPermission(perm: string): boolean {
-  return (
-    useAppStore.getState().currentUser?.permissions?.includes(perm) ?? false
+  return hasPermissionValue(
+    useAppStore.getState().currentUser?.permissions,
+    perm
   );
 }
