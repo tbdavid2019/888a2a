@@ -426,3 +426,27 @@ func TestCollaborationResourcesTenantColumnsAndIndexes(t *testing.T) {
 		}
 	}
 }
+
+func TestDurableOutboxSchemaPresent(t *testing.T) {
+	latest := latestSQL(t)
+	incBytes, err := os.ReadFile("migration/1.1/0029##durable-outbox.sql")
+	if err != nil {
+		t.Fatalf("read 0029##durable-outbox.sql: %v", err)
+	}
+	incremental := string(incBytes)
+	for _, want := range []string{
+		"CREATE TABLE IF NOT EXISTS a2a888_outbox_event",
+		"organization_id TEXT NOT NULL REFERENCES organizations(id)",
+		"idempotency_key TEXT NOT NULL DEFAULT ''",
+		"status TEXT NOT NULL DEFAULT 'PENDING'",
+		"uq_a2a888_outbox_event_idempotency",
+		"idx_a2a888_outbox_event_claimable",
+	} {
+		if !strings.Contains(latest, want) {
+			t.Errorf("LATEST.sql missing outbox contract %q", want)
+		}
+		if !strings.Contains(incremental, want) && want != "FOR UPDATE SKIP LOCKED" {
+			t.Errorf("incremental migration missing outbox contract %q", want)
+		}
+	}
+}

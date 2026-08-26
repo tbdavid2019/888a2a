@@ -51,7 +51,7 @@ Agent Network gate: 12 Agents across two Machines SHALL discover peers, exchange
 
 ## 3. Durable Event and Multi-Instance Foundation
 
-- [ ] 3.1 Define durable event envelope, correlation, tenant, idempotency and retry metadata; verify schema fixtures round-trip and reject missing tenant identity.
+- [x] 3.1 Define durable event envelope, correlation, tenant, idempotency and retry metadata; verify schema fixtures round-trip and reject missing tenant identity.
 - [ ] 3.2 Add transactional outbox storage and worker claim/ack/retry behavior; verify a process crash after source commit is recovered by another worker.
 - [ ] 3.3 Add durable connector inbox with unique external-event keys; verify repeated webhook fixtures produce one committed canonical event.
 - [ ] 3.4 Replace critical Machine assignment best-effort delivery with outbox sequence and ack; verify create/update/remove replay after disconnect without duplicate runners.

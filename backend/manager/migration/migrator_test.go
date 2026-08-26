@@ -521,11 +521,12 @@ func TestMigrateSchema_MachineAssignmentUpgrade(t *testing.T) {
 func TestMigrateSchema_OrganizationTenancyUpgrade(t *testing.T) {
 	db := integrationDB(t)
 	ctx := context.Background()
+	latestVersion := embeddedLatestVersion(t).String()
 
 	if err := MigrateSchema(ctx, db); err != nil {
 		t.Fatalf("MigrateSchema (fresh): %v", err)
 	}
-	assertHistoryVersions(t, db, "1.1.28")
+	assertHistoryVersions(t, db, latestVersion)
 
 	for _, table := range []string{
 		"organization_memberships",
