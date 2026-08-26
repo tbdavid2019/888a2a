@@ -47,7 +47,20 @@ type MessageView struct {
 // Unknown event types fail closed so a new mutation cannot silently produce an
 // incorrect visible projection.
 func ProjectEvents(events []CollaborationEvent) (map[string]*MessageView, error) {
+	return projectEvents(events, false)
+}
+
+// ProjectEventsForLegalHold returns the same visible projection for an
+// authorized compliance reader. Recalled or redacted content is retained
+// only in this explicitly authorized result; ordinary readers receive empty
+// content for those events.
+func ProjectEventsForLegalHold(events []CollaborationEvent) (map[string]*MessageView, error) {
+	return projectEvents(events, true)
+}
+
+func projectEvents(events []CollaborationEvent, legalHoldAccess bool) (map[string]*MessageView, error) {
 	views := make(map[string]*MessageView)
+	retainedContent := make(map[string]string)
 	for _, event := range events {
 		if event.MessageID == "" || event.Type == "" {
 			return nil, fmt.Errorf("collaboration event identity is required")
@@ -73,16 +86,24 @@ func ProjectEvents(events []CollaborationEvent) (map[string]*MessageView, error)
 		switch event.Type {
 		case EventMessageCreated:
 			view.Content = payload.Content
+			retainedContent[event.MessageID] = payload.Content
 		case EventMessageEdited:
 			if !view.Recalled && !view.Redacted {
 				view.Content = payload.Content
+				retainedContent[event.MessageID] = payload.Content
 			}
 		case EventMessageRecalled:
 			view.Recalled = true
-			view.Content = ""
+			view.Content = retainedContent[event.MessageID]
+			if !legalHoldAccess {
+				view.Content = ""
+			}
 		case EventMessageRedacted:
 			view.Redacted = true
-			view.Content = ""
+			view.Content = retainedContent[event.MessageID]
+			if !legalHoldAccess {
+				view.Content = ""
+			}
 		case EventReactionAdded, EventReactionRemoved:
 			if payload.Emoji == "" || event.ActorID == "" {
 				return nil, fmt.Errorf("reaction event requires emoji and actor")
