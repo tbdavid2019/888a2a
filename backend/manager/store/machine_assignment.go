@@ -5,12 +5,14 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
 	"time"
 
 	pkgerrors "github.com/pkg/errors"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/tbdavid2019/888a2a/backend/agent/assignment"
@@ -154,6 +156,35 @@ func (s *Store) RecordMachineAssignmentEvent(ctx context.Context, event *a2a888.
 		              full_roster_revision = EXCLUDED.full_roster_revision,
 		              updated_at = now()
 	`, machineID, nextSeq, fullRosterRev); err != nil {
+		return nil, err
+	}
+
+	// Assignment creation and its delivery intent share one transaction. A
+	// worker can therefore recover a pending assignment after a Manager crash
+	// without relying on the process-local dispatcher map.
+	var organizationID string
+	if err := tx.QueryRowContext(ctx, `
+		SELECT organization_id FROM machine WHERE resource_id = $1
+	`, machineID).Scan(&organizationID); err != nil {
+		return nil, err
+	}
+	payload, err := protojson.Marshal(event)
+	if err != nil {
+		return nil, err
+	}
+	metadata, err := json.Marshal(map[string]string{"sequence": fmt.Sprintf("%d", nextSeq)})
+	if err != nil {
+		return nil, err
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO a2a888_outbox_event (
+			event_id, organization_id, aggregate_type, aggregate_id, event_type,
+			correlation_id, idempotency_key, payload, max_attempts, available_at
+		) VALUES ($1, $2, 'machine_assignment', $3, $4, $5, $6, $7, 5, now())
+		ON CONFLICT (event_id) DO NOTHING
+	`, "machine-assignment/"+machineID+"/"+eventID, organizationID, machineID,
+		"MACHINE_ASSIGNMENT_"+eventTypeStr, eventID, "machine-assignment/"+machineID+"/"+idempKey,
+		json.RawMessage(fmt.Sprintf(`{"assignment":%s,"metadata":%s}`, payload, metadata))); err != nil {
 		return nil, err
 	}
 

@@ -42,6 +42,7 @@ This project records changes by calendar date and does not maintain release vers
 - Added the tenant-scoped connector inbox schema and idempotent external-event recording API; real webhook adapter fixtures remain an integration gate.
 - Added an idempotent outbox worker loop with claim, handler, acknowledgement, retry, and backoff behavior; multi-worker PostgreSQL crash recovery remains an integration gate.
 - Added the internal MessagePlane contract and deterministic fake-engine tests for tenant-scoped credentials, append/history cursors, deduplication, membership projection, and health.
+- Connected Machine assignment persistence to the durable outbox in the same database transaction; replay/ACK behavior remains covered by the existing reducer tests while real multi-replica recovery remains pending.
 - Loaded the persisted default Organization, Agent tenant, workspace, and Machine tenant fields into runtime models before authorization and tenant-aware object-key generation.
 - Added resource-level Organization checks for Agent, Machine, Conversation, File, Command, and Reminder IAM targets.
 - Restricted Organization membership listing to active owners and admins, and rejected unknown active-organization candidates.
