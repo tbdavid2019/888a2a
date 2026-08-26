@@ -63,6 +63,8 @@ Evidence notes (2026-08-26): 2.1 and 2.11 are proven by `buf format`, `buf lint`
 - [ ] 3.8 Implement per-Organization queue and worker limits; verify a flood from one tenant does not delay a control tenant beyond the test SLO.
 - [x] 3.9 Add dead-letter state, authorized replay and reconciliation records; verify terminal retry exhaustion is visible and replay is idempotent.
 
+Evidence notes (2026-08-26): Task 3.4 is proven by GitHub Actions run `32938870163`, where the PostgreSQL assignment replay gate passed create/update/remove durable outbox intents, ordered replay, idempotent re-submit, cumulative ACK, and post-ACK empty replay; reducer tests cover duplicate-runner prevention and reconnect full-replay hydration.
+
 ## 4. IM Message Plane and Collaboration Events
 
 - [x] 4.1 Define the internal `MessagePlane` contract for connection credentials, append, history, cursor sync, membership projection and health; verify fake-engine contract tests pass.
