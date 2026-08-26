@@ -23,27 +23,29 @@ func TestMessageCursorsResumePerDeviceAndAgent(t *testing.T) {
 	conversation, err := services.GetOrCreateDirectConversation(ctx, agent.ID, user.ID)
 	require.NoError(t, err)
 
+	created := make([]*ChatMessage, 0, 3)
 	for _, content := range []string{"one", "two", "three"} {
-		_, _, err = services.CreateChatMessageBumpVersion(ctx, &ChatMessage{
+		message, _, createErr := services.CreateChatMessageBumpVersion(ctx, &ChatMessage{
 			ConversationID: conversation.ID, PrincipalID: user.ID, Role: 1, Content: content, SenderType: SenderTypeUser,
 		})
-		require.NoError(t, err)
+		require.NoError(t, createErr)
+		created = append(created, message)
 	}
 
 	deviceA, deviceB := "browser-a", "browser-b"
-	readA, err := services.UpsertUserDeviceReadCursor(ctx, user.ID, deviceA, conversation.ID, 1)
+	readA, err := services.UpsertUserDeviceReadCursor(ctx, user.ID, deviceA, conversation.ID, created[0].RoomVersion)
 	require.NoError(t, err)
-	require.Equal(t, int64(1), readA)
+	require.Equal(t, created[0].RoomVersion, readA)
 	readB, err := services.UpsertUserDeviceReadCursor(ctx, user.ID, deviceB, conversation.ID, 0)
 	require.NoError(t, err)
 	require.Equal(t, int64(0), readB)
 	readA, err = services.UpsertUserDeviceReadCursor(ctx, user.ID, deviceA, conversation.ID, 0)
 	require.NoError(t, err)
-	require.Equal(t, int64(1), readA, "a stale device acknowledgement must not rewind")
+	require.Equal(t, created[0].RoomVersion, readA, "a stale device acknowledgement must not rewind")
 	readA, found, err := services.GetUserDeviceReadCursor(ctx, user.ID, deviceA, conversation.ID)
 	require.NoError(t, err)
 	require.True(t, found)
-	require.Equal(t, int64(1), readA)
+	require.Equal(t, created[0].RoomVersion, readA)
 	readB, found, err = services.GetUserDeviceReadCursor(ctx, user.ID, deviceB, conversation.ID)
 	require.NoError(t, err)
 	require.True(t, found)

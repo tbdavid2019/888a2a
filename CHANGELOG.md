@@ -62,6 +62,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Fixed
 
+- Corrected the PostgreSQL message cursor integration fixture to acknowledge the first persisted room sequence instead of assuming conversations start at sequence zero.
 - Fixed new conversation IAM policy writes so the policy transaction carries the active Organization and satisfies tenant foreign-key isolation.
 - Fixed PostgreSQL type inference for live Organization group permission checks so workspace-scoped grants resolve correctly on PostgreSQL 16.
 - Fixed a Pi session lifecycle race where a prompt response arriving during process exit could re-mark a reaped session as warm; added regression coverage for cold restart state.
