@@ -45,4 +45,4 @@
 - **Dependencies**：官方 A2A Go SDK；IM engine 與各通路官方 SDK／protocol 需經 spike、license、版本與 production-readiness 審查後決定。
 - **Compatibility**：需要單一 workspace 資料遷移、舊 API compatibility window、feature flags 與 staged rollout；不得直接破壞既有部署資料。
 - **Product identity**：所有新增介面與 UI 只使用 `888a2a`；legacy identifiers 只可出現在受控 migration mapping、license attribution 與移除驗證中。
-- **Prior plan**：`docs/plan/888a2a-provider-gateway-fork-sdd.md` 的多租戶與 A2A 階段排序被本 proposal 取代；可重用其中的 Provider Gateway、安全與 upstream/downstream 策略。
+- **Prior plan**：早期 Provider Gateway SDD 的多租戶與 A2A 階段排序被本 proposal 取代；可重用其中的 Provider Gateway、安全與 upstream/downstream 策略。

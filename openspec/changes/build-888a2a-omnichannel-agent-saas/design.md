@@ -6,7 +6,7 @@ The current implementation assumes one workspace and one Manager process for sev
 
 External channel semantics are not interchangeable. Slack, Teams, LINE, WhatsApp and Web Widget differ in authentication, event ordering, retries, replies, edits, recalls, interactive components, attachment lifetime, marketplace approval and rate limits. A2A 1.0 standardizes Agent work exchange but does not replace human IM, Organization IAM, Machine lifecycle, runtime control or tool access.
 
-The earlier `docs/plan/888a2a-provider-gateway-fork-sdd.md` remains useful for the downstream/upstream and runtime-provider analysis, but its optional late A2A/multi-tenant sequencing is superseded by this design.
+The earlier Provider Gateway SDD analysis remains useful for downstream/upstream and runtime-provider strategies, but its optional late A2A/multi-tenant sequencing is superseded by this design.
 
 ## Goals / Non-Goals
 

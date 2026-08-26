@@ -5,6 +5,16 @@ All notable changes to 888a2a are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project uses [Semantic Versioning](https://semver.org/) for releases.
 
+## [2026-08-26]
+
+### Changed
+
+- Synchronized OpenSpec main specifications (`a2a-agent-network`, `agent-network-safety`, `agent-runtime-foundation`, `product-identity-migration`) and archived completed change `build-888a2a-agent-network-foundation`.
+
+### Removed
+
+- Removed obsolete upstream design documents in `docs/plan/` in favor of OpenSpec specifications and `docs/guide/` operator documentation.
+
 ## [2026-08-25]
 
 ### Added
