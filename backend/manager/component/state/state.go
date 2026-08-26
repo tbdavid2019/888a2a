@@ -41,5 +41,8 @@ func NewWithStore(stores *store.Store) (*State, error) {
 		return nil, err
 	}
 	s.HeartbeatBuffer = NewHeartbeatBuffer(stores, 0)
+	if stores != nil {
+		s.NonceManager.SetReplayChecker(stores.ConsumeNonce)
+	}
 	return s, nil
 }

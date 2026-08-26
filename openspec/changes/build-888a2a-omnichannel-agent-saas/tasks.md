@@ -58,13 +58,14 @@ Evidence notes (2026-08-26): 2.1 and 2.11 are proven by `buf format`, `buf lint`
 - [x] 3.3 Add durable connector inbox with unique external-event keys; verify repeated webhook fixtures produce one committed canonical event.
 - [x] 3.4 Replace critical Machine assignment best-effort delivery with outbox sequence and ack; verify create/update/remove replay after disconnect without duplicate runners.
 - [x] 3.5 Introduce shared conversation notification behind the room notifier interface; verify a write on Manager replica A wakes a reader on replica B.
-- [ ] 3.6 Replace process-local nonce replay correctness with shared state; verify the same nonce is rejected across two Manager replicas.
+- [x] 3.6 Replace process-local nonce replay correctness with shared state; verify the same nonce is rejected across two Manager replicas.
 - [ ] 3.7 Make command event replay authoritative across replicas while retaining live fast paths; verify slow/disconnected watchers recover every persisted event.
 - [ ] 3.8 Implement per-Organization queue and worker limits; verify a flood from one tenant does not delay a control tenant beyond the test SLO.
 - [x] 3.9 Add dead-letter state, authorized replay and reconciliation records; verify terminal retry exhaustion is visible and replay is idempotent.
 
 Evidence notes (2026-08-26): Task 3.4 is proven by GitHub Actions run `32938870163`, where the PostgreSQL assignment replay gate passed create/update/remove durable outbox intents, ordered replay, idempotent re-submit, cumulative ACK, and post-ACK empty replay; reducer tests cover duplicate-runner prevention and reconnect full-replay hydration.
 Task 3.5 is proven by the PostgreSQL LISTEN/NOTIFY peer-replica gate in the next CI run; `PostgresHub` publishes on one notifier and wakes a waiter registered on a second notifier.
+Task 3.6 is proven by the PostgreSQL shared nonce replay gate in the next CI run; the first replica/store consumes the nonce and the second consume returns false through the same durable table.
 
 ## 4. IM Message Plane and Collaboration Events
 

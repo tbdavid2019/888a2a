@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -39,7 +40,15 @@ type NonceManager struct {
 	replayMu  sync.Mutex
 	replay    map[string]int64 // key -> expiry unix nano
 	replayTTL time.Duration
+
+	replayCheckerMu sync.RWMutex
+	replayChecker   NonceReplayChecker
 }
+
+// NonceReplayChecker atomically records a nonce and returns true only for its
+// first use. Production managers provide a PostgreSQL-backed implementation so
+// two replicas cannot both accept the same heartbeat nonce.
+type NonceReplayChecker func(context.Context, string, string, time.Time) (bool, error)
 
 func NewNonceManager() *NonceManager {
 	return &NonceManager{
@@ -79,13 +88,29 @@ func (nm *NonceManager) GenerateNonce(agentResourceID string, sessionID string) 
 }
 
 func (nm *NonceManager) VerifyNonce(nonce string, agentResourceID string, sessionID string) bool {
+	ok, _ := nm.VerifyNonceContext(context.Background(), nonce, agentResourceID, sessionID)
+	return ok
+}
+
+// SetReplayChecker installs the shared replay store used by
+// VerifyNonceContext. Passing nil restores the in-memory fallback used by
+// isolated unit tests.
+func (nm *NonceManager) SetReplayChecker(checker NonceReplayChecker) {
+	nm.replayCheckerMu.Lock()
+	nm.replayChecker = checker
+	nm.replayCheckerMu.Unlock()
+}
+
+// VerifyNonceContext verifies the nonce signature and atomically consumes it
+// through the shared replay checker when one is configured.
+func (nm *NonceManager) VerifyNonceContext(ctx context.Context, nonce string, agentResourceID string, sessionID string) (bool, error) {
 	if nonce == "" {
-		return false
+		return false, nil
 	}
 
 	parts := splitNonce(nonce)
 	if len(parts) != 3 {
-		return false
+		return false, nil
 	}
 
 	randomB64 := parts[0]
@@ -94,12 +119,12 @@ func (nm *NonceManager) VerifyNonce(nonce string, agentResourceID string, sessio
 
 	var timestampSec int64
 	if _, err := fmt.Sscanf(timestampStr, "%d", &timestampSec); err != nil {
-		return false
+		return false, nil
 	}
 
 	nowSec := time.Now().Unix()
 	if !nonceWithinWindow(timestampSec, nowSec) {
-		return false
+		return false, nil
 	}
 
 	data := fmt.Sprintf("%s:%s:%s:%d", agentResourceID, sessionID, randomB64, timestampSec)
@@ -108,7 +133,7 @@ func (nm *NonceManager) VerifyNonce(nonce string, agentResourceID string, sessio
 	key := nm.secrets[agentResourceID]
 	nm.mu.RUnlock()
 	if key == nil {
-		return false
+		return false, nil
 	}
 
 	mac := hmac.New(sha256.New, key)
@@ -117,18 +142,24 @@ func (nm *NonceManager) VerifyNonce(nonce string, agentResourceID string, sessio
 
 	actualSig, err := hex.DecodeString(signatureHex)
 	if err != nil {
-		return false
+		return false, nil
 	}
 
 	if !hmac.Equal(actualSig, expectedSig) {
-		return false
+		return false, nil
 	}
 
 	// Signature valid and within window: enforce one-time use. A captured nonce
 	// replayed within the window is rejected, and the nonce is recorded so a
 	// second replay is also rejected. The check+write is atomic under replayMu
 	// so two concurrent replays of the same nonce cannot both pass.
-	return nm.recordAndCheckReplay(agentResourceID, nonce)
+	nm.replayCheckerMu.RLock()
+	checker := nm.replayChecker
+	nm.replayCheckerMu.RUnlock()
+	if checker != nil {
+		return checker(ctx, agentResourceID, nonce, time.Now().Add(nm.replayTTL))
+	}
+	return nm.recordAndCheckReplay(agentResourceID, nonce), nil
 }
 
 // recordAndCheckReplay returns true if the nonce is fresh (first use) and false

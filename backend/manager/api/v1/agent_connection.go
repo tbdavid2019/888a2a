@@ -261,7 +261,11 @@ func (s *AgentService) AgentHeartbeat(ctx context.Context, req *connect.Request[
 			return nil, connect.NewError(connect.CodePermissionDenied, errors.New("session does not belong to this agent"))
 		}
 
-		if !s.stateCfg.NonceManager.VerifyNonce(req.Msg.PreviousNonce, agent.ResourceID, req.Msg.SessionId) {
+		validNonce, nonceErr := s.stateCfg.NonceManager.VerifyNonceContext(ctx, req.Msg.PreviousNonce, agent.ResourceID, req.Msg.SessionId)
+		if nonceErr != nil {
+			return nil, connect.NewError(connect.CodeInternal, errors.Wrap(nonceErr, "failed to verify nonce replay state"))
+		}
+		if !validNonce {
 			if req.Msg.PreviousNonce != "" {
 				return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("invalid nonce"))
 			}

@@ -1,11 +1,31 @@
 package state
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 )
+
+func TestVerifyNonceContextUsesSharedReplayChecker(t *testing.T) {
+	nm := NewNonceManager()
+	var calls int
+	nm.SetReplayChecker(func(_ context.Context, _, _ string, _ time.Time) (bool, error) {
+		calls++
+		return calls == 1, nil
+	})
+
+	nonce := nm.GenerateNonce("agents/shared", "session-1")
+	ok, err := nm.VerifyNonceContext(context.Background(), nonce, "agents/shared", "session-1")
+	if err != nil || !ok {
+		t.Fatalf("first shared nonce verification = %v, %v; want true, nil", ok, err)
+	}
+	ok, err = nm.VerifyNonceContext(context.Background(), nonce, "agents/shared", "session-1")
+	if err != nil || ok {
+		t.Fatalf("replayed shared nonce verification = %v, %v; want false, nil", ok, err)
+	}
+}
 
 // fastTTLNonceManager builds a NonceManager with a tiny replay TTL so
 // expiry/eviction tests do not sleep for the real 45s window.
