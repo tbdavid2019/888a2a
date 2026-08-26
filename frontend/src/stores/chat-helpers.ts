@@ -72,13 +72,11 @@ export function senderKeyForMessage(msg: ChatMessageUI): string {
   return `a:${msg.agentId ?? msg.senderName ?? ""}`;
 }
 
-// appendNewMessages appends the messages from `delta` whose id is not already
-// present in `prev`, preserving delta order. It is the incremental companion to
-// the cursor-based watcher: each poll fetches only messages newer than the last
-// seen room_version (a small delta), so reconciliation is a dedup-and-append
-// rather than a full-list re-merge. Returns the exact same reference as `prev`
-// when nothing was added, so the store setter (and its subscribers) can bail out
-// entirely and polling does not churn the array identity.
+// appendNewMessages merges messages from `delta` by identity and keeps the
+// authoritative room_version order. A reconnect or replica can deliver a
+// valid delta out of order, so appending blindly would render the conversation
+// in transport order instead of sequence order. Returns the exact same
+// reference as `prev` when nothing was added.
 export function appendNewMessages(
   prev: ChatMessageUI[],
   delta: ChatMessageUI[]
@@ -87,5 +85,12 @@ export function appendNewMessages(
   const seen = new Set(prev.map((m) => m.id));
   const fresh = delta.filter((m) => !seen.has(m.id));
   if (fresh.length === 0) return prev;
-  return [...prev, ...fresh];
+  return [...prev, ...fresh].sort((a, b) => {
+    const aVersion = a.roomVersion;
+    const bVersion = b.roomVersion;
+    if (aVersion === undefined || bVersion === undefined) return 0;
+    if (aVersion < bVersion) return -1;
+    if (aVersion > bVersion) return 1;
+    return 0;
+  });
 }

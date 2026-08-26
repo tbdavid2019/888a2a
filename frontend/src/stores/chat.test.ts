@@ -77,6 +77,18 @@ describe("appendNewMessages", () => {
     expect(merged[1].id).toBe("m2");
   });
 
+  it("orders an out-of-order delta by its durable room version", () => {
+    const prev = [toUiMessage(buildMessage({ name: "m1" }))];
+    const older = toUiMessage(buildMessage({ name: "m2" }));
+    const newer = toUiMessage(buildMessage({ name: "m3" }));
+    older.roomVersion = 2n;
+    newer.roomVersion = 3n;
+
+    const merged = appendNewMessages(prev, [newer, older]);
+
+    expect(merged.map((m) => m.id)).toEqual(["m1", "m2", "m3"]);
+  });
+
   it("returns the same reference when nothing was added", () => {
     const prev = [toUiMessage(buildMessage({ name: "m1" }))];
     // Empty delta — a poll that found no new messages.

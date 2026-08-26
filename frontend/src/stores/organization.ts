@@ -7,12 +7,14 @@ import type {
 } from "@/types/proto-es/a2a888/organization_pb";
 import {
   ListOrganizationsRequestSchema,
+  ListWorkspacesRequestSchema,
   SwitchOrganizationRequestSchema,
 } from "@/types/proto-es/a2a888/organization_pb";
 import type { AppSliceCreator, OrganizationSlice } from "./types";
 
 export const createOrganizationSlice: AppSliceCreator<OrganizationSlice> = (
-  set
+  set,
+  get
 ) => ({
   currentOrganizationId: "default",
   organizations: [],
@@ -40,12 +42,29 @@ export const createOrganizationSlice: AppSliceCreator<OrganizationSlice> = (
       const res = await organizationServiceClient.listOrganizations(
         create(ListOrganizationsRequestSchema, {})
       );
+      const organizationId = res.activeOrganizationId || "default";
+      const workspaceResponse = await organizationServiceClient.listWorkspaces(
+        create(ListWorkspacesRequestSchema, { organizationId })
+      );
       set({
         organizations: res.organizations,
-        currentOrganizationId: res.activeOrganizationId || "default",
+        currentOrganizationId: organizationId,
+        workspaces: workspaceResponse.workspaces,
       });
     } catch {
       // Graceful fallback for non-auth or single-tenant mode
+    }
+  },
+
+  fetchWorkspaces: async (organizationId) => {
+    const id = organizationId || "default";
+    try {
+      const res = await organizationServiceClient.listWorkspaces(
+        create(ListWorkspacesRequestSchema, { organizationId: id })
+      );
+      set({ workspaces: res.workspaces });
+    } catch {
+      set({ workspaces: [] });
     }
   },
 
@@ -68,6 +87,7 @@ export const createOrganizationSlice: AppSliceCreator<OrganizationSlice> = (
         workspaces: [],
         memberships: [],
       });
+      await get().fetchWorkspaces(orgId);
     }
   },
 });

@@ -17,6 +17,7 @@ export interface OrgSwitcherProps {
 export function OrgSwitcher({ className }: OrgSwitcherProps) {
   const currentOrgId = useAppStore((s) => s.currentOrganizationId);
   const organizations = useAppStore((s) => s.organizations);
+  const workspaces = useAppStore((s) => s.workspaces);
   const fetchOrganizations = useAppStore((s) => s.fetchOrganizations);
   const switchOrganization = useAppStore((s) => s.switchOrganization);
 
@@ -80,6 +81,18 @@ export function OrgSwitcher({ className }: OrgSwitcherProps) {
           ))}
         </SelectContent>
       </Select>
+
+      {workspaces.length > 0 && (
+        <span
+          className="hidden max-w-[180px] truncate text-xs text-control-light md:inline"
+          data-testid="organization-workspaces"
+          title={workspaces.map((workspace) => workspace.name).join(", ")}
+        >
+          {workspaces.length === 1
+            ? workspaces[0].name
+            : `${workspaces.length} workspaces`}
+        </span>
+      )}
 
       {isSuspended && (
         <Badge

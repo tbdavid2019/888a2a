@@ -9,6 +9,8 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Added
 
+- Added sequence-aware Native Web message merging so reconnects and replica-delivered out-of-order deltas render by durable room version.
+- Added organization-scoped workspace loading to the web store and organization switcher so tenant workspace context is refreshed after every switch.
 - Added a durable per-Organization collaboration rollout selector with LEGACY, DUAL, and MESSAGE_PLANE modes, including a fail-safe legacy fallback and native MessagePlane read/write adapter.
 - Added migration `0038##collaboration-rollout.sql` and a cumulative fresh-install schema entry for reversible native chat cutover.
 - Added a live PostgreSQL rollout gate covering independent tenant switching and rollback between collaboration paths.

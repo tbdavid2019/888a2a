@@ -827,6 +827,7 @@ export interface OrganizationSlice {
   setWorkspaces: (workspaces: Workspace[]) => void;
   setMemberships: (memberships: OrganizationMembership[]) => void;
   fetchOrganizations: () => Promise<void>;
+  fetchWorkspaces: (organizationId?: string) => Promise<void>;
   switchOrganization: (orgId: string) => Promise<void>;
 }
 
