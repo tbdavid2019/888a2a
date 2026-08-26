@@ -84,6 +84,8 @@ Tasks 4.3 and 4.4 are proven by GitHub Actions run `32943879682`, where the Post
 - [ ] 4.9 Add Message Plane reconciliation for channel membership and conversation projection; verify drift is repaired or quarantined with an audit event.
 - [ ] 4.10 Cut native chat reads/writes to the new Collaboration API behind an Organization feature flag; verify per-tenant rollback to the old read path remains possible.
 
+Evidence notes (2026-08-26): Task 4.2 has an internal-only `WuKongIMAdapter` with private-host, redirect, tenant, cursor, and endpoint-boundary checks plus an opt-in `TestWuKongIMExternalReadinessGate`. The real-service gate remains pending until `A2A888_WUKONGIM_URL` points to a controlled WuKongIM deployment; ordering, reconnect, offline-sync, failover, backup, and restore evidence must still be collected before checking 4.2.
+
 ## 5. Native Web Collaboration and Web Widget
 
 - [ ] 5.1 Update Native Web conversation state for sequence-based append-only events; verify reload, backward pagination, edit, recall and reaction UI tests.
