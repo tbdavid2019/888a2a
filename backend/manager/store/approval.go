@@ -110,7 +110,7 @@ func nonNilStrings(values []string) []string {
 }
 
 func (s *ApprovalStore) CreateRequest(ctx context.Context, request *a2a888.ApprovalRequest) error {
-	if request == nil || request.OrganizationId == "" || request.Name == "" || request.PolicyName == "" || request.PolicyVersion == "" || request.RequesterPrincipalId == "" || request.Action == nil {
+	if request == nil || request.OrganizationId == "" || request.Name == "" || request.PolicyName == "" || request.PolicyVersion == "" || request.RequesterPrincipalId == "" || request.Action == nil || request.RequiredApprovals == 0 {
 		return errors.New("approval request identity, policy, requester, and action are required")
 	}
 	if request.ExpiresAt == nil || !request.ExpiresAt.IsValid() || !request.ExpiresAt.AsTime().After(time.Now()) {
