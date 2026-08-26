@@ -11,6 +11,7 @@ This project records changes by calendar date and does not maintain release vers
 
 - Added message moderation policy evaluation for bounded edit/recall, moderator-only redaction, tenant checks, legal-hold projection, and audit-safe mutation decisions.
 - Added explicit presence, typing, delivery-receipt, and read-receipt capability contracts with fail-closed unsupported results and CI coverage.
+- Recorded GitHub Actions evidence for OpenSpec tasks 4.7 and 4.8 after moderation/legal-hold and capability contract gates passed.
 - Added transactional MessagePlane dual projection rows for text, attachments, mentions, thread roots, reactions, and tenant-bound projection cursors, with a PostgreSQL parity gate.
 - Recorded GitHub Actions evidence for OpenSpec task 4.5 after the PostgreSQL MessagePlane dual projection gate passed.
 - Recorded GitHub Actions evidence for OpenSpec task 4.6 after the PostgreSQL message cursor replay gate passed per-device and per-Agent recovery checks.
