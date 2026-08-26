@@ -37,10 +37,10 @@ Agent Network gate: 12 Agents across two Machines SHALL discover peers, exchange
 
 ## 2. Organization and Tenant Foundation
 
-- [ ] 2.1 Define Organization, workspace, membership and principal resource contracts in Proto; verify `buf format`, `buf lint` and `buf generate` pass.
-- [ ] 2.2 Add Organization, workspace and membership store schema as additive migrations; verify fresh install and upgrade migration tests pass.
-- [ ] 2.3 Create a default Organization migration for existing deployments; verify every existing principal, Agent, Machine and conversation receives a valid tenant owner.
-- [ ] 2.4 Add `organization_id` and applicable `workspace_id` to collaboration resources in bounded migration batches; verify foreign keys, uniqueness and tenant indexes through migration tests.
+- [x] 2.1 Define Organization, workspace, membership and principal resource contracts in Proto; verify `buf format`, `buf lint` and `buf generate` pass.
+- [x] 2.2 Add Organization, workspace and membership store schema as additive migrations; verify fresh install and upgrade migration tests pass.
+- [x] 2.3 Create a default Organization migration for existing deployments; verify every existing principal, Agent, Machine and conversation receives a valid tenant owner.
+- [x] 2.4 Add `organization_id` and applicable `workspace_id` to collaboration resources in bounded migration batches; verify foreign keys, uniqueness and tenant indexes through migration tests.
 - [ ] 2.5 Implement active-Organization selection for authenticated humans; verify one user can switch between two memberships without permission or cache leakage.
 - [ ] 2.6 Refactor human, Agent and service-account principals into distinct tenant-scoped identities; verify requester and executor are both present in delegated-action audit tests.
 - [ ] 2.7 Implement Organization roles, groups and workspace bindings; verify group grants, suspension and role removal update effective permissions.

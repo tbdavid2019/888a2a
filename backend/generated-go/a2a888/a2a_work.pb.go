@@ -1219,7 +1219,7 @@ const file_a2a888_a2a_work_proto_rawDesc = "" +
 	"\n" +
 	"\x06FAILED\x10\x06\x12\f\n" +
 	"\bCANCELED\x10\a\x12\f\n" +
-	"\bREJECTED\x10\bB;Z9github.com/tbdavid2019/888a2a/backend/generated-go/a2a888b\x06proto3"
+	"\bREJECTED\x10\bB5Z3github.com/Ranxy/laelia/backend/generated-go/a2a888b\x06proto3"
 
 var (
 	file_a2a888_a2a_work_proto_rawDescOnce sync.Once

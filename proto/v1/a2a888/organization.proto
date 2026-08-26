@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package a2a888.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/Ranxy/laelia/backend/generated-go/a2a888";
+
+// OrganizationState represents the operational lifecycle state of an Organization.
+enum OrganizationState {
+  ORGANIZATION_STATE_UNSPECIFIED = 0;
+  ORGANIZATION_STATE_ACTIVE = 1;
+  ORGANIZATION_STATE_SUSPENDED = 2;
+  ORGANIZATION_STATE_CLOSED = 3;
+}
+
+// OrganizationRole defines the role level within an Organization.
+enum OrganizationRole {
+  ORGANIZATION_ROLE_UNSPECIFIED = 0;
+  ORGANIZATION_ROLE_OWNER = 1;
+  ORGANIZATION_ROLE_ADMIN = 2;
+  ORGANIZATION_ROLE_MEMBER = 3;
+  ORGANIZATION_ROLE_GUEST = 4;
+}
+
+// MembershipState represents whether a member is active, suspended, or pending invitation.
+enum MembershipState {
+  MEMBERSHIP_STATE_UNSPECIFIED = 0;
+  MEMBERSHIP_STATE_ACTIVE = 1;
+  MEMBERSHIP_STATE_SUSPENDED = 2;
+  MEMBERSHIP_STATE_INVITED = 3;
+}
+
+// TenantPrincipalType identifies the kind of principal in tenant-scoped operations.
+enum TenantPrincipalType {
+  TENANT_PRINCIPAL_TYPE_UNSPECIFIED = 0;
+  TENANT_PRINCIPAL_TYPE_END_USER = 1;
+  TENANT_PRINCIPAL_TYPE_SERVICE_ACCOUNT = 2;
+  TENANT_PRINCIPAL_TYPE_SYSTEM_BOT = 3;
+  TENANT_PRINCIPAL_TYPE_AGENT = 4;
+}
+
+// Organization represents an Organization tenant boundary.
+message Organization {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  OrganizationState state = 4;
+  map<string, string> metadata = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+// Workspace represents a collaborative space within an Organization.
+message Workspace {
+  string id = 1;
+  string organization_id = 2;
+  string name = 3;
+  string slug = 4;
+  bool is_default = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+// OrganizationMembership records a principal's membership in an Organization.
+message OrganizationMembership {
+  string organization_id = 1;
+  string principal_id = 2;
+  OrganizationRole role = 3;
+  MembershipState state = 4;
+  repeated string workspace_ids = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+// TenantPrincipal encapsulates the active tenant-scoped identity of a caller.
+message TenantPrincipal {
+  string principal_id = 1;
+  string organization_id = 2;
+  TenantPrincipalType principal_type = 3;
+  string display_name = 4;
+  string handle = 5;
+  repeated string effective_roles = 6;
+  repeated string effective_permissions = 7;
+  bool is_suspended = 8;
+  string current_workspace_id = 9;
+}

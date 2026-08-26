@@ -522,7 +522,7 @@ const file_a2a888_machine_assignment_proto_rawDesc = "" +
 	"\x06CREATE\x10\x01\x12\x11\n" +
 	"\rCONFIG_UPDATE\x10\x02\x12\n" +
 	"\n" +
-	"\x06REMOVE\x10\x03B;Z9github.com/tbdavid2019/888a2a/backend/generated-go/a2a888b\x06proto3"
+	"\x06REMOVE\x10\x03B5Z3github.com/Ranxy/laelia/backend/generated-go/a2a888b\x06proto3"
 
 var (
 	file_a2a888_machine_assignment_proto_rawDescOnce sync.Once

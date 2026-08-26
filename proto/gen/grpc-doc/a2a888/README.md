@@ -50,6 +50,18 @@
   
     - [AssignmentEventType](#a2a888-v1-AssignmentEventType)
   
+- [a2a888/organization.proto](#a2a888_organization-proto)
+    - [Organization](#a2a888-v1-Organization)
+    - [Organization.MetadataEntry](#a2a888-v1-Organization-MetadataEntry)
+    - [OrganizationMembership](#a2a888-v1-OrganizationMembership)
+    - [TenantPrincipal](#a2a888-v1-TenantPrincipal)
+    - [Workspace](#a2a888-v1-Workspace)
+  
+    - [MembershipState](#a2a888-v1-MembershipState)
+    - [OrganizationRole](#a2a888-v1-OrganizationRole)
+    - [OrganizationState](#a2a888-v1-OrganizationState)
+    - [TenantPrincipalType](#a2a888-v1-TenantPrincipalType)
+  
 - [Scalar Value Types](#scalar-value-types)
 
 
@@ -864,6 +876,182 @@ assignment event.
 | CREATE | 1 |  |
 | CONFIG_UPDATE | 2 |  |
 | REMOVE | 3 |  |
+
+
+ 
+
+ 
+
+ 
+
+
+
+<a name="a2a888_organization-proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## a2a888/organization.proto
+
+
+
+<a name="a2a888-v1-Organization"></a>
+
+### Organization
+Organization represents an Organization tenant boundary.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| id | [string](#string) |  |  |
+| name | [string](#string) |  |  |
+| slug | [string](#string) |  |  |
+| state | [OrganizationState](#a2a888-v1-OrganizationState) |  |  |
+| metadata | [Organization.MetadataEntry](#a2a888-v1-Organization-MetadataEntry) | repeated |  |
+| created_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| updated_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-Organization-MetadataEntry"></a>
+
+### Organization.MetadataEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-OrganizationMembership"></a>
+
+### OrganizationMembership
+OrganizationMembership records a principal&#39;s membership in an Organization.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| organization_id | [string](#string) |  |  |
+| principal_id | [string](#string) |  |  |
+| role | [OrganizationRole](#a2a888-v1-OrganizationRole) |  |  |
+| state | [MembershipState](#a2a888-v1-MembershipState) |  |  |
+| workspace_ids | [string](#string) | repeated |  |
+| created_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| updated_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-TenantPrincipal"></a>
+
+### TenantPrincipal
+TenantPrincipal encapsulates the active tenant-scoped identity of a caller.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| principal_id | [string](#string) |  |  |
+| organization_id | [string](#string) |  |  |
+| principal_type | [TenantPrincipalType](#a2a888-v1-TenantPrincipalType) |  |  |
+| display_name | [string](#string) |  |  |
+| handle | [string](#string) |  |  |
+| effective_roles | [string](#string) | repeated |  |
+| effective_permissions | [string](#string) | repeated |  |
+| is_suspended | [bool](#bool) |  |  |
+| current_workspace_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-Workspace"></a>
+
+### Workspace
+Workspace represents a collaborative space within an Organization.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| id | [string](#string) |  |  |
+| organization_id | [string](#string) |  |  |
+| name | [string](#string) |  |  |
+| slug | [string](#string) |  |  |
+| is_default | [bool](#bool) |  |  |
+| created_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| updated_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+
+
+
+
+
+ 
+
+
+<a name="a2a888-v1-MembershipState"></a>
+
+### MembershipState
+MembershipState represents whether a member is active, suspended, or pending invitation.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| MEMBERSHIP_STATE_UNSPECIFIED | 0 |  |
+| MEMBERSHIP_STATE_ACTIVE | 1 |  |
+| MEMBERSHIP_STATE_SUSPENDED | 2 |  |
+| MEMBERSHIP_STATE_INVITED | 3 |  |
+
+
+
+<a name="a2a888-v1-OrganizationRole"></a>
+
+### OrganizationRole
+OrganizationRole defines the role level within an Organization.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| ORGANIZATION_ROLE_UNSPECIFIED | 0 |  |
+| ORGANIZATION_ROLE_OWNER | 1 |  |
+| ORGANIZATION_ROLE_ADMIN | 2 |  |
+| ORGANIZATION_ROLE_MEMBER | 3 |  |
+| ORGANIZATION_ROLE_GUEST | 4 |  |
+
+
+
+<a name="a2a888-v1-OrganizationState"></a>
+
+### OrganizationState
+OrganizationState represents the operational lifecycle state of an Organization.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| ORGANIZATION_STATE_UNSPECIFIED | 0 |  |
+| ORGANIZATION_STATE_ACTIVE | 1 |  |
+| ORGANIZATION_STATE_SUSPENDED | 2 |  |
+| ORGANIZATION_STATE_CLOSED | 3 |  |
+
+
+
+<a name="a2a888-v1-TenantPrincipalType"></a>
+
+### TenantPrincipalType
+TenantPrincipalType identifies the kind of principal in tenant-scoped operations.
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| TENANT_PRINCIPAL_TYPE_UNSPECIFIED | 0 |  |
+| TENANT_PRINCIPAL_TYPE_END_USER | 1 |  |
+| TENANT_PRINCIPAL_TYPE_SERVICE_ACCOUNT | 2 |  |
+| TENANT_PRINCIPAL_TYPE_SYSTEM_BOT | 3 |  |
+| TENANT_PRINCIPAL_TYPE_AGENT | 4 |  |
 
 
  

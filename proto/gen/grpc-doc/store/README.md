@@ -12,22 +12,22 @@
     - [AgentModelOption](#laelia-store-AgentModelOption)
     - [AgentProviderInfo](#laelia-store-AgentProviderInfo)
     - [AgentStatus](#laelia-store-AgentStatus)
-
+  
     - [AgentStatus.ConnectionState](#laelia-store-AgentStatus-ConnectionState)
     - [AgentTokenState](#laelia-store-AgentTokenState)
     - [AgentTokenType](#laelia-store-AgentTokenType)
-
+  
 - [store/common.proto](#store_common-proto)
     - [PageToken](#laelia-store-PageToken)
     - [Position](#laelia-store-Position)
     - [Range](#laelia-store-Range)
-
+  
 - [store/group.proto](#store_group-proto)
     - [GroupMember](#laelia-store-GroupMember)
     - [GroupPayload](#laelia-store-GroupPayload)
-
+  
     - [GroupMember.Role](#laelia-store-GroupMember-Role)
-
+  
 - [store/idp.proto](#store_idp-proto)
     - [FieldMapping](#laelia-store-FieldMapping)
     - [IdentityProviderConfig](#laelia-store-IdentityProviderConfig)
@@ -35,21 +35,21 @@
     - [LDAPIdentityProviderConfig](#laelia-store-LDAPIdentityProviderConfig)
     - [OAuth2IdentityProviderConfig](#laelia-store-OAuth2IdentityProviderConfig)
     - [OIDCIdentityProviderConfig](#laelia-store-OIDCIdentityProviderConfig)
-
+  
     - [IdentityProviderType](#laelia-store-IdentityProviderType)
     - [LDAPIdentityProviderConfig.SecurityProtocol](#laelia-store-LDAPIdentityProviderConfig-SecurityProtocol)
     - [OAuth2AuthStyle](#laelia-store-OAuth2AuthStyle)
-
+  
 - [store/machine.proto](#store_machine-proto)
     - [MachineInfo](#laelia-store-MachineInfo)
     - [MachineInfo.LabelsEntry](#laelia-store-MachineInfo-LabelsEntry)
     - [MachineSession](#laelia-store-MachineSession)
     - [MachineStatus](#laelia-store-MachineStatus)
-
+  
     - [MachineStatus.ConnectionState](#laelia-store-MachineStatus-ConnectionState)
     - [MachineTokenState](#laelia-store-MachineTokenState)
     - [MachineTokenType](#laelia-store-MachineTokenType)
-
+  
 - [store/policy.proto](#store_policy-proto)
     - [Binding](#laelia-store-Binding)
     - [EnvironmentTierPolicy](#laelia-store-EnvironmentTierPolicy)
@@ -57,14 +57,14 @@
     - [Policy](#laelia-store-Policy)
     - [TagPolicy](#laelia-store-TagPolicy)
     - [TagPolicy.TagsEntry](#laelia-store-TagPolicy-TagsEntry)
-
+  
     - [EnvironmentTierPolicy.EnvironmentTier](#laelia-store-EnvironmentTierPolicy-EnvironmentTier)
     - [Policy.Resource](#laelia-store-Policy-Resource)
     - [Policy.Type](#laelia-store-Policy-Type)
-
+  
 - [store/role.proto](#store_role-proto)
     - [RolePermissions](#laelia-store-RolePermissions)
-
+  
 - [store/setting.proto](#store_setting-proto)
     - [AgentSecuritySetting](#laelia-store-AgentSecuritySetting)
     - [EnvironmentSetting](#laelia-store-EnvironmentSetting)
@@ -78,18 +78,18 @@
     - [UserMcpConfigSetting](#laelia-store-UserMcpConfigSetting)
     - [WebPushSetting](#laelia-store-WebPushSetting)
     - [WorkspaceProfileSetting](#laelia-store-WorkspaceProfileSetting)
-
+  
     - [IPValidationPolicy](#laelia-store-IPValidationPolicy)
     - [McpIpPolicy.Scope](#laelia-store-McpIpPolicy-Scope)
     - [SettingName](#laelia-store-SettingName)
-
+  
 - [store/user.proto](#store_user-proto)
     - [ChatPreferences](#laelia-store-ChatPreferences)
     - [UserProfile](#laelia-store-UserProfile)
-
+  
     - [PreferredLanguage](#laelia-store-PreferredLanguage)
     - [PrincipalType](#laelia-store-PrincipalType)
-
+  
 - [Scalar Value Types](#scalar-value-types)
 
 
@@ -268,7 +268,7 @@
 
 
 
-
+ 
 
 
 <a name="laelia-store-AgentStatus-ConnectionState"></a>
@@ -313,11 +313,11 @@
 | REFRESH | 3 |  |
 
 
+ 
 
+ 
 
-
-
-
+ 
 
 
 
@@ -376,13 +376,13 @@ offset.
 
 
 
+ 
 
+ 
 
+ 
 
-
-
-
-
+ 
 
 
 
@@ -426,7 +426,7 @@ Format: users/{userUID}. |
 
 
 
-
+ 
 
 
 <a name="laelia-store-GroupMember-Role"></a>
@@ -441,11 +441,11 @@ Format: users/{userUID}. |
 | MEMBER | 2 |  |
 
 
+ 
 
+ 
 
-
-
-
+ 
 
 
 
@@ -578,7 +578,7 @@ OIDCIdentityProviderConfig is the structure for OIDC identity provider config.
 
 
 
-
+ 
 
 
 <a name="laelia-store-IdentityProviderType"></a>
@@ -620,11 +620,11 @@ OIDCIdentityProviderConfig is the structure for OIDC identity provider config.
 | IN_HEADER | 2 | IN_HEADER sends the client_id and client_password using HTTP Basic Authorization. This is an optional style described in the OAuth2 RFC 6749 section 2.3.1. |
 
 
+ 
 
+ 
 
-
-
-
+ 
 
 
 
@@ -719,7 +719,7 @@ MachineSession is the storage-layer mirror of a live machine connection
 
 
 
-
+ 
 
 
 <a name="laelia-store-MachineStatus-ConnectionState"></a>
@@ -764,11 +764,11 @@ MachineSession is the storage-layer mirror of a live machine connection
 | MACHINE_REFRESH | 3 |  |
 
 
+ 
 
+ 
 
-
-
-
+ 
 
 
 
@@ -867,7 +867,7 @@ EnvironmentTierPolicy is the tier of an environment.
 
 
 
-
+ 
 
 
 <a name="laelia-store-EnvironmentTierPolicy-EnvironmentTier"></a>
@@ -915,11 +915,11 @@ EnvironmentTierPolicy is the tier of an environment.
 | TAG | 2 |  |
 
 
+ 
 
+ 
 
-
-
-
+ 
 
 
 
@@ -944,13 +944,13 @@ EnvironmentTierPolicy is the tier of an environment.
 
 
 
+ 
 
+ 
 
+ 
 
-
-
-
-
+ 
 
 
 
@@ -1204,7 +1204,7 @@ returned by any RPC — GetPushConfig only exposes the public key.
 
 
 
-
+ 
 
 
 <a name="laelia-store-IPValidationPolicy"></a>
@@ -1258,11 +1258,11 @@ Scope selects which MCP servers the policy applies to.
 | SMTP_CONFIG | 14 |  |
 
 
+ 
 
+ 
 
-
-
-
+ 
 
 
 
@@ -1307,7 +1307,7 @@ true), so a nil pointer in the store layer signals &#34;unset&#34;.
 
 
 
-
+ 
 
 
 <a name="laelia-store-PreferredLanguage"></a>
@@ -1337,11 +1337,11 @@ PrincipalType is the type of a principal.
 | SYSTEM_BOT | 3 | SYSTEM_BOT represents the internal system bot performing operations. |
 
 
+ 
 
+ 
 
-
-
-
+ 
 
 
 

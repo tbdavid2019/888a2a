@@ -7,6 +7,12 @@ and the project uses [Semantic Versioning](https://semver.org/) for releases.
 
 ## [2026-08-26]
 
+### Added
+
+- Added multi-tenant Organization, Workspace, OrganizationMembership, and TenantPrincipal resource contracts in Protobuf (`proto/v1/a2a888/organization.proto`).
+- Added database migration `0028##organization-tenancy.sql` creating `organizations`, `workspaces`, `organization_memberships` tables and seeding default organization boundaries across existing principals, agents, machines, and conversations.
+- Added Go `OrganizationStore` (`backend/manager/store/organization.go`) providing transactional organization CRUD, slug lookup, workspace management, membership queries, and comprehensive unit tests.
+
 ### Changed
 
 - Synchronized OpenSpec main specifications (`a2a-agent-network`, `agent-network-safety`, `agent-runtime-foundation`, `product-identity-migration`) and archived completed change `build-888a2a-agent-network-foundation`.

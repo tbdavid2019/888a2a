@@ -4,7 +4,7 @@ package a2a888.v1;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888";
+option go_package = "github.com/Ranxy/laelia/backend/generated-go/a2a888";
 
 // WorkState is the durable state vocabulary used by the 888a2a work store.
 // The names follow the A2A 1.0 task lifecycle while remaining an internal

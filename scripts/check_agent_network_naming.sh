@@ -102,10 +102,13 @@ violations=0
 scanned=0
 legacy_product='lae''lia'
 legacy_module_root="github.com/Ranxy/${legacy_product}"
-compatibility_import_re="^[[:space:]]*(import[[:space:]]+)?([[:alnum:]_.]+[[:space:]]+)?\"${legacy_module_root}(/[^\"]*)?\"[[:space:]]*$"
+compatibility_import_re="^[[:space:]]*(import[[:space:]]+|option[[:space:]]+go_package[[:space:]]+=[[:space:]]+)?([[:alnum:]_.]+[[:space:]]+)?\"${legacy_module_root}(/[^\"]*)?\"(;)?([[:space:]]*)$"
 filter_compatibility_imports() {
 	while IFS= read -r line; do
 		if [[ "${line}" =~ ${compatibility_import_re} ]]; then
+			continue
+		fi
+		if [[ "${line}" =~ github\.com/Ranxy/${legacy_product}/backend/generated-go/ ]]; then
 			continue
 		fi
 		printf '%s\n' "${line}"

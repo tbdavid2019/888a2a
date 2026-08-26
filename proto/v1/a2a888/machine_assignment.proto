@@ -4,7 +4,7 @@ package a2a888.v1;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888";
+option go_package = "github.com/Ranxy/laelia/backend/generated-go/a2a888";
 
 // AssignmentEventType identifies the lifecycle operation represented by an
 // assignment event.

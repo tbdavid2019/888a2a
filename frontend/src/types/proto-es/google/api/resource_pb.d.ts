@@ -18,7 +18,7 @@
 
 import type { GenEnum, GenExtension, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
-import type { FieldOptions, MessageOptions } from "@bufbuild/protobuf/wkt";
+import type { FieldOptions, FileOptions, MessageOptions } from "@bufbuild/protobuf/wkt";
 
 /**
  * Describes the file google/api/resource.proto.
@@ -325,6 +325,14 @@ export declare const ResourceReferenceSchema: GenMessage<ResourceReference>;
  * @generated from extension: google.api.ResourceReference resource_reference = 1055;
  */
 export declare const resource_reference: GenExtension<FieldOptions, ResourceReference>;
+
+/**
+ * An annotation that describes a resource definition without a corresponding
+ * message; see [ResourceDescriptor][].
+ *
+ * @generated from extension: repeated google.api.ResourceDescriptor resource_definition = 1053;
+ */
+export declare const resource_definition: GenExtension<FileOptions, ResourceDescriptor[]>;
 
 /**
  * An annotation that describes a resource definition, see
