@@ -91,6 +91,8 @@ Tasks 4.7 and 4.8 are proven by GitHub Actions run `32948484188`, where the mode
 Task 4.9 has tenant-scoped MessagePlane reconciliation that repairs missing/divergent canonical projections and memberships while quarantining unknown memberships with audit records. Its PostgreSQL reconciliation gate is wired as `TestPostgresPlaneReconcileRepairsDriftAndQuarantinesUnknownMembership` and passed in GitHub Actions run `32949575134`.
 Task 5.3 has tenant-scoped conversation execution lifecycle records for Agent start, steer, cancel, and completion. The PostgreSQL integration gate passed in GitHub Actions run `32952769187`.
 Task 6.1 has generated ApprovalPolicy, ApprovalRequest, ApprovalDecision, and BoundAction contracts with deterministic lifecycle transition tests. The Approval contract gate passed in GitHub Actions run `32952769187`.
+Task 5.4 has Organization-scoped widget configuration, public JSON bootstrap, signed short-lived visitor sessions, tenant binding, inactive-tenant rejection, and expiry checks. The Web Widget bootstrap gate passed in GitHub Actions run `32954034076`.
+Task 6.2 has immutable organization approval policy/version/request/decision persistence, canonical intent hashing, nonce generation, expiry validation, and tenant/workspace foreign keys. The PostgreSQL approval schema gate passed in GitHub Actions run `32954034076`.
 Tasks 5.1 and 5.2 are proven by GitHub Actions run `32951477094`: Native Web sequence-aware merge, reload/backward-pagination/interaction tests, Organization/workspace state refresh, channel/member management, role gates, and mixed roster tests passed with the full frontend suite.
 Task 4.10 has a durable per-Organization LEGACY/DUAL/MESSAGE_PLANE selector, native regular-message read/write adapter, and fail-safe rollback to LEGACY. The PostgreSQL switching and rollback gate passed in GitHub Actions run `32950969518`.
 
@@ -99,7 +101,7 @@ Task 4.10 has a durable per-Organization LEGACY/DUAL/MESSAGE_PLANE selector, nat
 - [x] 5.1 Update Native Web conversation state for sequence-based append-only events; verify reload, backward pagination, edit, recall and reaction UI tests.
 - [x] 5.2 Add Organization/workspace/channel/member management views; verify role-based controls and mixed human/Agent roster tests.
 - [x] 5.3 Add Agent execution start/steer/cancel/completion events to conversations; verify an authorized human can stop a running response and observe the terminal state.
-- [ ] 5.4 Define Organization-scoped Web Widget configuration, public bootstrap and short-lived visitor session contracts; verify unknown Organization and expired session failures.
+- [x] 5.4 Define Organization-scoped Web Widget configuration, public bootstrap and short-lived visitor session contracts; verify unknown Organization and expired session failures.
 - [ ] 5.5 Implement widget origin allowlist, CSP integration and abuse rate limits; verify unauthorized origins cannot create or resume conversations.
 - [ ] 5.6 Implement widget conversation, attachment and human-handoff UI; verify a visitor can move from Bot to human without changing conversation identity.
 - [ ] 5.7 Add widget theming, localization and accessibility tests; verify supported themes meet contrast, keyboard and screen-reader acceptance checks.
@@ -107,7 +109,7 @@ Task 4.10 has a durable per-Organization LEGACY/DUAL/MESSAGE_PLANE selector, nat
 ## 6. Organization Approval, Entitlements and Usage
 
 - [x] 6.1 Define ApprovalPolicy, ApprovalRequest, ApprovalDecision and bound-action contracts; verify Proto generation and state-machine table tests.
-- [ ] 6.2 Add approval policy/version/request/decision schema; verify immutable intent hash, nonce, expiry and tenant foreign keys.
+- [x] 6.2 Add approval policy/version/request/decision schema; verify immutable intent hash, nonce, expiry and tenant foreign keys.
 - [ ] 6.3 Implement approver resolution for users, groups and roles; verify suspended members, conflicts and removed group members cannot decide.
 - [ ] 6.4 Implement quorum, deny, expiry, cancellation, supersession and escalation transitions; verify every transition is deterministic and audited.
 - [ ] 6.5 Replace ACP unconditional permission granting with policy evaluation and approval wait/resume; verify fake Provider tests cover allow, deny, timeout and changed parameters.
