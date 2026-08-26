@@ -66,7 +66,7 @@ Evidence notes (2026-08-26): 2.1 and 2.11 are proven by `buf format`, `buf lint`
 Evidence notes (2026-08-26): Task 3.4 is proven by GitHub Actions run `32938870163`, where the PostgreSQL assignment replay gate passed create/update/remove durable outbox intents, ordered replay, idempotent re-submit, cumulative ACK, and post-ACK empty replay; reducer tests cover duplicate-runner prevention and reconnect full-replay hydration.
 Task 3.5 is proven by GitHub Actions run `32939669502`, where the PostgreSQL LISTEN/NOTIFY peer-replica gate passed; `PostgresHub` published on one notifier and woke a waiter registered on a second notifier.
 Task 3.6 is proven by GitHub Actions run `32940075554`, where the PostgreSQL shared nonce replay gate passed; the first replica/store consumed the nonce and the second consume returned false through the same durable table.
-Task 3.8 is proven by the tenant queue fairness gate in the next CI run; OutboxWorker uses a bounded per-Organization queue and limiter, and the control tenant is serviced before a second flood event from the same tenant.
+Task 3.8 is proven by GitHub Actions run `32940753738`, where the tenant queue fairness gate passed; OutboxWorker uses a bounded per-Organization queue and limiter, and the control tenant is serviced before a second flood event from the same tenant.
 
 ## 4. IM Message Plane and Collaboration Events
 
