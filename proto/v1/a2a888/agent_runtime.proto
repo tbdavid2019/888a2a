@@ -4,7 +4,7 @@ package a2a888.v1;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/Ranxy/laelia/backend/generated-go/a2a888";
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888";
 
 // ProviderManifest describes how a provider runtime is identified, installed,
 // started, and authorized on a supported platform.

@@ -7,8 +7,8 @@ import (
 
 	"github.com/labstack/echo/v5"
 
-	"github.com/Ranxy/laelia/backend/common"
-	"github.com/Ranxy/laelia/backend/manager/config"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/manager/config"
 )
 
 // originValidationMiddleware rejects requests whose Origin is neither

@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // DurableTaskStoreAdapter connects the official A2A SDK taskstore.Store to the 888a2a PostgreSQL persistence.

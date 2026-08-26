@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Ranxy/laelia/backend/manager/component/iam"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/iam"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // TestAgentPermissionHelpers covers the owner short-circuit and the fail-closed

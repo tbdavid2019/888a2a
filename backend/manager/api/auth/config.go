@@ -3,7 +3,7 @@ package auth
 import (
 	"strings"
 
-	"github.com/Ranxy/laelia/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/common"
 )
 
 // IsAuthenticationAllowed returns whether the method is exempted from authentication.

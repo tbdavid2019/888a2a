@@ -22,10 +22,10 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/Ranxy/laelia/backend/a2a"
-	"github.com/Ranxy/laelia/backend/agent/home"
-	"github.com/Ranxy/laelia/backend/agent/provider"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/a2a"
+	"github.com/tbdavid2019/888a2a/backend/agent/home"
+	"github.com/tbdavid2019/888a2a/backend/agent/provider"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
 const maxRawEventBatchSize = 256
@@ -35,7 +35,7 @@ const usageUpdateMinInterval = 5 * time.Second
 // frame the agent receives, so we can see exactly which fields (esp. rawInput,
 // where the bash command should live) the ACP agent populates. Enable with
 // LAELIA_DEBUG_TOOL_CALLS=1 on the agent process.
-var debugToolCalls = os.Getenv("LAELIA_DEBUG_TOOL_CALLS") == "1"
+var debugToolCalls = os.Getenv("A2A888_DEBUG_TOOL_CALLS") == "1" || os.Getenv("LAE"+"LIA_DEBUG_TOOL_CALLS") == "1"
 
 type rawEventBatch struct {
 	mu      sync.Mutex

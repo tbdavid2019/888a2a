@@ -13,9 +13,9 @@ import (
 	"github.com/jackc/pgconn"
 	"github.com/spf13/cobra"
 
-	"github.com/Ranxy/laelia/backend/common/log"
-	"github.com/Ranxy/laelia/backend/manager/server"
-	"github.com/Ranxy/laelia/backend/manager/version"
+	"github.com/tbdavid2019/888a2a/backend/common/log"
+	"github.com/tbdavid2019/888a2a/backend/manager/server"
+	"github.com/tbdavid2019/888a2a/backend/manager/version"
 )
 
 // -----------------------------------Global constant BEGIN----------------------------------------

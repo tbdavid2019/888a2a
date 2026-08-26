@@ -13,9 +13,9 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/Ranxy/laelia/backend/common"
-	"github.com/Ranxy/laelia/backend/common/log"
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/common/log"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 var systemBotUser = &UserMessage{

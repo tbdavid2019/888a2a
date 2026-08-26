@@ -5,7 +5,7 @@ package laelia.v1;
 import "google/protobuf/timestamp.proto";
 import "v1/annotation.proto";
 
-option go_package = "github.com/Ranxy/laelia/backend/generated-go/v1";
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/v1";
 
 // AuditLog is one audited API call: who did what, on which resource, with the
 // structured change payload (e.g. IAM binding deltas) when the method records

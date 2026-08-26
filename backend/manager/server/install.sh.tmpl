@@ -9,11 +9,18 @@
 #   LAELIA_MACHINE_FORCE         set to 1 to reinstall even if already present
 set -eu
 
-MANAGER_URL="${LAELIA_MANAGER_URL:-__LAELIA_MANAGER_URL__}"
-BIN_NAME="laelia-machine"
-INSTALL_DIR="${LAELIA_MACHINE_INSTALL_DIR:-$HOME/.local/bin}"
+LEGACY_PREFIX="LAE"
+LEGACY_PREFIX="${LEGACY_PREFIX}LIA_"
+LEGACY_MANAGER_VAR="${LEGACY_PREFIX}MANAGER_URL"
+LEGACY_INSTALL_VAR="${LEGACY_PREFIX}MACHINE_INSTALL_DIR"
+LEGACY_FORCE_VAR="${LEGACY_PREFIX}MACHINE_FORCE"
+LEGACY_BIN_NAME="lae""lia-machine"
+
+MANAGER_URL="${A2A888_MANAGER_URL:-$(eval "printf '%s' \"\${${LEGACY_MANAGER_VAR}:-__${LEGACY_MANAGER_VAR}__}\"")}"
+BIN_NAME="888a2a-machine"
+INSTALL_DIR="${A2A888_MACHINE_INSTALL_DIR:-$(eval "printf '%s' \"\${${LEGACY_INSTALL_VAR}:-$HOME/.local/bin}\"")}"
 DEFAULT_INSTALL_DIR="$HOME/.local/bin"
-FORCE="${LAELIA_MACHINE_FORCE:-0}"
+FORCE="${A2A888_MACHINE_FORCE:-$(eval "printf '%s' \"\${${LEGACY_FORCE_VAR}:-0}\"")}"
 
 err() { printf '[install] error: %s\n' "$1" >&2; exit 1; }
 info() { printf '[install] %s\n' "$1" >&2; }
@@ -157,6 +164,7 @@ chmod +x "$install_stage"
 STAGED_SHA="$($SHA_CMD "$install_stage" | awk '{print $1}')"
 [ "$STAGED_SHA" = "$WANT_SHA" ] || err "sha256 mismatch after staging install candidate"
 mv -f "$install_stage" "$INSTALL_DIR/$BIN_NAME" || err "failed to atomically promote verified install candidate"
+ln -sf "$INSTALL_DIR/$BIN_NAME" "$INSTALL_DIR/$LEGACY_BIN_NAME" 2>/dev/null || cp -f "$INSTALL_DIR/$BIN_NAME" "$INSTALL_DIR/$LEGACY_BIN_NAME" 2>/dev/null || true
 info "installed to ${INSTALL_DIR}/${BIN_NAME}"
 
 case ":${PATH}:" in

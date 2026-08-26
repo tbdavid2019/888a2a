@@ -9,11 +9,11 @@ import (
 	"connectrpc.com/connect"
 	"github.com/pkg/errors"
 
-	storepb "github.com/Ranxy/laelia/backend/generated-go/store"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/generated-go/v1/v1connect"
-	"github.com/Ranxy/laelia/backend/manager/component/dispatcher"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	storepb "github.com/tbdavid2019/888a2a/backend/generated-go/store"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/v1/v1connect"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/dispatcher"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // MachineStreamService implements MachineStreamService.MachineChannel: the

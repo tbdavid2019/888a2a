@@ -10,8 +10,8 @@ import (
 
 	"errors"
 
-	"github.com/Ranxy/laelia/backend/common"
-	"github.com/Ranxy/laelia/backend/common/log"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/common/log"
 )
 
 // DebugInterceptor is the v1 debug interceptor for gRPC server.

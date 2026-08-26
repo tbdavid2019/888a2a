@@ -18,8 +18,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/pkg/errors"
 
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // ErrS3NotConfigured is returned when no S3 endpoint/bucket has been set. The

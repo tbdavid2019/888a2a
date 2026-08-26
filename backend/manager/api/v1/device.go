@@ -12,15 +12,15 @@ import (
 	"connectrpc.com/connect"
 	"github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/common/permission"
-	storepb "github.com/Ranxy/laelia/backend/generated-go/store"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/generated-go/v1/v1connect"
-	"github.com/Ranxy/laelia/backend/manager/api/auth"
-	"github.com/Ranxy/laelia/backend/manager/component/device"
-	"github.com/Ranxy/laelia/backend/manager/component/iam"
-	"github.com/Ranxy/laelia/backend/manager/config"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/common/permission"
+	storepb "github.com/tbdavid2019/888a2a/backend/generated-go/store"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/v1/v1connect"
+	"github.com/tbdavid2019/888a2a/backend/manager/api/auth"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/device"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/iam"
+	"github.com/tbdavid2019/888a2a/backend/manager/config"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 const (

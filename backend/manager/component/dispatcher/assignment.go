@@ -5,7 +5,7 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/generated-go/a2a888"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
 )
 
 // AgentAvailabilityStatus represents the live readiness of an Agent for work dispatch.

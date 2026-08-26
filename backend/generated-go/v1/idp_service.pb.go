@@ -1516,7 +1516,7 @@ const file_v1_idp_service_proto_rawDesc = "" +
 	"\x16CreateIdentityProvider\x12(.laelia.v1.CreateIdentityProviderRequest\x1a\x1b.laelia.v1.IdentityProvider\"T\xdaA&identity_provider,identity_provider_id\x8a\xea0\x1flaelia.identityProviders.create\x90\xea0\x01\x98\xea0\x01\x12\xac\x01\n" +
 	"\x16UpdateIdentityProvider\x12(.laelia.v1.UpdateIdentityProviderRequest\x1a\x1b.laelia.v1.IdentityProvider\"K\xdaA\x1didentity_provider,update_mask\x8a\xea0\x1flaelia.identityProviders.update\x90\xea0\x01\x98\xea0\x01\x12\x8e\x01\n" +
 	"\x16DeleteIdentityProvider\x12(.laelia.v1.DeleteIdentityProviderRequest\x1a\x16.google.protobuf.Empty\"2\xdaA\x04name\x8a\xea0\x1flaelia.identityProviders.delete\x90\xea0\x01\x98\xea0\x01\x12\x90\x01\n" +
-	"\x14TestIdentityProvider\x12&.laelia.v1.TestIdentityProviderRequest\x1a'.laelia.v1.TestIdentityProviderResponse\"'\x8a\xea0\x1flaelia.identityProviders.update\x90\xea0\x01B1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\x14TestIdentityProvider\x12&.laelia.v1.TestIdentityProviderRequest\x1a'.laelia.v1.TestIdentityProviderResponse\"'\x8a\xea0\x1flaelia.identityProviders.update\x90\xea0\x01B7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_idp_service_proto_rawDescOnce sync.Once

@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/Ranxy/laelia/backend/agent/cmd"
+	"github.com/tbdavid2019/888a2a/backend/agent/cmd"
 )
 
 func main() {

@@ -12,9 +12,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/Ranxy/laelia/backend/agent/state"
-	"github.com/Ranxy/laelia/backend/agent/supervisor"
-	"github.com/Ranxy/laelia/backend/common/log"
+	"github.com/tbdavid2019/888a2a/backend/agent/state"
+	"github.com/tbdavid2019/888a2a/backend/agent/supervisor"
+	"github.com/tbdavid2019/888a2a/backend/common/log"
 )
 
 func init() {

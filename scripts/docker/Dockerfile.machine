@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Build context must be the repo root (.). Builds only the laelia machine
+# Build context must be the repo root (.). Builds only the 888a2a machine
 # image: machine-build -> machine. Deliberately contains NO manager/frontend
 # stages, so building machine never builds the frontend or manager binary.
 
@@ -9,10 +9,10 @@ ARG GIT_COMMIT=unknown
 ARG BUILD_TIME=unknown
 ARG TARGETOS
 ARG TARGETARCH
-ARG LAELIA_BUILD_PROXY
+ARG A2A888_BUILD_PROXY
 ENV BUILD_TIME=${BUILD_TIME}
-ENV http_proxy=${LAELIA_BUILD_PROXY} https_proxy=${LAELIA_BUILD_PROXY} no_proxy=localhost,127.0.0.1
-ENV HTTP_PROXY=${LAELIA_BUILD_PROXY} HTTPS_PROXY=${LAELIA_BUILD_PROXY} NO_PROXY=localhost,127.0.0.1
+ENV http_proxy=${A2A888_BUILD_PROXY} https_proxy=${A2A888_BUILD_PROXY} no_proxy=localhost,127.0.0.1
+ENV HTTP_PROXY=${A2A888_BUILD_PROXY} HTTPS_PROXY=${A2A888_BUILD_PROXY} NO_PROXY=localhost,127.0.0.1
 WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
@@ -23,8 +23,8 @@ RUN apk add --no-cache curl bash
 # release-tagged machine build then embeds.
 ENV GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 RUN ./scripts/build-pi.sh
-RUN CGO_ENABLED=0 go build -tags release -ldflags "-w -s -X github.com/Ranxy/laelia/backend/agent/version.Version=${VERSION} -X github.com/Ranxy/laelia/backend/agent/version.GitCommit=${GIT_COMMIT} -X github.com/Ranxy/laelia/backend/agent/version.BuildTime=${BUILD_TIME}" -p=16 \
-	-o /out/laelia-machine ./backend/agent/bin/agent/main.go
+RUN CGO_ENABLED=0 go build -tags release -ldflags "-w -s -X github.com/tbdavid2019/888a2a/backend/agent/version.Version=${VERSION} -X github.com/tbdavid2019/888a2a/backend/agent/version.GitCommit=${GIT_COMMIT} -X github.com/tbdavid2019/888a2a/backend/agent/version.BuildTime=${BUILD_TIME}" -p=16 \
+	-o /out/888a2a-machine ./backend/agent/bin/agent/main.go
 
 FROM node:24.12.0-slim AS machine
 ARG VERSION=local
@@ -53,17 +53,18 @@ RUN if [ -n "${APT_MIRROR}" ]; then \
 		ca-certificates curl git jq wget unzip zip xz-utils ripgrep \
 		python3 python3-pip python3-venv python-is-python3 build-essential \
 	&& rm -rf /var/lib/apt/lists/* \
-	&& useradd --create-home --uid 1001 laelia \
+	&& useradd --create-home --uid 1001 888a2a \
 	&& mkdir -p /data \
 	&& chown 1001:1001 /data
 # Codex ACP v2 provider: the codex CLI ships an app-server speaking the thread
 # protocol. Login/config state is NEVER baked in — operators mount a writable
 # CODEX_HOME volume (config.toml + auth/models) at runtime, see
-# machine-entrypoint.sh's LAELIA_CODEX_HOME.
+# machine-entrypoint.sh's A2A888_CODEX_HOME.
 RUN npm install -g --no-audit --no-fund "${CODEX_NPM_SPEC}" \
 	&& rm -rf /root/.npm
-COPY --from=machine-build /out/laelia-machine /usr/local/bin/laelia-machine
+COPY --from=machine-build /out/888a2a-machine /usr/local/bin/888a2a-machine
+RUN ln -s /usr/local/bin/888a2a-machine "/usr/local/bin/lae""lia-machine"
 COPY scripts/docker/machine-entrypoint.sh /usr/local/bin/machine-entrypoint
-USER laelia
-ENV HOME=/home/laelia
+USER 888a2a
+ENV HOME=/home/888a2a
 ENTRYPOINT ["machine-entrypoint"]

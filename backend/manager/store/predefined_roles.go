@@ -1,6 +1,6 @@
 package store
 
-import "github.com/Ranxy/laelia/backend/common/permission"
+import "github.com/tbdavid2019/888a2a/backend/common/permission"
 
 // Well-known role identifiers. Only WorkspaceAdminRole and WorkspaceMemberRole
 // are predefined roles (defined in Go, read-only over the API, resolvable

@@ -12,7 +12,7 @@ import "v1/annotation.proto";
 import "v1/command.proto";
 import "v1/common.proto";
 
-option go_package = "github.com/Ranxy/laelia/backend/generated-go/v1";
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/v1";
 
 // MachineService manages machines (a long-lived agent-application process a
 // user runs once on a host) and serves the machine-side authentication RPCs

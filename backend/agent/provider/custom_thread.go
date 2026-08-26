@@ -6,7 +6,7 @@ import (
 
 	"github.com/coder/acp-go-sdk"
 
-	"github.com/Ranxy/laelia/backend/agent/acp2"
+	"github.com/tbdavid2019/888a2a/backend/agent/acp2"
 )
 
 // CustomThreadProvider adapts a hand-configured executable/args pair to the

@@ -11,9 +11,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/Ranxy/laelia/backend/agent/atomicfile"
-	"github.com/Ranxy/laelia/backend/agent/home"
-	"github.com/Ranxy/laelia/backend/generated-go/a2a888"
+	"github.com/tbdavid2019/888a2a/backend/agent/atomicfile"
+	"github.com/tbdavid2019/888a2a/backend/agent/home"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
 )
 
 // State is the persisted machine registration. The refresh token is the only

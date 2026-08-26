@@ -137,7 +137,7 @@ const file_v1_annotation_proto_rawDesc = "" +
 	"permission:X\n" +
 	"\vauth_method\x12\x1e.google.protobuf.MethodOptions\x18\xa2\x8d\x06 \x01(\x0e2\x15.laelia.v1.AuthMethodR\n" +
 	"authMethod:6\n" +
-	"\x05audit\x12\x1e.google.protobuf.MethodOptions\x18\xa3\x8d\x06 \x01(\bR\x05auditB1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\x05audit\x12\x1e.google.protobuf.MethodOptions\x18\xa3\x8d\x06 \x01(\bR\x05auditB7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_annotation_proto_rawDescOnce sync.Once

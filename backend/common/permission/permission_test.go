@@ -52,3 +52,15 @@ func TestManageMembersIsResourceScoped(t *testing.T) {
 		t.Error("conversations.manageMembers must be resource-scoped")
 	}
 }
+
+func TestNormalizeAndCanonical(t *testing.T) {
+	if got := Normalize("888a2a.agents.create"); got != AgentsCreate {
+		t.Errorf("Normalize(888a2a.agents.create) = %q, want %q", got, AgentsCreate)
+	}
+	if got := Canonical(AgentsCreate); got != "888a2a.agents.create" {
+		t.Errorf("Canonical(AgentsCreate) = %q, want %q", got, "888a2a.agents.create")
+	}
+	if !Exist("888a2a.agents.create") {
+		t.Error("Exist(888a2a.agents.create) must return true")
+	}
+}

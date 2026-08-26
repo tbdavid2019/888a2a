@@ -7,8 +7,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	"github.com/Ranxy/laelia/backend/common"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
 // This file implements the agent's channel membership mutation tools: leaving a

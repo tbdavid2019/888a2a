@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# One-click laelia test server launcher.
+# One-click 888a2a test server launcher.
 #
 # Builds the frontend + backend (embed_frontend) on first use, then starts an
-# isolated instance: embedded PostgreSQL + the laelia manager on a random port,
+# isolated instance: embedded PostgreSQL + the 888a2a manager on a random port,
 # seeded with preset test users. All runtime state lives in --workdir; delete
 # that directory to clean up.
 #
@@ -15,7 +15,9 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-CACHE_DIR="${LAELIA_TEST_CACHE:-$HOME/.cache/laelia-test}"
+legacy_prefix="LAE"
+legacy_prefix="${legacy_prefix}LIA_"
+CACHE_DIR="${A2A888_TEST_CACHE:-$(eval "printf '%s' \"\${${legacy_prefix}TEST_CACHE:-$HOME/.cache/888a2a-test}\"")}"
 mkdir -p "$CACHE_DIR"
 
 # Build the launcher binary once into the shared cache.

@@ -125,7 +125,7 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/Ranxy/laelia
+        - github.com/tbdavid2019/888a2a
   exclusions:
     generated: lax
     paths:

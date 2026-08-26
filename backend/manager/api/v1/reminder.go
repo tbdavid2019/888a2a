@@ -12,11 +12,11 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/Ranxy/laelia/backend/common"
-	"github.com/Ranxy/laelia/backend/common/permission"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/manager/component/schedule"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/common/permission"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/schedule"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // parseReminderName parses a reminder resource name "reminders/{message_id}"

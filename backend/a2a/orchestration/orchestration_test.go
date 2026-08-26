@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Ranxy/laelia/backend/a2a"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/a2a"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // TestCycleDetection_DirectAndIndirect verifies that direct (A->A) and indirect (A->B->C->A)

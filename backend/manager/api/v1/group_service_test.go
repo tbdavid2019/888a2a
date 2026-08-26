@@ -3,9 +3,9 @@ package v1
 import (
 	"testing"
 
-	storepb "github.com/Ranxy/laelia/backend/generated-go/store"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	storepb "github.com/tbdavid2019/888a2a/backend/generated-go/store"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // TestConvertToGroupPayload verifies member role conversion and rejection of

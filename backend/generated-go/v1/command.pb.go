@@ -12612,7 +12612,7 @@ const file_v1_command_proto_rawDesc = "" +
 	"\x0eListActivities\x12 .laelia.v1.ListActivitiesRequest\x1a!.laelia.v1.ListActivitiesResponse\"\x1e\x8a\xea0\x16laelia.activities.list\x90\xea0\x01\x12\x83\x01\n" +
 	"\x10MarkActivityDone\x12\".laelia.v1.MarkActivityDoneRequest\x1a#.laelia.v1.MarkActivityDoneResponse\"&\x8a\xea0\x1alaelia.activities.markDone\x90\xea0\x01\x98\xea0\x012h\n" +
 	"\x12AgentStreamService\x12R\n" +
-	"\fAgentChannel\x12\x1d.laelia.v1.AgentStreamMessage\x1a\x1f.laelia.v1.ManagerStreamMessage(\x010\x01B1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\fAgentChannel\x12\x1d.laelia.v1.AgentStreamMessage\x1a\x1f.laelia.v1.ManagerStreamMessage(\x010\x01B7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_command_proto_rawDescOnce sync.Once

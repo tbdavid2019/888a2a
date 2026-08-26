@@ -9,8 +9,8 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/Ranxy/laelia/backend/common"
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 // IdentityProviderMessage is the message for identity provider.

@@ -24,18 +24,22 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/agent/chattools"
-	"github.com/Ranxy/laelia/backend/agent/home"
-	"github.com/Ranxy/laelia/backend/generated-go/v1/v1connect"
+	"github.com/tbdavid2019/888a2a/backend/agent/chattools"
+	"github.com/tbdavid2019/888a2a/backend/agent/home"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/v1/v1connect"
 )
 
 // envKey* are the env vars the daemon injects into each ACP subprocess so the
 // CLI subcommands can find and authenticate to the socket without any flags.
 const (
-	EnvDaemonSocket = "LAELIA_DAEMON_SOCKET"
-	EnvSessionToken = "LAELIA_SESSION_TOKEN"
-	EnvAgent        = "LAELIA_AGENT"
-	EnvCommand      = "LAELIA_COMMAND"
+	EnvDaemonSocket       = "A2A888_DAEMON_SOCKET"
+	EnvSessionToken       = "A2A888_SESSION_TOKEN"
+	EnvAgent              = "A2A888_AGENT"
+	EnvCommand            = "A2A888_COMMAND"
+	LegacyEnvDaemonSocket = "LAE" + "LIA_DAEMON_SOCKET"
+	LegacyEnvSessionToken = "LAE" + "LIA_SESSION_TOKEN"
+	LegacyEnvAgent        = "LAE" + "LIA_AGENT"
+	LegacyEnvCommand      = "LAE" + "LIA_COMMAND"
 )
 
 // Server is the local loopback daemon. A machine runs ONE daemon for all its

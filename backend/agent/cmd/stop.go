@@ -8,8 +8,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/Ranxy/laelia/backend/agent/home"
-	"github.com/Ranxy/laelia/backend/agent/supervisor"
+	"github.com/tbdavid2019/888a2a/backend/agent/home"
+	"github.com/tbdavid2019/888a2a/backend/agent/supervisor"
 )
 
 func init() {

@@ -16,10 +16,10 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/Ranxy/laelia/backend/common"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/manager/component/s3client"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/s3client"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // MaxUploadBytes caps a single uploaded/downloaded file over the Connect RPC.

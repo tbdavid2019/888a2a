@@ -7,7 +7,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/manager/api/auth"
+	"github.com/tbdavid2019/888a2a/backend/manager/api/auth"
 )
 
 type refreshPrincipal struct {

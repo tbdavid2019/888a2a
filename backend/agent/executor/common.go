@@ -6,7 +6,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
 // OutputChunk is a single stdout/stderr/system line emitted by a Runtime and

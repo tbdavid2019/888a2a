@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ranxy/laelia/backend/common"
-	"github.com/Ranxy/laelia/backend/common/log"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/common/log"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 
-	storepb "github.com/Ranxy/laelia/backend/generated-go/store"
+	storepb "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 func validateIAMBinding(binding *storepb.Binding) bool {

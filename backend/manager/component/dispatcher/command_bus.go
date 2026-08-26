@@ -8,7 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
 // commandBus owns the live command output/event watchers and their broadcast

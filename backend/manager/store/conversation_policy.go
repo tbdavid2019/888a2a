@@ -10,8 +10,8 @@ import (
 	exprpb "google.golang.org/genproto/googleapis/type/expr"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/Ranxy/laelia/backend/common"
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 // conversationPolicyResource is the policy-table resource name for a

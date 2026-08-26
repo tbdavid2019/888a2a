@@ -8,7 +8,7 @@ export function SplashLayout() {
       <div className="absolute bottom-0 left-0 mb-8 w-full text-center">
         <LocaleSwitch />
         <p className="mt-2 text-sm text-control-light">
-          &copy; {new Date().getFullYear()} Laelia AI
+          &copy; {new Date().getFullYear()} 888a2a
         </p>
       </div>
     </div>

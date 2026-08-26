@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 // TestBuildListUsersQuery_ProjectFilter_Parameterized verifies that a

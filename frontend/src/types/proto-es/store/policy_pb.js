@@ -2,26 +2,83 @@
 // @generated from file store/policy.proto (package laelia.store, syntax proto3)
 /* eslint-disable */
 
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, tsEnum } from "@bufbuild/protobuf/codegenv2";
 import { file_google_type_expr } from "../google/type/expr_pb";
 
 /**
  * Describes the file store/policy.proto.
  */
 export const file_store_policy = /*@__PURE__*/
-  fileDesc("ChJzdG9yZS9wb2xpY3kucHJvdG8SDGxhZWxpYS5zdG9yZSJOCgdCaW5kaW5nEgwKBHJvbGUYASABKAkSDwoHbWVtYmVycxgCIAMoCRIkCgljb25kaXRpb24YAyABKAsyES5nb29nbGUudHlwZS5FeHByIjQKCUlhbVBvbGljeRInCghiaW5kaW5ncxgBIAMoCzIVLmxhZWxpYS5zdG9yZS5CaW5kaW5nQjRaMmdpdGh1Yi5jb20vUmFueHkvbGFlbGlhL2JhY2tlbmQvZ2VuZXJhdGVkLWdvL3N0b3JlYgZwcm90bzM", [file_google_type_expr]);
+  fileDesc("ChJzdG9yZS9wb2xpY3kucHJvdG8SDGxhZWxpYS5zdG9yZSLbAQoGUG9saWN5Ii4KBFR5cGUSFAoQVFlQRV9VTlNQRUNJRklFRBAAEgcKA0lBTRABEgcKA1RBRxACIqABCghSZXNvdXJjZRIYChRSRVNPVVJDRV9VTlNQRUNJRklFRBAAEg0KCVdPUktTUEFDRRABEg8KC0VOVklST05NRU5UEAISCwoHUFJPSkVDVBADEhAKDENPTlZFUlNBVElPThAEEgkKBUFHRU5UEAUSCwoHQ09NTUFORBAGEgwKCFJFTUlOREVSEAcSCAoERklMRRAIEgsKB01BQ0hJTkUQCSJpCglUYWdQb2xpY3kSLwoEdGFncxgBIAMoCzIhLmxhZWxpYS5zdG9yZS5UYWdQb2xpY3kuVGFnc0VudHJ5GisKCVRhZ3NFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIk4KB0JpbmRpbmcSDAoEcm9sZRgBIAEoCRIPCgdtZW1iZXJzGAIgAygJEiQKCWNvbmRpdGlvbhgDIAEoCzIRLmdvb2dsZS50eXBlLkV4cHIiNAoJSWFtUG9saWN5EicKCGJpbmRpbmdzGAEgAygLMhUubGFlbGlhLnN0b3JlLkJpbmRpbmciygEKFUVudmlyb25tZW50VGllclBvbGljeRJNChBlbnZpcm9ubWVudF90aWVyGAEgASgOMjMubGFlbGlhLnN0b3JlLkVudmlyb25tZW50VGllclBvbGljeS5FbnZpcm9ubWVudFRpZXISDQoFY29sb3IYAiABKAkiUwoPRW52aXJvbm1lbnRUaWVyEiAKHEVOVklST05NRU5UX1RJRVJfVU5TUEVDSUZJRUQQABINCglQUk9URUNURUQQARIPCgtVTlBST1RFQ1RFRBACQjpaOGdpdGh1Yi5jb20vdGJkYXZpZDIwMTkvODg4YTJhL2JhY2tlbmQvZ2VuZXJhdGVkLWdvL3N0b3JlYgZwcm90bzM", [file_google_type_expr]);
+
+/**
+ * Describes the message laelia.store.Policy.
+ * Use `create(PolicySchema)` to create a new message.
+ */
+export const PolicySchema = /*@__PURE__*/
+  messageDesc(file_store_policy, 0);
+
+/**
+ * Describes the enum laelia.store.Policy.Type.
+ */
+export const Policy_TypeSchema = /*@__PURE__*/
+  enumDesc(file_store_policy, 0, 0);
+
+/**
+ * @generated from enum laelia.store.Policy.Type
+ */
+export const Policy_Type = /*@__PURE__*/
+  tsEnum(Policy_TypeSchema);
+
+/**
+ * Describes the enum laelia.store.Policy.Resource.
+ */
+export const Policy_ResourceSchema = /*@__PURE__*/
+  enumDesc(file_store_policy, 0, 1);
+
+/**
+ * @generated from enum laelia.store.Policy.Resource
+ */
+export const Policy_Resource = /*@__PURE__*/
+  tsEnum(Policy_ResourceSchema);
+
+/**
+ * Describes the message laelia.store.TagPolicy.
+ * Use `create(TagPolicySchema)` to create a new message.
+ */
+export const TagPolicySchema = /*@__PURE__*/
+  messageDesc(file_store_policy, 1);
 
 /**
  * Describes the message laelia.store.Binding.
  * Use `create(BindingSchema)` to create a new message.
  */
 export const BindingSchema = /*@__PURE__*/
-  messageDesc(file_store_policy, 0);
+  messageDesc(file_store_policy, 2);
 
 /**
  * Describes the message laelia.store.IamPolicy.
  * Use `create(IamPolicySchema)` to create a new message.
  */
 export const IamPolicySchema = /*@__PURE__*/
-  messageDesc(file_store_policy, 1);
+  messageDesc(file_store_policy, 3);
+
+/**
+ * Describes the message laelia.store.EnvironmentTierPolicy.
+ * Use `create(EnvironmentTierPolicySchema)` to create a new message.
+ */
+export const EnvironmentTierPolicySchema = /*@__PURE__*/
+  messageDesc(file_store_policy, 4);
+
+/**
+ * Describes the enum laelia.store.EnvironmentTierPolicy.EnvironmentTier.
+ */
+export const EnvironmentTierPolicy_EnvironmentTierSchema = /*@__PURE__*/
+  enumDesc(file_store_policy, 4, 0);
+
+/**
+ * @generated from enum laelia.store.EnvironmentTierPolicy.EnvironmentTier
+ */
+export const EnvironmentTierPolicy_EnvironmentTier = /*@__PURE__*/
+  tsEnum(EnvironmentTierPolicy_EnvironmentTierSchema);
 

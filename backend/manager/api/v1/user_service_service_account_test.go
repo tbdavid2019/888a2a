@@ -6,8 +6,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	"github.com/Ranxy/laelia/backend/common/permission"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/common/permission"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // TestAuthorizeServiceAccountCreation covers the CreateUser gate that keeps

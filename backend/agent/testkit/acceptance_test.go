@@ -15,14 +15,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Ranxy/laelia/backend/a2a"
-	"github.com/Ranxy/laelia/backend/a2a/orchestration"
-	"github.com/Ranxy/laelia/backend/a2a/tools"
-	"github.com/Ranxy/laelia/backend/agent/client"
-	"github.com/Ranxy/laelia/backend/agent/executor"
-	"github.com/Ranxy/laelia/backend/agent/state"
-	"github.com/Ranxy/laelia/backend/generated-go/a2a888"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/a2a"
+	"github.com/tbdavid2019/888a2a/backend/a2a/orchestration"
+	"github.com/tbdavid2019/888a2a/backend/a2a/tools"
+	"github.com/tbdavid2019/888a2a/backend/agent/client"
+	"github.com/tbdavid2019/888a2a/backend/agent/executor"
+	"github.com/tbdavid2019/888a2a/backend/agent/state"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 type acceptanceMemoryWorkStore struct {

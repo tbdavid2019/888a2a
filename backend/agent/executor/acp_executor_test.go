@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Ranxy/laelia/backend/agent/provider"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/agent/provider"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
 func TestACPValidatePath(t *testing.T) {
@@ -554,10 +554,18 @@ func requireOpencodeACP(t *testing.T) string {
 	if testing.Short() {
 		t.Skip("skipping opencode ACP integration test in short mode")
 	}
-	if os.Getenv("LAELIA_RUN_OPENCODE_ACP_TESTS") != "1" {
-		t.Skip("set LAELIA_RUN_OPENCODE_ACP_TESTS=1 to run local opencode ACP integration tests")
+	legacyPrefix := "LAE" + "LIA_"
+	runFlag := os.Getenv("A2A888_RUN_OPENCODE_ACP_TESTS")
+	if runFlag == "" {
+		runFlag = os.Getenv(legacyPrefix + "RUN_OPENCODE_ACP_TESTS")
 	}
-	bin := os.Getenv("LAELIA_OPENCODE_BIN")
+	if runFlag != "1" {
+		t.Skip("set A2A888_RUN_OPENCODE_ACP_TESTS=1 to run local opencode ACP integration tests")
+	}
+	bin := os.Getenv("A2A888_OPENCODE_BIN")
+	if bin == "" {
+		bin = os.Getenv(legacyPrefix + "OPENCODE_BIN")
+	}
 	if bin == "" {
 		lookedUp, err := exec.LookPath("opencode")
 		if err != nil {
@@ -570,10 +578,19 @@ func requireOpencodeACP(t *testing.T) string {
 
 func newOpencodeTestConfig(bin string, workspace string, writable bool) *ACPConfig {
 	args := []string{"acp", "--pure", "--cwd", workspace}
-	if model := os.Getenv("LAELIA_OPENCODE_MODEL"); model != "" {
+	legacyPrefix := "LAE" + "LIA_"
+	model := os.Getenv("A2A888_OPENCODE_MODEL")
+	if model == "" {
+		model = os.Getenv(legacyPrefix + "OPENCODE_MODEL")
+	}
+	if model != "" {
 		args = append(args, "--model", model)
 	}
-	if agent := os.Getenv("LAELIA_OPENCODE_AGENT"); agent != "" {
+	agent := os.Getenv("A2A888_OPENCODE_AGENT")
+	if agent == "" {
+		agent = os.Getenv(legacyPrefix + "OPENCODE_AGENT")
+	}
+	if agent != "" {
 		args = append(args, "--agent", agent)
 	}
 

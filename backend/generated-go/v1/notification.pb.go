@@ -495,7 +495,7 @@ const file_v1_notification_proto_rawDesc = "" +
 	"\x10UpdatePushConfig\x12\".laelia.v1.UpdatePushConfigRequest\x1a#.laelia.v1.UpdatePushConfigResponse\" \x8a\xea0\x18laelia.pushConfig.update\x90\xea0\x01\x12\x91\x01\n" +
 	"\x15ListPushSubscriptions\x12'.laelia.v1.ListPushSubscriptionsRequest\x1a(.laelia.v1.ListPushSubscriptionsResponse\"%\x8a\xea0\x1dlaelia.pushSubscriptions.list\x90\xea0\x01\x12\x88\x01\n" +
 	"\x16CreatePushSubscription\x12(.laelia.v1.CreatePushSubscriptionRequest\x1a\x1b.laelia.v1.PushSubscription\"'\x8a\xea0\x1flaelia.pushSubscriptions.create\x90\xea0\x01\x12\x83\x01\n" +
-	"\x16DeletePushSubscription\x12(.laelia.v1.DeletePushSubscriptionRequest\x1a\x16.google.protobuf.Empty\"'\x8a\xea0\x1flaelia.pushSubscriptions.delete\x90\xea0\x01B1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\x16DeletePushSubscription\x12(.laelia.v1.DeletePushSubscriptionRequest\x1a\x16.google.protobuf.Empty\"'\x8a\xea0\x1flaelia.pushSubscriptions.delete\x90\xea0\x01B7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_notification_proto_rawDescOnce sync.Once

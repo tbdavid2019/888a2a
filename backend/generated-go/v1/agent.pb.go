@@ -4289,7 +4289,7 @@ const file_v1_agent_proto_rawDesc = "" +
 	"\x11UploadAgentAvatar\x12#.laelia.v1.UploadAgentAvatarRequest\x1a\x10.laelia.v1.Agent\"\x1e\x8a\xea0\x12laelia.agents.edit\x90\xea0\x01\x98\xea0\x01\x12d\n" +
 	"\x13DownloadAgentAvatar\x12%.laelia.v1.DownloadAgentAvatarRequest\x1a&.laelia.v1.DownloadAgentAvatarResponse\x12j\n" +
 	"\x11DeleteAgentAvatar\x12#.laelia.v1.DeleteAgentAvatarRequest\x1a\x10.laelia.v1.Agent\"\x1e\x8a\xea0\x12laelia.agents.edit\x90\xea0\x01\x98\xea0\x01\x12D\n" +
-	"\x05Hello\x12\x17.laelia.v1.HelloRequest\x1a\x18.laelia.v1.HelloResponse\"\b\x80\xea0\x01\x98\xea0\x00B1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\x05Hello\x12\x17.laelia.v1.HelloRequest\x1a\x18.laelia.v1.HelloResponse\"\b\x80\xea0\x01\x98\xea0\x00B7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_agent_proto_rawDescOnce sync.Once

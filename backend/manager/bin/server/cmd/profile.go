@@ -4,21 +4,29 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Ranxy/laelia/backend/common"
-	"github.com/Ranxy/laelia/backend/manager/config"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/manager/config"
 )
 
+func getEnvWithFallback(primary, fallback string) string {
+	if v := os.Getenv(primary); v != "" {
+		return v
+	}
+	return os.Getenv(fallback)
+}
+
 func getBaseProfile(_ string) *config.Profile {
+	legacyPrefix := "LAE" + "LIA_"
 	cfg := &config.Profile{
 		Mode:           common.ReleaseModeProd,
 		Port:           flags.port,
-		PgURL:          os.Getenv("LAELIA_PG_URL"),
+		PgURL:          getEnvWithFallback("A2A888_PG_URL", legacyPrefix+"PG_URL"),
 		TLSCertDir:     flags.tlsCertDir,
 		TLSDomain:      flags.tlsDomain,
 		TrustProxy:     flags.trustProxy,
 		PprofAddr:      flags.pprofAddr,
-		AllowedOrigins: splitCSV(os.Getenv("LAELIA_ALLOWED_ORIGINS")),
-		CookieSameSite: os.Getenv("LAELIA_COOKIE_SAMESITE"),
+		AllowedOrigins: splitCSV(getEnvWithFallback("A2A888_ALLOWED_ORIGINS", legacyPrefix+"ALLOWED_ORIGINS")),
+		CookieSameSite: getEnvWithFallback("A2A888_COOKIE_SAMESITE", legacyPrefix+"COOKIE_SAMESITE"),
 	}
 
 	if flags.tlsHost != "" {

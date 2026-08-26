@@ -9,7 +9,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/Ranxy/laelia/backend/generated-go/a2a888"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
 )
 
 func TestReducerRejectsZeroAndGapSequence(t *testing.T) {

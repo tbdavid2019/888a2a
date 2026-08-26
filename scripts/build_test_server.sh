@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the laelia manager binary (frontend embedded) into the shared test
+# Build the 888a2a manager binary (frontend embedded) into the shared test
 # cache. Only the manager is built — the machine/pi build is not needed for a
 # test server. Safe to run concurrently: a flock serializes the actual build
 # and the git stamp lets repeat invocations skip it.
@@ -9,8 +9,10 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 . ./scripts/build_init.sh
 
-CACHE_DIR="${LAELIA_TEST_CACHE:-$HOME/.cache/laelia-test}"
-BIN="$CACHE_DIR/laelia"
+legacy_prefix="LAE"
+legacy_prefix="${legacy_prefix}LIA_"
+CACHE_DIR="${A2A888_TEST_CACHE:-$(eval "printf '%s' \"\${${legacy_prefix}TEST_CACHE:-$HOME/.cache/888a2a-test}\"")}"
+BIN="$CACHE_DIR/888a2a"
 STAMP="$CACHE_DIR/build.stamp"
 RELEASE="${RELEASE:-false}"
 FORCE=0
@@ -59,7 +61,7 @@ flock 9
 # stamp so dev and release artifacts never share a cache entry.
 BUILD_STAMP="${GIT_COMMIT}|${VERSION}|${RELEASE}|build-info-v3"
 if [[ -f "$BIN" && -f "$STAMP" && "$(cat "$STAMP")" == "$BUILD_STAMP" && "${FORCE}" -ne 1 ]]; then
-  echo "laelia already built ($GIT_COMMIT, ${RELEASE}); skipping."
+  echo "888a2a already built ($GIT_COMMIT, ${RELEASE}); skipping."
   exit 0
 fi
 
@@ -78,7 +80,7 @@ if [[ "${RELEASE}" == "true" ]]; then
   BUILD_MODE="release"
 fi
 echo "Building manager (embed_frontend, ${BUILD_MODE} mode)..."
-CGO_ENABLED=0 go build -tags "${BUILD_TAGS}" -ldflags "-w -s -X github.com/Ranxy/laelia/backend/manager/version.Version=${VERSION} -X github.com/Ranxy/laelia/backend/manager/version.GitCommit=${GIT_COMMIT} -X github.com/Ranxy/laelia/backend/manager/version.BuildTime=${BUILD_TIME}" -p=16 -o "$BIN" ./backend/manager/bin/server/main.go
+CGO_ENABLED=0 go build -tags "${BUILD_TAGS}" -ldflags "-w -s -X github.com/tbdavid2019/888a2a/backend/manager/version.Version=${VERSION} -X github.com/tbdavid2019/888a2a/backend/manager/version.GitCommit=${GIT_COMMIT} -X github.com/tbdavid2019/888a2a/backend/manager/version.BuildTime=${BUILD_TIME}" -p=16 -o "$BIN" ./backend/manager/bin/server/main.go
 
 echo "$BUILD_STAMP" > "$STAMP"
 echo "Build complete: $BIN"

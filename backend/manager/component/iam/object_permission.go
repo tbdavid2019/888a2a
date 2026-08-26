@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/common/permission"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/common/permission"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // checkCommandPermission authorizes a command-scoped permission for the caller.

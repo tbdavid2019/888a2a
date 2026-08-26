@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package laelia.v1;
 
-option go_package = "github.com/Ranxy/laelia/backend/generated-go/v1";
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/v1";
 
 enum State {
   STATE_UNSPECIFIED = 0;

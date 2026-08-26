@@ -11,14 +11,14 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/Ranxy/laelia/backend/agent/pi"
-	"github.com/Ranxy/laelia/backend/common"
-	"github.com/Ranxy/laelia/backend/common/permission"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/generated-go/v1/v1connect"
-	"github.com/Ranxy/laelia/backend/manager/component/iam"
-	"github.com/Ranxy/laelia/backend/manager/store"
-	"github.com/Ranxy/laelia/backend/manager/utils"
+	"github.com/tbdavid2019/888a2a/backend/agent/pi"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/common/permission"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/v1/v1connect"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/iam"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/utils"
 )
 
 // providerTypeDefaults maps a provider type to the api_provider id the pi

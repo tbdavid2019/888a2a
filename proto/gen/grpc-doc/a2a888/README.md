@@ -14,9 +14,9 @@
     - [WorkTraceEvent](#a2a888-v1-WorkTraceEvent)
     - [WorkTraceEvent.MetadataEntry](#a2a888-v1-WorkTraceEvent-MetadataEntry)
     - [WorkUsage](#a2a888-v1-WorkUsage)
-
+  
     - [WorkState](#a2a888-v1-WorkState)
-
+  
 - [a2a888/agent_runtime.proto](#a2a888_agent_runtime-proto)
     - [CacheIdentity](#a2a888-v1-CacheIdentity)
     - [CompatibilityEvidence](#a2a888-v1-CompatibilityEvidence)
@@ -33,13 +33,13 @@
     - [RuntimeStatus](#a2a888-v1-RuntimeStatus)
     - [SessionBehavior](#a2a888-v1-SessionBehavior)
     - [SystemExecutableConfig](#a2a888-v1-SystemExecutableConfig)
-
+  
     - [AgentProtocol](#a2a888-v1-AgentProtocol)
     - [CompatibilityLevel](#a2a888-v1-CompatibilityLevel)
     - [RuntimeKind](#a2a888-v1-RuntimeKind)
     - [RuntimeState](#a2a888-v1-RuntimeState)
     - [SessionMode](#a2a888-v1-SessionMode)
-
+  
 - [a2a888/machine_assignment.proto](#a2a888_machine_assignment-proto)
     - [AssignmentConfig](#a2a888-v1-AssignmentConfig)
     - [AssignmentCursor](#a2a888-v1-AssignmentCursor)
@@ -47,9 +47,9 @@
     - [MachineAssignmentEvent](#a2a888-v1-MachineAssignmentEvent)
     - [MachineAssignmentReplayRequest](#a2a888-v1-MachineAssignmentReplayRequest)
     - [MachineAssignmentReplayResponse](#a2a888-v1-MachineAssignmentReplayResponse)
-
+  
     - [AssignmentEventType](#a2a888-v1-AssignmentEventType)
-
+  
 - [a2a888/organization.proto](#a2a888_organization-proto)
     - [GetOrganizationRequest](#a2a888-v1-GetOrganizationRequest)
     - [GetOrganizationResponse](#a2a888-v1-GetOrganizationResponse)
@@ -66,14 +66,14 @@
     - [SwitchOrganizationResponse](#a2a888-v1-SwitchOrganizationResponse)
     - [TenantPrincipal](#a2a888-v1-TenantPrincipal)
     - [Workspace](#a2a888-v1-Workspace)
-
+  
     - [MembershipState](#a2a888-v1-MembershipState)
     - [OrganizationRole](#a2a888-v1-OrganizationRole)
     - [OrganizationState](#a2a888-v1-OrganizationState)
     - [TenantPrincipalType](#a2a888-v1-TenantPrincipalType)
-
+  
     - [OrganizationService](#a2a888-v1-OrganizationService)
-
+  
 - [Scalar Value Types](#scalar-value-types)
 
 
@@ -319,7 +319,7 @@ WorkUsage is the durable accounting snapshot used to enforce WorkBudget.
 
 
 
-
+ 
 
 
 <a name="a2a888-v1-WorkState"></a>
@@ -342,11 +342,11 @@ persistence contract rather than an SDK type.
 | REJECTED | 8 |  |
 
 
+ 
 
+ 
 
-
-
-
+ 
 
 
 
@@ -668,7 +668,7 @@ provided by the host operating system.
 
 
 
-
+ 
 
 
 <a name="a2a888-v1-AgentProtocol"></a>
@@ -746,11 +746,11 @@ provided by the host operating system.
 | PERSISTENT | 2 |  |
 
 
+ 
 
+ 
 
-
-
-
+ 
 
 
 
@@ -873,7 +873,7 @@ Manager&#39;s authoritative roster markers for reconciliation.
 
 
 
-
+ 
 
 
 <a name="a2a888-v1-AssignmentEventType"></a>
@@ -890,11 +890,11 @@ assignment event.
 | REMOVE | 3 |  |
 
 
+ 
 
+ 
 
-
-
-
+ 
 
 
 
@@ -1154,7 +1154,7 @@ Workspace represents a collaborative space within an Organization.
 
 
 
-
+ 
 
 
 <a name="a2a888-v1-MembershipState"></a>
@@ -1214,9 +1214,9 @@ TenantPrincipalType identifies the kind of principal in tenant-scoped operations
 | TENANT_PRINCIPAL_TYPE_AGENT | 4 |  |
 
 
+ 
 
-
-
+ 
 
 
 <a name="a2a888-v1-OrganizationService"></a>
@@ -1232,7 +1232,7 @@ TenantPrincipalType identifies the kind of principal in tenant-scoped operations
 | ListWorkspaces | [ListWorkspacesRequest](#a2a888-v1-ListWorkspacesRequest) | [ListWorkspacesResponse](#a2a888-v1-ListWorkspacesResponse) |  |
 | ListMemberships | [ListMembershipsRequest](#a2a888-v1-ListMembershipsRequest) | [ListMembershipsResponse](#a2a888-v1-ListMembershipsResponse) |  |
 
-
+ 
 
 
 

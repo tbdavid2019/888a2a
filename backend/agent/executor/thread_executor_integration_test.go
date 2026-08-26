@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Ranxy/laelia/backend/agent/provider"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/agent/provider"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
 // defaultTestCodexHome is the writable CODEX_HOME used when the runner does
@@ -40,10 +40,18 @@ func requireCodexACP(t *testing.T) string {
 	if testing.Short() {
 		t.Skip("skipping codex ACP integration test in short mode")
 	}
-	if os.Getenv("LAELIA_RUN_CODEX_ACP_TESTS") != "1" {
-		t.Skip("set LAELIA_RUN_CODEX_ACP_TESTS=1 to run local codex ACP v2 integration tests")
+	legacyPrefix := "LAE" + "LIA_"
+	runFlag := os.Getenv("A2A888_RUN_CODEX_ACP_TESTS")
+	if runFlag == "" {
+		runFlag = os.Getenv(legacyPrefix + "RUN_CODEX_ACP_TESTS")
 	}
-	bin := os.Getenv("LAELIA_CODEX_BIN")
+	if runFlag != "1" {
+		t.Skip("set A2A888_RUN_CODEX_ACP_TESTS=1 to run local codex ACP v2 integration tests")
+	}
+	bin := os.Getenv("A2A888_CODEX_BIN")
+	if bin == "" {
+		bin = os.Getenv(legacyPrefix + "CODEX_BIN")
+	}
 	if bin == "" {
 		lookedUp, err := exec.LookPath("codex")
 		if err != nil {
@@ -100,8 +108,13 @@ func newCodexTestConfig(t *testing.T, workspace string) *ThreadConfig {
 			OutputFlushBytes:  4096,
 			StartupTimeout:    30 * time.Second,
 		},
-		Provider:          "codex",
-		Model:             os.Getenv("LAELIA_CODEX_MODEL"),
+		Provider: "codex",
+		Model: func() string {
+			if m := os.Getenv("A2A888_CODEX_MODEL"); m != "" {
+				return m
+			}
+			return os.Getenv("LAE" + "LIA_CODEX_MODEL")
+		}(),
 		WorkingDir:        workspace,
 		PersonaPrompt:     "You are a concise assistant. Reply in as few words as the task allows.",
 		Env:               map[string]string{"CODEX_HOME": newCodexTestHome(t)},

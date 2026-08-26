@@ -9,12 +9,12 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
-	"github.com/Ranxy/laelia/backend/common"
-	"github.com/Ranxy/laelia/backend/common/permission"
-	storepb "github.com/Ranxy/laelia/backend/generated-go/store"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/generated-go/v1/v1connect"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/common/permission"
+	storepb "github.com/tbdavid2019/888a2a/backend/generated-go/store"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/v1/v1connect"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // RoleService manages custom roles over the store's role CRUD. Predefined

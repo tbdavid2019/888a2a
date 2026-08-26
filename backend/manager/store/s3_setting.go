@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 // GetS3ConfigSetting returns the S3 connection config. It never returns a nil

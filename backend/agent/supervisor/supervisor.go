@@ -25,8 +25,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/agent/home"
-	"github.com/Ranxy/laelia/backend/agent/version"
+	"github.com/tbdavid2019/888a2a/backend/agent/home"
+	"github.com/tbdavid2019/888a2a/backend/agent/version"
 )
 
 // AddrFile is the file (under the Laelia data root) holding the supervisor's

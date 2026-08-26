@@ -10,9 +10,9 @@ import (
 	"connectrpc.com/connect"
 	"github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/manager/component/mcp"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/mcp"
 
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 // mcpTargetResolver resolves hostnames to addresses; *net.Resolver satisfies

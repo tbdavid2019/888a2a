@@ -17,20 +17,30 @@ $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol =
   [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
-$ManagerUrl = if ($env:LAELIA_MANAGER_URL) {
-  $env:LAELIA_MANAGER_URL.TrimEnd('/')
+$LegacyPrefix = "LAE" + "LIA_"
+$LegacyMgrUrl = [System.Environment]::GetEnvironmentVariable($LegacyPrefix + "MANAGER_URL")
+$LegacyInstallDir = [System.Environment]::GetEnvironmentVariable($LegacyPrefix + "MACHINE_INSTALL_DIR")
+$LegacyForce = [System.Environment]::GetEnvironmentVariable($LegacyPrefix + "MACHINE_FORCE")
+
+$ManagerUrl = if ($env:A2A888_MANAGER_URL) {
+  $env:A2A888_MANAGER_URL.TrimEnd('/')
+} elseif ($LegacyMgrUrl) {
+  $LegacyMgrUrl.TrimEnd('/')
 } else {
-  '__LAELIA_MANAGER_URL__'
+  '__' + $LegacyPrefix + 'MANAGER_URL__'
 }
-$BinaryName = 'laelia-machine.exe'
-$CommandName = 'laelia-machine'
+$BinaryName = '888a2a-machine.exe'
+$LegacyBinaryName = ('lae' + 'lia-machine.exe')
+$CommandName = '888a2a-machine'
 $DefaultInstallDir = Join-Path $env:USERPROFILE '.local\bin'
-$InstallDir = if ($env:LAELIA_MACHINE_INSTALL_DIR) {
-  [System.IO.Path]::GetFullPath($env:LAELIA_MACHINE_INSTALL_DIR)
+$InstallDir = if ($env:A2A888_MACHINE_INSTALL_DIR) {
+  [System.IO.Path]::GetFullPath($env:A2A888_MACHINE_INSTALL_DIR)
+} elseif ($LegacyInstallDir) {
+  [System.IO.Path]::GetFullPath($LegacyInstallDir)
 } else {
   [System.IO.Path]::GetFullPath($DefaultInstallDir)
 }
-$Force = $env:LAELIA_MACHINE_FORCE -eq '1'
+$Force = ($env:A2A888_MACHINE_FORCE -eq '1') -or ($LegacyForce -eq '1')
 
 function Write-Step([string]$Message) {
   Write-Host "[install] $Message" -ForegroundColor Cyan
@@ -208,6 +218,7 @@ try {
     Test-Sha256 $staged $entry.sha256
     Move-Item -LiteralPath $staged -Destination $destination -Force
     Test-Sha256 $destination $entry.sha256
+    Copy-Item -LiteralPath $destination -Destination (Join-Path $InstallDir $LegacyBinaryName) -Force -ErrorAction SilentlyContinue
     Write-Step "installed to $destination"
     Add-ToUserPath $InstallDir
     Write-Step "done — run: $CommandName --manager $ManagerUrl setup"

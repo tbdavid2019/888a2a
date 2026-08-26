@@ -542,7 +542,7 @@ const file_store_machine_proto_rawDesc = "" +
 	"\x1fMACHINE_TOKEN_STATE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14MACHINE_TOKEN_ACTIVE\x10\x01\x12\x1a\n" +
 	"\x16MACHINE_TOKEN_CONSUMED\x10\x02\x12\x19\n" +
-	"\x15MACHINE_TOKEN_REVOKED\x10\x03B4Z2github.com/Ranxy/laelia/backend/generated-go/storeb\x06proto3"
+	"\x15MACHINE_TOKEN_REVOKED\x10\x03B:Z8github.com/tbdavid2019/888a2a/backend/generated-go/storeb\x06proto3"
 
 var (
 	file_store_machine_proto_rawDescOnce sync.Once

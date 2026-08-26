@@ -21,7 +21,7 @@ export function machineInstallOSFromInfo(
 // the create-machine waiting page. The machine authenticates via the OAuth2
 // device flow, so no token is embedded in the command.
 export function buildMachineSetupCommand(): string {
-  return `laelia-machine --manager ${getManagerURL()} setup`;
+  return `888a2a-machine --manager ${getManagerURL()} setup`;
 }
 
 // buildMachineInstallCommand assembles the one-line install command for the

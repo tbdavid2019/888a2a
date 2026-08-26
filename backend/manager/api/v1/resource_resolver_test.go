@@ -4,10 +4,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/Ranxy/laelia/backend/manager/component/iam"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/iam"
 
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
 func TestResolveResources(t *testing.T) {

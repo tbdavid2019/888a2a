@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ranxy/laelia/backend/manager/config"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/config"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // token="" => unset

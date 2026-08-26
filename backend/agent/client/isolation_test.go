@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Ranxy/laelia/backend/agent/executor"
+	"github.com/tbdavid2019/888a2a/backend/agent/executor"
 )
 
 func TestConfinePathToAgentWorkspace(t *testing.T) {

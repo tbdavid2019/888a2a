@@ -16,9 +16,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Ranxy/laelia/backend/agent/acp2"
-	"github.com/Ranxy/laelia/backend/agent/provider"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/agent/acp2"
+	"github.com/tbdavid2019/888a2a/backend/agent/provider"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
 // fakeThreadProvider launches the re-exec'd fake app-server and maps

@@ -17,8 +17,8 @@ import (
 
 	"github.com/coder/acp-go-sdk"
 
-	"github.com/Ranxy/laelia/backend/agent/acp2"
-	a2a888pb "github.com/Ranxy/laelia/backend/generated-go/a2a888"
+	"github.com/tbdavid2019/888a2a/backend/agent/acp2"
+	a2a888pb "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
 )
 
 // CodexProvider discovers and launches the codex CLI's ACP v2 app-server. It

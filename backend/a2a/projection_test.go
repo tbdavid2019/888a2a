@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 func TestProjection_FormatThreadSummary(t *testing.T) {

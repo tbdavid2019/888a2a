@@ -10,7 +10,7 @@ export function formatToken(token: string): string {
 
 // getManagerURL returns the base URL agents/machines should connect back to,
 // derived from the Vite API base or the current origin. Trailing slashes are
-// stripped so the assembled `laelia-machine run --manager <url> --token <token>`
+// stripped so the assembled `888a2a-machine run --manager <url> --token <token>`
 // command is valid.
 export function getManagerURL(): string {
   return (import.meta.env.VITE_API_BASE_URL || window.location.origin).replace(

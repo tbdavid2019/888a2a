@@ -7,10 +7,10 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/agent/assignment"
-	"github.com/Ranxy/laelia/backend/agent/state"
-	"github.com/Ranxy/laelia/backend/generated-go/a2a888"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/agent/assignment"
+	"github.com/tbdavid2019/888a2a/backend/agent/state"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
 // Reducer returns the machine's assignment reducer.

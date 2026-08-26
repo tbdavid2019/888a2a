@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Ranxy/laelia/backend/common/stacktrace"
+	"github.com/tbdavid2019/888a2a/backend/common/stacktrace"
 )
 
 // LogLevel is the default log severity level.

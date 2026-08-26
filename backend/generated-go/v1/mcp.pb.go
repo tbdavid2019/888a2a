@@ -1400,7 +1400,7 @@ const file_v1_mcp_proto_rawDesc = "" +
 	"\x0fDeleteMcpServer\x12!.laelia.v1.DeleteMcpServerRequest\x1a\x16.google.protobuf.Empty\"\x0f\xdaA\x04name\x90\xea0\x01\x98\xea0\x012\xb5\x01\n" +
 	"\x11McpGatewayService\x12R\n" +
 	"\rGetMcpCatalog\x12\x1f.laelia.v1.GetMcpCatalogRequest\x1a .laelia.v1.GetMcpCatalogResponse\x12L\n" +
-	"\vCallMcpTool\x12\x1d.laelia.v1.CallMcpToolRequest\x1a\x1e.laelia.v1.CallMcpToolResponseB1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\vCallMcpTool\x12\x1d.laelia.v1.CallMcpToolRequest\x1a\x1e.laelia.v1.CallMcpToolResponseB7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_mcp_proto_rawDescOnce sync.Once

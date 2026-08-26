@@ -7,12 +7,12 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/Ranxy/laelia/backend/agent/executor"
-	"github.com/Ranxy/laelia/backend/agent/pi"
-	"github.com/Ranxy/laelia/backend/common"
-	storepb "github.com/Ranxy/laelia/backend/generated-go/store"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/agent/executor"
+	"github.com/tbdavid2019/888a2a/backend/agent/pi"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	storepb "github.com/tbdavid2019/888a2a/backend/generated-go/store"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 func (s *AgentService) convertToAgent(ctx context.Context, agent *store.AgentMessage, connected bool) *v1pb.Agent {

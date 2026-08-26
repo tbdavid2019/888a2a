@@ -11,7 +11,7 @@ import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "v1/annotation.proto";
 
-option go_package = "github.com/Ranxy/laelia/backend/generated-go/v1";
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/v1";
 
 // McpServerScope distinguishes workspace-global servers (admin-managed) from
 // personal servers (owned by a single user and usable only by that user).

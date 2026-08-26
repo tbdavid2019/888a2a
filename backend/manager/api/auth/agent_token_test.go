@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Ranxy/laelia/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/common"
 )
 
 // TestParseAgentToken_VerifiesSignature is the core T12 guard: RefreshAgentToken

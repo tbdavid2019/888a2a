@@ -9,7 +9,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
 // uuidStr is a valid UUID used by address-parser tests as a message-id suffix.

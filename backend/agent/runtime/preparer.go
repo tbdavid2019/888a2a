@@ -19,8 +19,8 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/Ranxy/laelia/backend/agent/provider"
-	a2a888pb "github.com/Ranxy/laelia/backend/generated-go/a2a888"
+	"github.com/tbdavid2019/888a2a/backend/agent/provider"
+	a2a888pb "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
 )
 
 // CommandRunner abstracts shell/process execution for npm installation and verification.

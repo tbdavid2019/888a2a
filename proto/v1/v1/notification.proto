@@ -6,7 +6,7 @@ import "google/api/field_behavior.proto";
 import "google/protobuf/empty.proto";
 import "v1/annotation.proto";
 
-option go_package = "github.com/Ranxy/laelia/backend/generated-go/v1";
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/v1";
 
 // NotificationService manages per-user browser Web Push subscriptions so the
 // manager can deliver system notifications for directed messages (mentions,

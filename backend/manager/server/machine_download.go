@@ -9,8 +9,8 @@ import (
 
 	"github.com/labstack/echo/v5"
 
-	"github.com/Ranxy/laelia/backend/manager/component/machinebuild"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/machinebuild"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 //go:embed install.sh.tmpl install.ps1.tmpl

@@ -6,7 +6,7 @@ import (
 )
 
 func usage() {
-	fmt.Print(`Laelia one-click test server launcher.
+	fmt.Print(`888a2a one-click test server launcher.
 
 Usage:
   testserver run    --workdir <dir> [options]   start a test server
@@ -20,11 +20,11 @@ Run options:
   --pg-port <n>       postgres port (default: random free port)
   --host <addr>       bind address (default 127.0.0.1; use 0.0.0.0 to share)
   --no-seed           skip seeding test data
-  --build             force rebuild of the laelia binary
+  --build             force rebuild of the 888a2a binary
   --keep              keep postgres data on exit (debugging)
-  --cache <dir>       shared cache dir (default LAELIA_TEST_CACHE or ~/.cache/laelia-test)
-  --binary <path>     path to the laelia binary
-  --admin-email <e>   admin email (default admin@laelia.test)
+  --cache <dir>       shared cache dir (default A2A888_TEST_CACHE or ~/.cache/888a2a-test)
+  --binary <path>     path to the 888a2a binary
+  --admin-email <e>   admin email (default admin@888a2a.test)
   --admin-password <p> admin password (default admin1234)
 `)
 }

@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	a2apkg "github.com/Ranxy/laelia/backend/a2a"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	a2apkg "github.com/tbdavid2019/888a2a/backend/a2a"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // WorkBudgetInput specifies optional resource and fanout bounds for delegated work.

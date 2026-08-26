@@ -269,7 +269,7 @@ const file_store_user_proto_rawDesc = "" +
 	"\x1ePREFERRED_LANGUAGE_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18PREFERRED_LANGUAGE_ZH_CN\x10\x01\x12\x1c\n" +
 	"\x18PREFERRED_LANGUAGE_EN_US\x10\x02\x12\x1c\n" +
-	"\x18PREFERRED_LANGUAGE_JA_JP\x10\x03B4Z2github.com/Ranxy/laelia/backend/generated-go/storeb\x06proto3"
+	"\x18PREFERRED_LANGUAGE_JA_JP\x10\x03B:Z8github.com/tbdavid2019/888a2a/backend/generated-go/storeb\x06proto3"
 
 var (
 	file_store_user_proto_rawDescOnce sync.Once

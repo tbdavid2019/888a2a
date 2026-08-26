@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/Ranxy/laelia/backend/manager/bin/server/cmd"
+	"github.com/tbdavid2019/888a2a/backend/manager/bin/server/cmd"
 )
 
 func main() {

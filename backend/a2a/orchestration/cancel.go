@@ -8,8 +8,8 @@ import (
 	a2asdk "github.com/a2aproject/a2a-go/v2/a2a"
 	"github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/a2a"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/a2a"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // CancellationResult summarizes the outcome of a tree cancellation.

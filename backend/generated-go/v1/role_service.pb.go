@@ -441,7 +441,7 @@ const file_v1_role_service_proto_rawDesc = "" +
 	"\n" +
 	"UpdateRole\x12\x1c.laelia.v1.UpdateRoleRequest\x1a\x0f.laelia.v1.Role\"2\xdaA\x10role,update_mask\x8a\xea0\x13laelia.roles.update\x90\xea0\x01\x98\xea0\x01\x12j\n" +
 	"\n" +
-	"DeleteRole\x12\x1c.laelia.v1.DeleteRoleRequest\x1a\x16.google.protobuf.Empty\"&\xdaA\x04name\x8a\xea0\x13laelia.roles.delete\x90\xea0\x01\x98\xea0\x01B1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"DeleteRole\x12\x1c.laelia.v1.DeleteRoleRequest\x1a\x16.google.protobuf.Empty\"&\xdaA\x04name\x8a\xea0\x13laelia.roles.delete\x90\xea0\x01\x98\xea0\x01B7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_role_service_proto_rawDescOnce sync.Once

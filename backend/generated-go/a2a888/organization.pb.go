@@ -1186,7 +1186,7 @@ const file_a2a888_organization_proto_rawDesc = "" +
 	"\x0fGetOrganization\x12!.a2a888.v1.GetOrganizationRequest\x1a\".a2a888.v1.GetOrganizationResponse\x12a\n" +
 	"\x12SwitchOrganization\x12$.a2a888.v1.SwitchOrganizationRequest\x1a%.a2a888.v1.SwitchOrganizationResponse\x12U\n" +
 	"\x0eListWorkspaces\x12 .a2a888.v1.ListWorkspacesRequest\x1a!.a2a888.v1.ListWorkspacesResponse\x12X\n" +
-	"\x0fListMemberships\x12!.a2a888.v1.ListMembershipsRequest\x1a\".a2a888.v1.ListMembershipsResponseB5Z3github.com/Ranxy/laelia/backend/generated-go/a2a888b\x06proto3"
+	"\x0fListMemberships\x12!.a2a888.v1.ListMembershipsRequest\x1a\".a2a888.v1.ListMembershipsResponseB;Z9github.com/tbdavid2019/888a2a/backend/generated-go/a2a888b\x06proto3"
 
 var (
 	file_a2a888_organization_proto_rawDescOnce sync.Once

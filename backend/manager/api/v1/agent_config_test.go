@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	storepb "github.com/Ranxy/laelia/backend/generated-go/store"
+	storepb "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 func TestProviderAvailable_Gating(t *testing.T) {

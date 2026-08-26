@@ -7,7 +7,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
 // A reaction is a lightweight sideband on a message: it never bumps the

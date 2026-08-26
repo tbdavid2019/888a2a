@@ -7,7 +7,7 @@
 package v1
 
 import (
-	store "github.com/Ranxy/laelia/backend/generated-go/store"
+	store "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -827,7 +827,7 @@ const file_v1_setting_proto_rawDesc = "" +
 	"\x0eGetSetupStatus\x12 .laelia.v1.GetSetupStatusRequest\x1a!.laelia.v1.GetSetupStatusResponse\"\x1b\x8a\xea0\x13laelia.settings.get\x90\xea0\x01\x12r\n" +
 	"\x0eGetDebugConfig\x12 .laelia.v1.GetDebugConfigRequest\x1a!.laelia.v1.GetDebugConfigResponse\"\x1b\x8a\xea0\x13laelia.settings.get\x90\xea0\x01\x12\x82\x01\n" +
 	"\x11UpdateDebugConfig\x12#.laelia.v1.UpdateDebugConfigRequest\x1a$.laelia.v1.UpdateDebugConfigResponse\"\"\x8a\xea0\x16laelia.settings.update\x90\xea0\x01\x98\xea0\x01\x12a\n" +
-	"\x10GetWorkspaceInfo\x12\".laelia.v1.GetWorkspaceInfoRequest\x1a#.laelia.v1.GetWorkspaceInfoResponse\"\x04\x80\xea0\x01B1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\x10GetWorkspaceInfo\x12\".laelia.v1.GetWorkspaceInfoRequest\x1a#.laelia.v1.GetWorkspaceInfoResponse\"\x04\x80\xea0\x01B7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_setting_proto_rawDescOnce sync.Once

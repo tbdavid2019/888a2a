@@ -9,12 +9,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Ranxy/laelia/backend/generated-go/a2a888"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
 )
 
 func TestSaveLoadRoundTrip(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
 
 	s := &State{
 		ManagerURL:   "https://manager.example.com",
@@ -35,7 +35,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	assert.True(t, got.CreatedAt.Equal(s.CreatedAt))
 
 	// The file must be 0600: it holds the refresh token.
-	info, err := os.Stat(filepath.Join(home, ".laelia", "machine.json"))
+	info, err := os.Stat(filepath.Join(tempHome, ".888a2a", "machine.json"))
 	require.NoError(t, err)
 	assert.Equal(t, os.FileMode(0o600), info.Mode().Perm())
 }

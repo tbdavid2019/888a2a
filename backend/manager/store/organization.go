@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	a2a888 "github.com/Ranxy/laelia/backend/generated-go/a2a888"
+	a2a888 "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
 )
 
 var (
@@ -515,4 +515,20 @@ func parseMembershipState(s string) a2a888.MembershipState {
 	default:
 		return a2a888.MembershipState_MEMBERSHIP_STATE_ACTIVE
 	}
+}
+
+// TenantCacheKey scopes a cache key by organization ID to prevent cross-tenant cache collisions.
+func TenantCacheKey(orgID string, resourceType string, key string) string {
+	if orgID == "" {
+		orgID = "default"
+	}
+	return fmt.Sprintf("org:%s:%s:%s", orgID, resourceType, key)
+}
+
+// TenantProjectionKey scopes a local projection key by organization ID.
+func TenantProjectionKey(orgID string, projectionName string, id string) string {
+	if orgID == "" {
+		orgID = "default"
+	}
+	return fmt.Sprintf("org:%s:proj:%s:%s", orgID, projectionName, id)
 }

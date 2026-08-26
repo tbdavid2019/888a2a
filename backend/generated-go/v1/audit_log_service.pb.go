@@ -431,7 +431,7 @@ const file_v1_audit_log_service_proto_rawDesc = "" +
 	"\acontent\x18\x01 \x01(\tR\acontent2\x87\x02\n" +
 	"\x0fAuditLogService\x12y\n" +
 	"\x0fSearchAuditLogs\x12!.laelia.v1.SearchAuditLogsRequest\x1a\".laelia.v1.SearchAuditLogsResponse\"\x1f\x8a\xea0\x17laelia.auditLogs.search\x90\xea0\x01\x12y\n" +
-	"\x0fExportAuditLogs\x12!.laelia.v1.ExportAuditLogsRequest\x1a\".laelia.v1.ExportAuditLogsResponse\"\x1f\x8a\xea0\x17laelia.auditLogs.export\x90\xea0\x01B1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\x0fExportAuditLogs\x12!.laelia.v1.ExportAuditLogsRequest\x1a\".laelia.v1.ExportAuditLogsResponse\"\x1f\x8a\xea0\x17laelia.auditLogs.export\x90\xea0\x01B7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_audit_log_service_proto_rawDescOnce sync.Once

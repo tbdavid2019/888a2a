@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 // TestS3HTTPClient_HasTimeouts guards against regressing back to the default
@@ -62,4 +62,17 @@ func TestTenantObjectKey_PrefixIsolation(t *testing.T) {
 			t.Errorf("TenantObjectKey(%q, %q) = %q; want %q", tc.orgID, tc.rawKey, got, tc.expected)
 		}
 	}
+}
+
+func TestTenantObjectKey_CrossTenantCollisionResistance(t *testing.T) {
+	keyTenantA := TenantObjectKey("tenant-alpha", "attachments/secret.pdf")
+	keyTenantB := TenantObjectKey("tenant-beta", "attachments/secret.pdf")
+
+	assert.NotEqual(t, keyTenantA, keyTenantB, "Cross-tenant S3 keys must never collide")
+	assert.Equal(t, "tenant-alpha/attachments/secret.pdf", keyTenantA)
+	assert.Equal(t, "tenant-beta/attachments/secret.pdf", keyTenantB)
+
+	// Nested path prefixes should not be confused with tenant boundary
+	nestedKey := TenantObjectKey("tenant-alpha", "subpath/tenant-beta/file.txt")
+	assert.Equal(t, "tenant-alpha/subpath/tenant-beta/file.txt", nestedKey)
 }

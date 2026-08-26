@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Ranxy/laelia/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/common"
 )
 
 // TestPeekTokenAudience_SelectsBranch guards the token-branching optimization:
@@ -16,6 +16,9 @@ import (
 func TestPeekTokenAudience_SelectsBranch(t *testing.T) {
 	const secret = "test-secret"
 	expected := []string{
+		"888a2a.agent.access.dev",
+		"888a2a.machine.access.dev",
+		"888a2a.user.access.dev",
 		"ll.agent.access.dev",
 		"ll.machine.access.dev",
 		"ll.user.access.dev",
@@ -31,6 +34,11 @@ func TestPeekTokenAudience_SelectsBranch(t *testing.T) {
 	assert.Equal(t, 2, audienceKind(peekTokenAudience(userTok), expected))
 	assert.Equal(t, 0, audienceKind(peekTokenAudience(agentTok), expected))
 	assert.Equal(t, 1, audienceKind(peekTokenAudience(machineTok), expected))
+
+	// Legacy tokens must also select the correct branch
+	legacyUserTok, err := generateToken("alice", 1, "ll.user.access.dev", time.Now().Add(time.Hour), []byte(secret))
+	require.NoError(t, err)
+	assert.Equal(t, 2, audienceKind(peekTokenAudience(legacyUserTok), expected))
 
 	// A token for a different release mode must not match any branch.
 	prodTok, err := GenerateAccessToken("alice", 1, common.ReleaseModeProd, secret, time.Hour)

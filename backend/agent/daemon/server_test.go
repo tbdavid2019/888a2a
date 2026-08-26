@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/Ranxy/laelia/backend/agent/chattools"
+	"github.com/tbdavid2019/888a2a/backend/agent/chattools"
 )
 
 func TestAuthorize(t *testing.T) {

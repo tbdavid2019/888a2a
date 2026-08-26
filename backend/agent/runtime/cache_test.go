@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Ranxy/laelia/backend/agent/provider"
-	a2a888pb "github.com/Ranxy/laelia/backend/generated-go/a2a888"
+	"github.com/tbdavid2019/888a2a/backend/agent/provider"
+	a2a888pb "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
 )
 
 func testManifest() *a2a888pb.ProviderManifest {

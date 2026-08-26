@@ -14,11 +14,11 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/Ranxy/laelia/backend/agent/client"
-	daemonsrv "github.com/Ranxy/laelia/backend/agent/daemon"
-	"github.com/Ranxy/laelia/backend/agent/home"
-	"github.com/Ranxy/laelia/backend/agent/state"
-	"github.com/Ranxy/laelia/backend/common/log"
+	"github.com/tbdavid2019/888a2a/backend/agent/client"
+	daemonsrv "github.com/tbdavid2019/888a2a/backend/agent/daemon"
+	"github.com/tbdavid2019/888a2a/backend/agent/home"
+	"github.com/tbdavid2019/888a2a/backend/agent/state"
+	"github.com/tbdavid2019/888a2a/backend/common/log"
 )
 
 func init() {

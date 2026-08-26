@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
 func noopMachineSend(_ *v1pb.ManagerMachineStreamMessage) error { return nil }

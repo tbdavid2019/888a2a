@@ -1288,7 +1288,7 @@ const file_v1_user_service_proto_rawDesc = "" +
 	"\fUndeleteUser\x12\x1e.laelia.v1.UndeleteUserRequest\x1a\x0f.laelia.v1.User\"\x1f\x8a\xea0\x13laelia.users.delete\x90\xea0\x01\x98\xea0\x01\x12?\n" +
 	"\fUploadAvatar\x12\x1e.laelia.v1.UploadAvatarRequest\x1a\x0f.laelia.v1.User\x12U\n" +
 	"\x0eDownloadAvatar\x12 .laelia.v1.DownloadAvatarRequest\x1a!.laelia.v1.DownloadAvatarResponse\x12?\n" +
-	"\fDeleteAvatar\x12\x1e.laelia.v1.DeleteAvatarRequest\x1a\x0f.laelia.v1.UserB1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\fDeleteAvatar\x12\x1e.laelia.v1.DeleteAvatarRequest\x1a\x0f.laelia.v1.UserB7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_user_service_proto_rawDescOnce sync.Once

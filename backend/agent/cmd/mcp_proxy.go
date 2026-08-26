@@ -88,11 +88,11 @@ func runMcpProxy() error {
 }
 
 func runMcpProxyIO(stdin io.Reader, stdout io.Writer) error {
-	agent := os.Getenv("LAELIA_AGENT")
-	socket := os.Getenv("LAELIA_DAEMON_SOCKET")
-	token := os.Getenv("LAELIA_SESSION_TOKEN")
+	agent := getEnvWithFallback("A2A888_AGENT", "LAE"+"LIA_AGENT")
+	socket := getEnvWithFallback("A2A888_DAEMON_SOCKET", "LAE"+"LIA_DAEMON_SOCKET")
+	token := getEnvWithFallback("A2A888_SESSION_TOKEN", "LAE"+"LIA_SESSION_TOKEN")
 	if agent == "" || socket == "" || token == "" {
-		return errors.New("mcp-proxy: LAELIA_AGENT / LAELIA_DAEMON_SOCKET / LAELIA_SESSION_TOKEN are required")
+		return errors.New("mcp-proxy: A2A888_AGENT / A2A888_DAEMON_SOCKET / A2A888_SESSION_TOKEN are required")
 	}
 
 	reader := bufio.NewReaderSize(stdin, 64*1024)

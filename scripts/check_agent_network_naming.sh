@@ -72,10 +72,19 @@ fi
 is_allowlisted_path() {
 	local path="$1"
 	case "${path}" in
+		CHANGELOG*|*/CHANGELOG*|CHANGELOG.md|*/CHANGELOG.md)
+			return 0
+			;;
+		openspec/*|*/openspec/*)
+			return 0
+			;;
 		*/migration/*|*/migrations/*|*/product-identity-migration/*|migration/*|migrations/*|product-identity-migration/*)
 			return 0
 			;;
-		*-identity-inventory.*)
+		*-identity-inventory.*|*/product_identity_inventory.md)
+			return 0
+			;;
+		*generated-go*|*types/proto-es*|*proto/store*|*proto/v1/v1*|*proto/gen*)
 			return 0
 			;;
 		LICENSE|LICENSE.*|NOTICE|NOTICE.*|COPYING|COPYING.*|*/LICENSE|*/LICENSE.*|*/NOTICE|*/NOTICE.*|*/COPYING|*/COPYING.*|*/attribution/*|*/ATTRIBUTION/*|*/licenses/*|*/LICENSES/*|*/third_party/*|*/THIRD_PARTY/*)

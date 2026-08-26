@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Ranxy/laelia/backend/agent/executor"
-	"github.com/Ranxy/laelia/backend/agent/pi"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/agent/executor"
+	"github.com/tbdavid2019/888a2a/backend/agent/pi"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // TestValidateAndNormalizeAPIProviderMembers verifies member format validation

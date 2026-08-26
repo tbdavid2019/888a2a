@@ -18,9 +18,9 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/Ranxy/laelia/backend/agent/acp2"
-	"github.com/Ranxy/laelia/backend/agent/provider"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/agent/acp2"
+	"github.com/tbdavid2019/888a2a/backend/agent/provider"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
 // ThreadConfig is the fully-resolved configuration for the thread executor.

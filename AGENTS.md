@@ -31,9 +31,9 @@ dated section. Never overwrite existing entries.
    - **Important**: Run golangci-lint repeatedly until there are no issues. The linter has a max-issues limit and may not show all issues in a single run.
 3. **Auto-fix**: Use `golangci-lint run --fix --allow-parallel-runners` to fix issues automatically
 4. **Test**: Run relevant tests before committing
-  - If you change ACP stdio integration or anything that could break real local ACP execution, also run `LAELIA_RUN_OPENCODE_ACP_TESTS=1 go test ./backend/agent/executor -count=1` on a machine with local `opencode acp` available.
-  - If you change the ACP v2 thread path (acp2, codex provider, thread executor), also run `LAELIA_RUN_CODEX_ACP_TESTS=1 CODEX_HOME=<writable codex home> go test ./backend/agent/executor -run TestThreadExecutorCodex -count=1` on a machine with local `codex` (with `app-server`) available.
-5. **Build**: `go build -ldflags "-w -s" -p=16 -o ./build/laelia ./backend/manager/bin/server/main.go`
+  - If you change ACP stdio integration or anything that could break real local ACP execution, also run `A2A888_RUN_OPENCODE_ACP_TESTS=1 go test ./backend/agent/executor -count=1` on a machine with local `opencode acp` available.
+  - If you change the ACP v2 thread path (acp2, codex provider, thread executor), also run `A2A888_RUN_CODEX_ACP_TESTS=1 CODEX_HOME=<writable codex home> go test ./backend/agent/executor -run TestThreadExecutorCodex -count=1` on a machine with local `codex` (with `app-server`) available.
+5. **Build**: `go build -ldflags "-w -s" -p=16 -o ./build/888a2a ./backend/manager/bin/server/main.go`
 
 ### Frontend Code Changes
 
@@ -56,24 +56,24 @@ dated section. Never overwrite existing entries.
 
 ```bash
 # Build
-go build -ldflags "-w -s" -p=16 -o ./build/laelia ./backend/manager/bin/server/main.go
+go build -ldflags "-w -s" -p=16 -o ./build/888a2a ./backend/manager/bin/server/main.go
 
 # Start manager backend (default port 8181 matches the frontend vite proxy)
 go run ./backend/manager/bin/server/main.go --port 8181 --debug
 
 # Run single test
-go test -v -count=1 github.com/Ranxy/laelia/backend/manager/path/to/tests -run ^TestFunctionName$
+go test -v -count=1 github.com/tbdavid2019/888a2a/backend/manager/path/to/tests -run ^TestFunctionName$
 
 # Run multiple tests
-go test -v -count=1 github.com/Ranxy/laelia/backend/manager/path/to/tests -run ^(TestFunctionName|TestFunctionNameTwo)$
+go test -v -count=1 github.com/tbdavid2019/888a2a/backend/manager/path/to/tests -run ^(TestFunctionName|TestFunctionNameTwo)$
 
 # Run ACP executor integration tests against local opencode ACP when stdio/runtime integration changes
-LAELIA_RUN_OPENCODE_ACP_TESTS=1 go test ./backend/agent/executor -count=1
+A2A888_RUN_OPENCODE_ACP_TESTS=1 go test ./backend/agent/executor -count=1
 
 # Run ACP v2 thread executor integration tests against local codex (needs a
 # writable CODEX_HOME with config.toml + models.json; the tests copy it into a
 # hermetic temp home, so the real home is never touched)
-LAELIA_RUN_CODEX_ACP_TESTS=1 CODEX_HOME=/path/to/codex-home go test ./backend/agent/executor -run TestThreadExecutorCodex -count=1
+A2A888_RUN_CODEX_ACP_TESTS=1 CODEX_HOME=/path/to/codex-home go test ./backend/agent/executor -run TestThreadExecutorCodex -count=1
 
 # Lint
 golangci-lint run --allow-parallel-runners
@@ -124,14 +124,14 @@ cd proto && buf generate
 
 ```bash
 # Local monolithic build: frontend + per-platform machine binaries -> embedded into manager
-scripts/build_laelia.sh                             # outputs build/laelia + build/laelia-machine (dev mode)
-RELEASE=true scripts/build_laelia.sh                # release-mode manager (adds the release build tag)
-LAELIA_BUILD_PROXY=http://host:port scripts/build_laelia.sh  # route the pi GitHub download through a proxy
+scripts/build_888a2a.sh                             # outputs build/888a2a + build/888a2a-machine (dev mode)
+RELEASE=true scripts/build_888a2a.sh                # release-mode manager (adds the release build tag)
+A2A888_BUILD_PROXY=http://host:port scripts/build_888a2a.sh  # route the pi GitHub download through a proxy
 
 # Docker images (manager image embeds frontend + machine binaries; machine image embeds pi)
-LAELIA_BUILD_PROXY=http://host:port scripts/build_laelia_manager_docker.sh  # -> laelia/manager:local (dev mode)
-RELEASE=true LAELIA_BUILD_PROXY=http://host:port scripts/build_laelia_manager_docker.sh  # -> release mode
-LAELIA_BUILD_PROXY=http://host:port scripts/build_laelia_machine_docker.sh  # -> laelia/machine:local
+A2A888_BUILD_PROXY=http://host:port scripts/build_888a2a_manager_docker.sh  # -> 888a2a/manager:local (dev mode)
+RELEASE=true A2A888_BUILD_PROXY=http://host:port scripts/build_888a2a_manager_docker.sh  # -> release mode
+A2A888_BUILD_PROXY=http://host:port scripts/build_888a2a_machine_docker.sh  # -> 888a2a/machine:local
 ```
 
 Notes:
@@ -144,11 +144,11 @@ Notes:
 - Each `backend/agent/pi/embedded/dist-*/pi` is a tracked 0-byte placeholder.
   A release build replaces it with the real (large) binary; restore it with
   `git restore backend/agent/pi/embedded/dist-*/pi` before committing.
-- `scripts/build_laelia.sh` cross-compiles linux-x64 / windows-x64 /
+- `scripts/build_888a2a.sh` cross-compiles linux-x64 / windows-x64 /
   darwin-arm64 machine binaries, gzips them, and embeds them into the manager
   (`backend/manager/server/embedded_machine/`, gitignored).
-- The manager image needs `LAELIA_PG_URL`; the machine image needs
-  `LAELIA_MANAGER_URL` and `LAELIA_TOKEN` (its entrypoint maps these env vars
+- The manager image needs `A2A888_PG_URL`; the machine image needs
+  `A2A888_MANAGER_URL` and `A2A888_TOKEN` (its entrypoint maps these env vars
   to CLI flags, adding `--allow-http` for `http://` URLs automatically).
 - The machine image is an agent runtime: node/npm (base image) plus
   python3/pip, build-essential (make/gcc), git, curl, wget, jq, unzip, zip,
@@ -158,9 +158,9 @@ Notes:
   to speed up the apt steps in restricted networks.
 - Codex login/config is never baked into the image: mount a writable CODEX_HOME
   volume (config.toml + auth/models.json) and point the machine entrypoint at
-  it with `LAELIA_CODEX_HOME` (it exports CODEX_HOME for the daemon). Without
+  it with `A2A888_CODEX_HOME` (it exports CODEX_HOME for the daemon). Without
   it codex falls back to `~/.codex` under the container home.
-- `LAELIA_BUILD_PROXY` is the single build proxy (pi download + docker Go
+- `A2A888_BUILD_PROXY` is the single build proxy (pi download + docker Go
   stages). Do not use a global `HTTPS_PROXY` for docker builds: BuildKit
   auto-injects standard proxy args into every stage, including the final
   runtime images.
@@ -169,22 +169,22 @@ Notes:
 
 ```bash
 # Connect to Postgres
-psql -h localhost -p 5432 -U dev -d laelia -c "sql"
+psql -h localhost -p 5432 -U dev -d 888a2a -c "sql"
 ```
 
 
 ### Test Server (one-click test environment)
 
-To start a throwaway, browser-accessible laelia instance (manual testing, or
+To start a throwaway, browser-accessible 888a2a instance (manual testing, or
 sharing a page with other users/agents), use `scripts/test-server.sh`. It
 builds the frontend + backend (embedded), runs an isolated embedded PostgreSQL,
 seeds preset users, and serves on a random port inside `--workdir`:
 
 ```bash
-scripts/test-server.sh run --workdir /tmp/laelia-test-1
-# ... prints the URL and preset accounts (admin@laelia.test / admin1234 etc.)
-scripts/test-server.sh stop   --workdir /tmp/laelia-test-1
-rm -rf /tmp/laelia-test-1   # run stop first; removes all instance state
+scripts/test-server.sh run --workdir /tmp/888a2a-test-1
+# ... prints the URL and preset accounts (admin@888a2a.test / admin1234 etc.)
+scripts/test-server.sh stop   --workdir /tmp/888a2a-test-1
+rm -rf /tmp/888a2a-test-1   # run stop first; removes all instance state
 ```
 
 Full usage, options, and caveats: see `docs/test-server.md`.

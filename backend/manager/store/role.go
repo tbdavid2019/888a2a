@@ -9,10 +9,10 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/Ranxy/laelia/backend/common"
-	"github.com/Ranxy/laelia/backend/common/permission"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/common/permission"
 
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 // RoleMessage is the message for roles. A role is a named bundle of permissions.

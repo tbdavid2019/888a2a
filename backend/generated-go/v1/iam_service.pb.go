@@ -7,7 +7,7 @@
 package v1
 
 import (
-	store "github.com/Ranxy/laelia/backend/generated-go/store"
+	store "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	expr "google.golang.org/genproto/googleapis/type/expr"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -662,7 +662,7 @@ const file_v1_iam_service_proto_rawDesc = "" +
 	"\x11GetAgentIamPolicy\x12#.laelia.v1.GetAgentIamPolicyRequest\x1a\x18.laelia.v1.IamPolicyView\"\x1c\x8a\xea0\x14laelia.iam.getPolicy\x90\xea0\x01\x12t\n" +
 	"\x11SetAgentIamPolicy\x12#.laelia.v1.SetAgentIamPolicyRequest\x1a\x18.laelia.v1.IamPolicyView\" \x8a\xea0\x14laelia.iam.setPolicy\x90\xea0\x01\x98\xea0\x01\x12\\\n" +
 	"\x13GetMachineIamPolicy\x12%.laelia.v1.GetMachineIamPolicyRequest\x1a\x18.laelia.v1.IamPolicyView\"\x04\x90\xea0\x01\x12`\n" +
-	"\x13SetMachineIamPolicy\x12%.laelia.v1.SetMachineIamPolicyRequest\x1a\x18.laelia.v1.IamPolicyView\"\b\x90\xea0\x01\x98\xea0\x01B1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\x13SetMachineIamPolicy\x12%.laelia.v1.SetMachineIamPolicyRequest\x1a\x18.laelia.v1.IamPolicyView\"\b\x90\xea0\x01\x98\xea0\x01B7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_iam_service_proto_rawDescOnce sync.Once

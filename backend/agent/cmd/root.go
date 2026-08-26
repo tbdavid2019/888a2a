@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/Ranxy/laelia/backend/agent/version"
+	"github.com/tbdavid2019/888a2a/backend/agent/version"
 )
 
 var flags struct {

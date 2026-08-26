@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Ranxy/laelia/backend/manager/component/roomhub"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/roomhub"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 func TestLongPollDeltaReturnsImmediatelyWhenMessagesExist(t *testing.T) {

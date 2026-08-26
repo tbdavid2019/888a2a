@@ -6,11 +6,11 @@ import (
 	"connectrpc.com/connect"
 	"github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/common"
-	a2a888 "github.com/Ranxy/laelia/backend/generated-go/a2a888"
-	"github.com/Ranxy/laelia/backend/generated-go/a2a888/a2a888connect"
-	"github.com/Ranxy/laelia/backend/manager/component/iam"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	a2a888 "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/a2a888/a2a888connect"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/iam"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // OrganizationService implements a2a888connect.OrganizationServiceHandler.

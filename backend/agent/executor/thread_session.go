@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Ranxy/laelia/backend/agent/acp2"
-	"github.com/Ranxy/laelia/backend/agent/provider"
+	"github.com/tbdavid2019/888a2a/backend/agent/acp2"
+	"github.com/tbdavid2019/888a2a/backend/agent/provider"
 )
 
 // idleEvictGrace is how long idle eviction waits after SIGTERM for the

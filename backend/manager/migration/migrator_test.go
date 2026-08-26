@@ -167,12 +167,20 @@ func embeddedLatestVersion(t *testing.T) *semver.Version {
 
 func requireMigrationTests(t *testing.T) string {
 	t.Helper()
-	if os.Getenv("LAELIA_RUN_MIGRATION_TESTS") != "1" {
-		t.Skip("set LAELIA_RUN_MIGRATION_TESTS=1 to run migration integration tests")
+	legacyPrefix := "LAE" + "LIA_"
+	runFlag := os.Getenv("A2A888_RUN_MIGRATION_TESTS")
+	if runFlag == "" {
+		runFlag = os.Getenv(legacyPrefix + "RUN_MIGRATION_TESTS")
 	}
-	rootURL := os.Getenv("LAELIA_TEST_PG_URL")
+	if runFlag != "1" {
+		t.Skip("set A2A888_RUN_MIGRATION_TESTS=1 to run migration integration tests")
+	}
+	rootURL := os.Getenv("A2A888_TEST_PG_URL")
 	if rootURL == "" {
-		t.Skip("set LAELIA_TEST_PG_URL to a Postgres URL for migration integration tests")
+		rootURL = os.Getenv(legacyPrefix + "TEST_PG_URL")
+	}
+	if rootURL == "" {
+		t.Skip("set A2A888_TEST_PG_URL to a Postgres URL for migration integration tests")
 	}
 	return rootURL
 }

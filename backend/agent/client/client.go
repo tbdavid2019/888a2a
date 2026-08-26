@@ -30,15 +30,15 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/Ranxy/laelia/backend/agent/assignment"
-	daemonsrv "github.com/Ranxy/laelia/backend/agent/daemon"
-	"github.com/Ranxy/laelia/backend/agent/home"
-	"github.com/Ranxy/laelia/backend/agent/provider"
-	agentruntime "github.com/Ranxy/laelia/backend/agent/runtime"
-	"github.com/Ranxy/laelia/backend/agent/version"
-	a2a888pb "github.com/Ranxy/laelia/backend/generated-go/a2a888"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/generated-go/v1/v1connect"
+	"github.com/tbdavid2019/888a2a/backend/agent/assignment"
+	daemonsrv "github.com/tbdavid2019/888a2a/backend/agent/daemon"
+	"github.com/tbdavid2019/888a2a/backend/agent/home"
+	"github.com/tbdavid2019/888a2a/backend/agent/provider"
+	agentruntime "github.com/tbdavid2019/888a2a/backend/agent/runtime"
+	"github.com/tbdavid2019/888a2a/backend/agent/version"
+	a2a888pb "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/v1/v1connect"
 )
 
 const (

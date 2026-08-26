@@ -1,4 +1,4 @@
-module github.com/Ranxy/laelia
+module github.com/tbdavid2019/888a2a
 
 go 1.26.4
 

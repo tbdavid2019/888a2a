@@ -57,7 +57,8 @@ func TestSessionFingerprint_StableAndDistinguishing(t *testing.T) {
 // start), save→load round-trips, and clear drops back to nil. HOME is redirected
 // to a temp dir so the test never touches the real ~/.laelia.
 func TestLoadSaveClearACPSession_RoundTrip(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
 	const (
 		machineID = "test-machine-session"
 		agentID   = "test-agent-session-roundtrip"
@@ -80,7 +81,7 @@ func TestLoadSaveClearACPSession_RoundTrip(t *testing.T) {
 
 	// The file is written under the per-machine/per-agent dir, sibling of
 	// command-state.json.
-	info, statErr := os.Stat(filepath.Join(os.Getenv("HOME"), ".laelia", machineID, agentID, "acp-session.json"))
+	info, statErr := os.Stat(filepath.Join(tempHome, ".888a2a", machineID, agentID, "acp-session.json"))
 	require.NoError(t, statErr)
 	assert.True(t, info.Mode().Perm() <= 0o600, "session file must be owner-only")
 

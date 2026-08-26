@@ -15,9 +15,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Ranxy/laelia/backend/manager/component/dispatcher"
-	"github.com/Ranxy/laelia/backend/manager/component/schedule"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/dispatcher"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/schedule"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // retryBackoff is the offline-delivery retry schedule. After a reminder fires

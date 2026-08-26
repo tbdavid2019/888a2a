@@ -19,8 +19,8 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/agent/executor"
-	"github.com/Ranxy/laelia/backend/agent/home"
+	"github.com/tbdavid2019/888a2a/backend/agent/executor"
+	"github.com/tbdavid2019/888a2a/backend/agent/home"
 )
 
 // turnEventBuffer bounds the per-turn event channel. The drain loop consumes

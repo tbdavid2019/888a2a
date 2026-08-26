@@ -11,8 +11,8 @@ import (
 	"github.com/coder/acp-go-sdk"
 	"github.com/pkg/errors"
 
-	a2atestkit "github.com/Ranxy/laelia/backend/a2a/testkit"
-	"github.com/Ranxy/laelia/backend/agent/acp2"
+	a2atestkit "github.com/tbdavid2019/888a2a/backend/a2a/testkit"
+	"github.com/tbdavid2019/888a2a/backend/agent/acp2"
 )
 
 func TestTwelveAgentDeterministicTopology(t *testing.T) {

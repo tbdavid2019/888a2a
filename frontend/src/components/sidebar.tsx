@@ -435,7 +435,7 @@ export function DesktopSidebar({
       <div className="flex h-12 shrink-0 items-center gap-2 border-b border-control-border px-4">
         {!collapsed && (
           <span className="text-sm font-semibold text-main truncate">
-            Laelia AI
+            888a2a
           </span>
         )}
         <button
@@ -508,7 +508,7 @@ export function MobileSidebar({
           >
             <Menu className="size-4" />
           </button>
-          <span className="text-sm font-semibold text-main">Laelia AI</span>
+          <span className="text-sm font-semibold text-main">888a2a</span>
         </div>
         <div className="border-b border-control-border px-3 py-2">
           <OrgSwitcher className="w-full" />

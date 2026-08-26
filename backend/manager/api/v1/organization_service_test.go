@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	"github.com/Ranxy/laelia/backend/common"
-	a2a888 "github.com/Ranxy/laelia/backend/generated-go/a2a888"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	a2a888 "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 func TestOrganizationService_Unauthenticated(t *testing.T) {

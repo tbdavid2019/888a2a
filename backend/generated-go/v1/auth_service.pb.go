@@ -506,7 +506,7 @@ const file_v1_auth_service_proto_rawDesc = "" +
 	"\x05Login\x12\x17.laelia.v1.LoginRequest\x1a\x18.laelia.v1.LoginResponse\"\b\x80\xea0\x01\x98\xea0\x01\x12D\n" +
 	"\x06Logout\x12\x18.laelia.v1.LogoutRequest\x1a\x16.google.protobuf.Empty\"\b\x80\xea0\x01\x98\xea0\x01\x12R\n" +
 	"\vVerifyEmail\x12\x1d.laelia.v1.VerifyEmailRequest\x1a\x1e.laelia.v1.VerifyEmailResponse\"\x04\x80\xea0\x01\x12v\n" +
-	"\x17ResendVerificationEmail\x12).laelia.v1.ResendVerificationEmailRequest\x1a*.laelia.v1.ResendVerificationEmailResponse\"\x04\x80\xea0\x01B1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\x17ResendVerificationEmail\x12).laelia.v1.ResendVerificationEmailRequest\x1a*.laelia.v1.ResendVerificationEmailResponse\"\x04\x80\xea0\x01B7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_auth_service_proto_rawDescOnce sync.Once

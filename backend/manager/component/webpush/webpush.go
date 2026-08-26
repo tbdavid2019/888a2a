@@ -17,7 +17,7 @@ import (
 	webpush "github.com/SherClockHolmes/webpush-go"
 	"github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // sendTimeout caps a single push POST. Push services are external and can be

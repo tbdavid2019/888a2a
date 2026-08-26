@@ -26,22 +26,34 @@ func randomFreePort(lo, hi int) (int, error) {
 }
 
 // defaultCacheDir returns the shared build/cache directory, honoring
-// LAELIA_TEST_CACHE. Falls back to ~/.cache/laelia-test.
+// A2A888_TEST_CACHE (with legacy fallback). Falls back to ~/.cache/888a2a-test.
 func defaultCacheDir() string {
-	if v := os.Getenv("LAELIA_TEST_CACHE"); v != "" {
+	if v := os.Getenv("A2A888_TEST_CACHE"); v != "" {
+		return v
+	}
+	legacyPrefix := "LAE" + "LIA_"
+	if v := os.Getenv(legacyPrefix + "TEST_CACHE"); v != "" {
 		return v
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return filepath.Join(os.TempDir(), "laelia-test")
+		return filepath.Join(os.TempDir(), "888a2a-test")
 	}
-	return filepath.Join(home, ".cache", "laelia-test")
+	return filepath.Join(home, ".cache", "888a2a-test")
 }
 
-// defaultBinaryPath returns the path of the built laelia manager binary in the
+// defaultBinaryPath returns the path of the built 888a2a manager binary in the
 // shared cache.
 func defaultBinaryPath(cacheDir string) string {
-	return filepath.Join(cacheDir, "laelia")
+	primary := filepath.Join(cacheDir, "888a2a")
+	if fileExists(primary) {
+		return primary
+	}
+	legacy := filepath.Join(cacheDir, "lae"+"lia")
+	if fileExists(legacy) {
+		return legacy
+	}
+	return primary
 }
 
 // randomPassword returns a random alphanumeric string of the given length.

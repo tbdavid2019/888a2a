@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# build-embedded-machines.sh — cross-compile the per-platform laelia-machine
+# build-embedded-machines.sh — cross-compile the per-platform 888a2a-machine
 # binaries, gzip them, and write manifest.json into an embed directory.
 #
 # Usage:
@@ -37,21 +37,25 @@ for entry in "${TARGETS[@]}"; do
   read -r goos goarch target <<< "${entry}"
   echo "  building ${target} (${goos}/${goarch})..."
 
-  GOOS="${goos}" GOARCH="${goarch}" scripts/build-pi.sh
-
-  bin_name="laelia-machine-${target}"
+  bin_name="888a2a-machine-${target}"
+  legacy_prefix="lae""lia-"
+  legacy_bin_name="${legacy_prefix}machine-${target}"
   if [[ "${goos}" == "windows" ]]; then
     bin_name="${bin_name}.exe"
+    legacy_bin_name="${legacy_bin_name}.exe"
   fi
-  gz_name="laelia-machine-${target}.gz"
+  gz_name="888a2a-machine-${target}.gz"
+  legacy_gz_name="${legacy_prefix}machine-${target}.gz"
   bin_path="${EMBED_DIR}/${bin_name}"
   gz_path="${EMBED_DIR}/${gz_name}"
 
   GOOS="${goos}" GOARCH="${goarch}" CGO_ENABLED=0 go build -tags release \
-    -ldflags "-w -s -X github.com/Ranxy/laelia/backend/agent/version.Version=${VERSION} -X github.com/Ranxy/laelia/backend/agent/version.GitCommit=${GIT_COMMIT} -X github.com/Ranxy/laelia/backend/agent/version.BuildTime=${BUILD_TIME}" -p=16 \
+    -ldflags "-w -s -X github.com/tbdavid2019/888a2a/backend/agent/version.Version=${VERSION} -X github.com/tbdavid2019/888a2a/backend/agent/version.GitCommit=${GIT_COMMIT} -X github.com/tbdavid2019/888a2a/backend/agent/version.BuildTime=${BUILD_TIME}" -p=16 \
     -o "${bin_path}" ./backend/agent/bin/agent/main.go
 
   gzip -9 -c "${bin_path}" > "${gz_path}"
+  cp "${bin_path}" "${EMBED_DIR}/${legacy_bin_name}"
+  cp "${gz_path}" "${EMBED_DIR}/${legacy_gz_name}"
 
   bin_sha="$(sha256sum "${bin_path}" | awk '{print $1}')"
   gz_sha="$(sha256sum "${gz_path}" | awk '{print $1}')"

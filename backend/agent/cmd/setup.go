@@ -15,12 +15,12 @@ import (
 	"connectrpc.com/connect"
 	"github.com/spf13/cobra"
 
-	"github.com/Ranxy/laelia/backend/agent/client"
-	"github.com/Ranxy/laelia/backend/agent/state"
-	"github.com/Ranxy/laelia/backend/agent/version"
-	"github.com/Ranxy/laelia/backend/common/log"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/generated-go/v1/v1connect"
+	"github.com/tbdavid2019/888a2a/backend/agent/client"
+	"github.com/tbdavid2019/888a2a/backend/agent/state"
+	"github.com/tbdavid2019/888a2a/backend/agent/version"
+	"github.com/tbdavid2019/888a2a/backend/common/log"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/v1/v1connect"
 )
 
 func init() {

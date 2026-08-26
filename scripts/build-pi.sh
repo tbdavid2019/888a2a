@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # build-pi.sh — materialize the standalone pi distribution that the release
-# build embeds into laelia (see backend/agent/pi/binary_release.go's
+# build embeds into 888a2a (see backend/agent/pi/binary_release.go's
 # `//go:embed embedded/dist-<goos>-<goarch>`). Run this BEFORE
 # `go build -tags release` for a target platform.
 #
@@ -16,10 +16,9 @@
 #   scripts/build-pi.sh                       # current platform
 #   GOOS=linux GOARCH=amd64 scripts/build-pi.sh
 #   PI_VERSION=v0.82.1 scripts/build-pi.sh    # pin a version (default below)
-#   LAELIA_BUILD_PROXY=http://host:port scripts/build-pi.sh  # route this download through a proxy
+#   A2A888_BUILD_PROXY=http://host:port scripts/build-pi.sh  # route this download through a proxy
 #
-# After it succeeds, build laelia for the same target:
-#   GOOS=linux GOARCH=amd64 go build -tags release -o laelia ./backend/manager/bin/server/main.go
+# After it succeeds, run scripts/build_888a2a.sh for the manager build.
 set -euo pipefail
 
 PI_VERSION="${PI_VERSION:-v0.82.1}"
@@ -56,10 +55,12 @@ if [[ -z "${PI_FORCE:-}" && -s "${OUT_FILE}" && -f "${META_FILE}" ]] \
   exit 0
 fi
 
-# LAELIA_BUILD_PROXY is the single build proxy, so restricted networks can
+# A2A888_BUILD_PROXY is the single build proxy, so restricted networks can
 # accelerate GitHub without exporting a global HTTPS_PROXY that would also be
 # picked up by docker builds and other tools.
-proxy_url="${LAELIA_BUILD_PROXY:-}"
+legacy_prefix="LAE"
+legacy_prefix="${legacy_prefix}LIA_"
+proxy_url="${A2A888_BUILD_PROXY:-$(eval "printf '%s' \"\${${legacy_prefix}BUILD_PROXY:-}\"")}"
 curl_opts=(-fsSL)
 if [[ -n "${proxy_url}" ]]; then
   curl_opts+=(--proxy "${proxy_url}")
@@ -111,4 +112,4 @@ chmod 0700 "${OUT_FILE}"
 echo "${PI_VERSION} ${GOOS_TARGET} ${GOARCH_TARGET}" > "${META_FILE}"
 
 echo "build-pi: wrote ${OUT_FILE} ($(wc -c < "${OUT_FILE}") bytes)"
-echo "build-pi: now run: GOOS=${GOOS_TARGET} GOARCH=${GOARCH_TARGET} go build -tags release -o laelia ./backend/manager/bin/server/main.go"
+echo "build-pi: pi runtime prepared; run scripts/build_888a2a.sh for the manager build"

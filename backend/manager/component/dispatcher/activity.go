@@ -6,8 +6,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // activityAggregator computes per-agent conversation activity from the session

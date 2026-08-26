@@ -9,7 +9,7 @@ import (
 
 	lru "github.com/hashicorp/golang-lru/v2"
 
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 type Store struct {

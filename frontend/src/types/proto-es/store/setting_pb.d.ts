@@ -223,6 +223,127 @@ export declare type PasswordRestrictionSetting = Message<"laelia.store.PasswordR
 export declare const PasswordRestrictionSettingSchema: GenMessage<PasswordRestrictionSetting>;
 
 /**
+ * @generated from message laelia.store.EnvironmentSetting
+ */
+export declare type EnvironmentSetting = Message<"laelia.store.EnvironmentSetting"> & {
+  /**
+   * @generated from field: repeated laelia.store.EnvironmentSetting.Environment environments = 1;
+   */
+  environments: EnvironmentSetting_Environment[];
+};
+
+/**
+ * Describes the message laelia.store.EnvironmentSetting.
+ * Use `create(EnvironmentSettingSchema)` to create a new message.
+ */
+export declare const EnvironmentSettingSchema: GenMessage<EnvironmentSetting>;
+
+/**
+ * @generated from message laelia.store.EnvironmentSetting.Environment
+ */
+export declare type EnvironmentSetting_Environment = Message<"laelia.store.EnvironmentSetting.Environment"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string title = 2;
+   */
+  title: string;
+
+  /**
+   * @generated from field: map<string, string> tags = 3;
+   */
+  tags: { [key: string]: string };
+
+  /**
+   * @generated from field: string color = 4;
+   */
+  color: string;
+};
+
+/**
+ * Describes the message laelia.store.EnvironmentSetting.Environment.
+ * Use `create(EnvironmentSetting_EnvironmentSchema)` to create a new message.
+ */
+export declare const EnvironmentSetting_EnvironmentSchema: GenMessage<EnvironmentSetting_Environment>;
+
+/**
+ * @generated from message laelia.store.AgentSecuritySetting
+ */
+export declare type AgentSecuritySetting = Message<"laelia.store.AgentSecuritySetting"> & {
+  /**
+   * Heartbeat interval in seconds.
+   *
+   * @generated from field: int32 heartbeat_interval_seconds = 1;
+   */
+  heartbeatIntervalSeconds: number;
+
+  /**
+   * Offline threshold in seconds.
+   *
+   * @generated from field: int32 offline_threshold_seconds = 2;
+   */
+  offlineThresholdSeconds: number;
+
+  /**
+   * Bootstrap token duration.
+   *
+   * @generated from field: google.protobuf.Duration bootstrap_token_duration = 3;
+   */
+  bootstrapTokenDuration?: Duration | undefined;
+
+  /**
+   * Access token duration.
+   *
+   * @generated from field: google.protobuf.Duration access_token_duration = 4;
+   */
+  accessTokenDuration?: Duration | undefined;
+
+  /**
+   * Refresh token duration.
+   *
+   * @generated from field: google.protobuf.Duration refresh_token_duration = 5;
+   */
+  refreshTokenDuration?: Duration | undefined;
+
+  /**
+   * Max concurrent sessions per agent (default: 1).
+   *
+   * @generated from field: int32 max_concurrent_sessions = 6;
+   */
+  maxConcurrentSessions: number;
+
+  /**
+   * IP validation policy.
+   *
+   * @generated from field: laelia.store.IPValidationPolicy ip_validation_policy = 7;
+   */
+  ipValidationPolicy: IPValidationPolicy;
+
+  /**
+   * Heartbeat rate limit per minute per agent.
+   *
+   * @generated from field: int32 heartbeat_rate_limit_per_minute = 8;
+   */
+  heartbeatRateLimitPerMinute: number;
+
+  /**
+   * Connect rate limit per minute per IP.
+   *
+   * @generated from field: int32 connect_rate_limit_per_minute = 9;
+   */
+  connectRateLimitPerMinute: number;
+};
+
+/**
+ * Describes the message laelia.store.AgentSecuritySetting.
+ * Use `create(AgentSecuritySettingSchema)` to create a new message.
+ */
+export declare const AgentSecuritySettingSchema: GenMessage<AgentSecuritySetting>;
+
+/**
  * S3ConfigSetting holds the connection details for the object storage used to
  * back file upload/download. When endpoint and bucket are both empty, S3 is
  * considered unconfigured and upload/download endpoints reject with
@@ -289,6 +410,56 @@ export declare type S3ConfigSetting = Message<"laelia.store.S3ConfigSetting"> & 
  * Use `create(S3ConfigSettingSchema)` to create a new message.
  */
 export declare const S3ConfigSettingSchema: GenMessage<S3ConfigSetting>;
+
+/**
+ * WebPushSetting holds the VAPID keypair (RFC 8292) used to sign Web Push
+ * notifications. The keypair is auto-generated on first boot and stored here so
+ * a self-hosted SaaS deployment needs no env config; rotating the keys
+ * invalidates every existing push subscription, so the values must stay stable.
+ * Stored as plaintext (same mechanism as AUTH_SECRET); the private key is never
+ * returned by any RPC — GetPushConfig only exposes the public key.
+ *
+ * @generated from message laelia.store.WebPushSetting
+ */
+export declare type WebPushSetting = Message<"laelia.store.WebPushSetting"> & {
+  /**
+   * base64url (no padding) VAPID public key, sent to browsers for subscription.
+   *
+   * @generated from field: string public_key = 1;
+   */
+  publicKey: string;
+
+  /**
+   * base64url (no padding) VAPID private key, used only server-side to sign.
+   *
+   * @generated from field: string private_key = 2;
+   */
+  privateKey: string;
+
+  /**
+   * VAPID subject: a mailto: or https: URL identifying the sender. Required by
+   * some push services (notably APNs).
+   *
+   * @generated from field: string subject = 3;
+   */
+  subject: string;
+
+  /**
+   * http_proxy is an optional outbound HTTP(S) proxy used when the manager
+   * posts notifications to browser push services. Empty (default) means direct
+   * connection. Useful when the manager's network cannot reach the push
+   * endpoints directly. Only http:// and https:// schemes are supported.
+   *
+   * @generated from field: string http_proxy = 4;
+   */
+  httpProxy: string;
+};
+
+/**
+ * Describes the message laelia.store.WebPushSetting.
+ * Use `create(WebPushSettingSchema)` to create a new message.
+ */
+export declare const WebPushSettingSchema: GenMessage<WebPushSetting>;
 
 /**
  * LlmAgentConfigSetting is the workspace-level LLM agent configuration. The
@@ -430,4 +601,121 @@ export enum McpIpPolicy_Scope {
  * Describes the enum laelia.store.McpIpPolicy.Scope.
  */
 export declare const McpIpPolicy_ScopeSchema: GenEnum<McpIpPolicy_Scope>;
+
+/**
+ * @generated from enum laelia.store.SettingName
+ */
+export enum SettingName {
+  /**
+   * @generated from enum value: SETTING_NAME_UNSPECIFIED = 0;
+   */
+  SETTING_NAME_UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: AUTH_SECRET = 1;
+   */
+  AUTH_SECRET = 1,
+
+  /**
+   * @generated from enum value: BRANDING_LOGO = 2;
+   */
+  BRANDING_LOGO = 2,
+
+  /**
+   * @generated from enum value: WORKSPACE_ID = 3;
+   */
+  WORKSPACE_ID = 3,
+
+  /**
+   * @generated from enum value: WORKSPACE_PROFILE = 4;
+   */
+  WORKSPACE_PROFILE = 4,
+
+  /**
+   * @generated from enum value: WORKSPACE_APPROVAL = 5;
+   */
+  WORKSPACE_APPROVAL = 5,
+
+  /**
+   * @generated from enum value: WORKSPACE_EXTERNAL_APPROVAL = 6;
+   */
+  WORKSPACE_EXTERNAL_APPROVAL = 6,
+
+  /**
+   * @generated from enum value: PASSWORD_RESTRICTION = 7;
+   */
+  PASSWORD_RESTRICTION = 7,
+
+  /**
+   * @generated from enum value: ENVIRONMENT = 8;
+   */
+  ENVIRONMENT = 8,
+
+  /**
+   * @generated from enum value: AGENT_SECURITY = 9;
+   */
+  AGENT_SECURITY = 9,
+
+  /**
+   * @generated from enum value: S3_CONFIG = 10;
+   */
+  S3_CONFIG = 10,
+
+  /**
+   * @generated from enum value: WEB_PUSH_CONFIG = 11;
+   */
+  WEB_PUSH_CONFIG = 11,
+
+  /**
+   * @generated from enum value: LLM_AGENT_CONFIG = 12;
+   */
+  LLM_AGENT_CONFIG = 12,
+
+  /**
+   * @generated from enum value: USER_MCP_CONFIG = 13;
+   */
+  USER_MCP_CONFIG = 13,
+
+  /**
+   * @generated from enum value: SMTP_CONFIG = 14;
+   */
+  SMTP_CONFIG = 14,
+}
+
+/**
+ * Describes the enum laelia.store.SettingName.
+ */
+export declare const SettingNameSchema: GenEnum<SettingName>;
+
+/**
+ * IP validation policy for agent connections.
+ *
+ * @generated from enum laelia.store.IPValidationPolicy
+ */
+export enum IPValidationPolicy {
+  /**
+   * @generated from enum value: IP_VALIDATION_POLICY_UNSPECIFIED = 0;
+   */
+  IP_VALIDATION_POLICY_UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: IP_VALIDATION_OFF = 1;
+   */
+  IP_VALIDATION_OFF = 1,
+
+  /**
+   * @generated from enum value: IP_VALIDATION_WARN = 2;
+   */
+  IP_VALIDATION_WARN = 2,
+
+  /**
+   * @generated from enum value: IP_VALIDATION_STRICT = 3;
+   */
+  IP_VALIDATION_STRICT = 3,
+}
+
+/**
+ * Describes the enum laelia.store.IPValidationPolicy.
+ */
+export declare const IPValidationPolicySchema: GenEnum<IPValidationPolicy>;
 

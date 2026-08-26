@@ -46,12 +46,12 @@ func TestLoadSaveContextState_RoundTrip(t *testing.T) {
 }
 
 func TestSaveContextState_AtomicNoTempLeftBehind(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
 
 	require.NoError(t, SaveContextState("m", "a", &ContextState{Fingerprint: "fp"}))
 
-	entries, err := os.ReadDir(filepath.Join(home, ".laelia", "m", "a"))
+	entries, err := os.ReadDir(filepath.Join(tempHome, ".888a2a", "m", "a"))
 	require.NoError(t, err)
 	require.Len(t, entries, 1, "only context-state.json, no temp files")
 	assert.Equal(t, "context-state.json", entries[0].Name())

@@ -9,7 +9,7 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/field_mask.proto";
 import "v1/annotation.proto";
 
-option go_package = "github.com/Ranxy/laelia/backend/generated-go/v1";
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/v1";
 
 // IdentityProviderService manages external identity providers (OAuth2/OIDC/LDAP)
 // used for SSO authentication. It is the admin-facing configuration surface:

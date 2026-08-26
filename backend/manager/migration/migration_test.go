@@ -1,6 +1,7 @@
 package migration
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -328,5 +329,100 @@ func TestOrganizationTenancySchemaPresent(t *testing.T) {
 
 	if strings.Contains(incremental, "DROP TABLE") || strings.Contains(incremental, "TRUNCATE") {
 		t.Fatal("Organization tenancy upgrade migration must be additive")
+	}
+}
+
+// TestDefaultOrganizationMigration_ExistingDeployments verifies default tenant backfill
+// for existing principals, agents, machines, and conversations (Task 2.3).
+func TestDefaultOrganizationMigration_ExistingDeployments(t *testing.T) {
+	latest := latestSQL(t)
+	incBytes, err := os.ReadFile("migration/1.1/0028##organization-tenancy.sql")
+	if err != nil {
+		t.Fatalf("read 0028##organization-tenancy.sql: %v", err)
+	}
+	incremental := string(incBytes)
+
+	seeds := []string{
+		"INSERT INTO organizations (id, name, slug, state)",
+		"VALUES ('default', 'Default Organization', 'default', 'ACTIVE')",
+		"ON CONFLICT (id) DO NOTHING",
+		"INSERT INTO workspaces (id, organization_id, name, slug, is_default)",
+		"VALUES ('default', 'default', 'Default Workspace', 'default', true)",
+		"INSERT INTO organization_memberships (organization_id, principal_id, role, state, workspace_ids)",
+		"SELECT 'default', id, 'OWNER', 'ACTIVE', ARRAY['default']",
+		"FROM principal",
+		"ON CONFLICT (organization_id, principal_id) DO NOTHING",
+		"ALTER TABLE principal ADD COLUMN IF NOT EXISTS default_organization_id TEXT DEFAULT 'default' REFERENCES organizations(id)",
+	}
+
+	for _, stmt := range seeds {
+		if !strings.Contains(latest, stmt) {
+			t.Errorf("LATEST.sql missing default tenant migration statement: %q", stmt)
+		}
+		if !strings.Contains(incremental, stmt) {
+			t.Errorf("0028 migration missing default tenant migration statement: %q", stmt)
+		}
+	}
+}
+
+// TestCollaborationResourcesTenantColumnsAndIndexes verifies tenant columns, foreign keys,
+// and indexes across all collaboration entities (Task 2.4).
+func TestCollaborationResourcesTenantColumnsAndIndexes(t *testing.T) {
+	latest := latestSQL(t)
+	incBytes, err := os.ReadFile("migration/1.1/0028##organization-tenancy.sql")
+	if err != nil {
+		t.Fatalf("read 0028##organization-tenancy.sql: %v", err)
+	}
+	incremental := string(incBytes)
+
+	type columnCheck struct {
+		table   string
+		column  string
+		fkTable string
+		index   string
+	}
+
+	checks := []columnCheck{
+		{table: "principal", column: "default_organization_id", fkTable: "organizations", index: ""},
+		{table: "agent", column: "organization_id", fkTable: "organizations", index: "idx_agent_organization"},
+		{table: "agent", column: "workspace_id", fkTable: "workspaces", index: "idx_agent_workspace"},
+		{table: "machine", column: "organization_id", fkTable: "organizations", index: "idx_machine_organization"},
+		{table: "conversation", column: "organization_id", fkTable: "organizations", index: "idx_conversation_organization"},
+		{table: "conversation", column: "workspace_id", fkTable: "workspaces", index: "idx_conversation_workspace"},
+		{table: "mcp_server", column: "organization_id", fkTable: "organizations", index: "idx_mcp_server_organization"},
+		{table: "file", column: "organization_id", fkTable: "organizations", index: "idx_file_organization"},
+		{table: "task", column: "organization_id", fkTable: "organizations", index: "idx_task_organization"},
+		{table: "audit_log", column: "organization_id", fkTable: "organizations", index: "idx_audit_log_organization"},
+		{table: "api_provider", column: "organization_id", fkTable: "organizations", index: "idx_api_provider_organization"},
+		{table: "user_group", column: "organization_id", fkTable: "organizations", index: "idx_user_group_organization"},
+		{table: "reminder", column: "organization_id", fkTable: "organizations", index: "idx_reminder_organization"},
+	}
+
+	for _, c := range checks {
+		colPattern := fmt.Sprintf("ALTER TABLE %s ADD COLUMN IF NOT EXISTS %s", c.table, c.column)
+		if !strings.Contains(latest, colPattern) {
+			t.Errorf("LATEST.sql missing column DDL: %q", colPattern)
+		}
+		if !strings.Contains(incremental, colPattern) {
+			t.Errorf("0028 migration missing column DDL: %q", colPattern)
+		}
+
+		fkPattern := fmt.Sprintf("REFERENCES %s(id)", c.fkTable)
+		if !strings.Contains(latest, fkPattern) {
+			t.Errorf("LATEST.sql missing foreign key reference to %s", c.fkTable)
+		}
+		if !strings.Contains(incremental, fkPattern) {
+			t.Errorf("0028 migration missing foreign key reference to %s", c.fkTable)
+		}
+
+		if c.index != "" {
+			idxPattern := fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s(%s)", c.index, c.table, c.column)
+			if !strings.Contains(latest, idxPattern) {
+				t.Errorf("LATEST.sql missing index DDL: %q", idxPattern)
+			}
+			if !strings.Contains(incremental, idxPattern) {
+				t.Errorf("0028 migration missing index DDL: %q", idxPattern)
+			}
+		}
 	}
 }

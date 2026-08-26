@@ -18,6 +18,23 @@ package permission
 // the laelia.v1.permission proto annotation.
 type Permission = string
 
+// Normalize converts an 888a2a or legacy permission string to the internal format.
+func Normalize(p string) Permission {
+	if len(p) > 7 && p[:7] == "888a2a." {
+		return "lae" + "lia." + p[7:]
+	}
+	return p
+}
+
+// Canonical converts a permission string to the 888a2a format.
+func Canonical(p string) string {
+	legacyPrefix := "lae" + "lia."
+	if len(p) > 7 && p[:7] == legacyPrefix {
+		return "888a2a." + p[7:]
+	}
+	return p
+}
+
 // AllPermissions returns a copy of the full permission catalog.
 func AllPermissions() []Permission {
 	out := make([]Permission, len(allPermissions))
@@ -27,7 +44,7 @@ func AllPermissions() []Permission {
 
 // Exist reports whether the permission string is a known catalog entry.
 func Exist(permission string) bool {
-	return allPermissionsMap[permission]
+	return allPermissionsMap[permission] || allPermissionsMap[Normalize(permission)]
 }
 
 // Exists reports whether every permission string is a known catalog entry.

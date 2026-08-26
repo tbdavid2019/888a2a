@@ -1,9 +1,9 @@
-module github.com/Ranxy/laelia/tools/testserver
+module github.com/tbdavid2019/888a2a/tools/testserver
 
 go 1.26.5
 
 require (
-	github.com/Ranxy/laelia v0.0.0
+	github.com/tbdavid2019/888a2a v0.0.0
 	github.com/fergusstrange/embedded-postgres v1.34.0
 	golang.org/x/crypto v0.53.0
 )
@@ -38,4 +38,4 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-replace github.com/Ranxy/laelia => ../..
+replace github.com/tbdavid2019/888a2a => ../..

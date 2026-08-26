@@ -7,8 +7,8 @@ import (
 	"github.com/a2aproject/a2a-go/v2/a2a"
 	"github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/generated-go/a2a888"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // SkillInput defines metadata for a skill provided to the projection.

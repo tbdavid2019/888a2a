@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"time"
 
-	storepb "github.com/Ranxy/laelia/backend/generated-go/store"
+	storepb "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 // MachineTokenMessage is the storage-layer representation of a machine token

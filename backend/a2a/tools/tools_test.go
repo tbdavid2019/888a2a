@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	a2apkg "github.com/Ranxy/laelia/backend/a2a"
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	a2apkg "github.com/tbdavid2019/888a2a/backend/a2a"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 type testCaller struct {

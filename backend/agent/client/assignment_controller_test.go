@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/Ranxy/laelia/backend/agent/assignment"
-	daemonsrv "github.com/Ranxy/laelia/backend/agent/daemon"
-	"github.com/Ranxy/laelia/backend/agent/state"
-	"github.com/Ranxy/laelia/backend/generated-go/a2a888"
+	"github.com/tbdavid2019/888a2a/backend/agent/assignment"
+	daemonsrv "github.com/tbdavid2019/888a2a/backend/agent/daemon"
+	"github.com/tbdavid2019/888a2a/backend/agent/state"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
 )
 
 func newTestMachineClient(t *testing.T, machineID string) *MachineClient {

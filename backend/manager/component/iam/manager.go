@@ -19,13 +19,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/common"
-	"github.com/Ranxy/laelia/backend/common/permission"
-	"github.com/Ranxy/laelia/backend/manager/store"
-	"github.com/Ranxy/laelia/backend/manager/utils"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/common/permission"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/utils"
 
-	a2a888 "github.com/Ranxy/laelia/backend/generated-go/a2a888"
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
+	a2a888 "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 // ResourceRef identifies the target resource of a permission check. Phase 1
@@ -536,9 +536,29 @@ func (m *Manager) rolePermissions(ctx context.Context, role string) map[permissi
 	return roleMessage.Permissions
 }
 
+// EvaluateMembershipPermission evaluates whether a principal membership in an organization grants a permission.
+func EvaluateMembershipPermission(org *a2a888.Organization, membership *a2a888.OrganizationMembership, perm permission.Permission) bool {
+	if org == nil || org.State != a2a888.OrganizationState_ORGANIZATION_STATE_ACTIVE {
+		return false
+	}
+	if membership == nil || membership.State != a2a888.MembershipState_MEMBERSHIP_STATE_ACTIVE {
+		return false
+	}
+	switch membership.Role {
+	case a2a888.OrganizationRole_ORGANIZATION_ROLE_OWNER, a2a888.OrganizationRole_ORGANIZATION_ROLE_ADMIN:
+		return true
+	case a2a888.OrganizationRole_ORGANIZATION_ROLE_MEMBER:
+		return store.GetPredefinedRole(store.WorkspaceMemberRole).Permissions[perm]
+	case a2a888.OrganizationRole_ORGANIZATION_ROLE_GUEST:
+		return perm == permission.ConversationsRead || perm == permission.ConversationsSend
+	default:
+		return false
+	}
+}
+
 // CheckTenantPermission evaluates whether a principal has a permission in an organization context.
 func (m *Manager) CheckTenantPermission(ctx context.Context, orgID string, perm permission.Permission, principalID int) (bool, error) {
-	if orgID == "" || principalID == 0 {
+	if m == nil || m.store == nil || m.store.GetDB() == nil || orgID == "" || principalID == 0 {
 		return false, nil
 	}
 
@@ -563,26 +583,14 @@ func (m *Manager) CheckTenantPermission(ctx context.Context, orgID string, perm 
 		}
 		return false, err
 	}
-	if membership.State != a2a888.MembershipState_MEMBERSHIP_STATE_ACTIVE {
-		return false, nil
-	}
 
-	// 3. Evaluate role
-	switch membership.Role {
-	case a2a888.OrganizationRole_ORGANIZATION_ROLE_OWNER, a2a888.OrganizationRole_ORGANIZATION_ROLE_ADMIN:
-		return true, nil
-	case a2a888.OrganizationRole_ORGANIZATION_ROLE_MEMBER:
-		return store.GetPredefinedRole(store.WorkspaceMemberRole).Permissions[perm], nil
-	case a2a888.OrganizationRole_ORGANIZATION_ROLE_GUEST:
-		return perm == permission.ConversationsRead || perm == permission.ConversationsSend, nil
-	default:
-		return false, nil
-	}
+	// 3. Evaluate role and state
+	return EvaluateMembershipPermission(org, membership, perm), nil
 }
 
 // CheckOrganizationActive checks whether an organization exists and is in active state.
 func (m *Manager) CheckOrganizationActive(ctx context.Context, orgID string) (bool, error) {
-	if orgID == "" {
+	if m == nil || m.store == nil || m.store.GetDB() == nil || orgID == "" {
 		return false, nil
 	}
 	orgStore := store.NewOrganizationStore(m.store.GetDB())

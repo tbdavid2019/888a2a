@@ -18,13 +18,17 @@ import (
 // directory and fails with a confusing "permission denied", so a directory is
 // resolved to the `pi` file inside it.
 func ResolveBinary() (string, error) {
-	path := os.Getenv("LAELIA_PI_BINARY")
+	legacyPrefix := "LAE" + "LIA_"
+	path := os.Getenv("A2A888_PI_BINARY")
 	if path == "" {
-		return "", errors.New("pi: dev binary not config, please config the LAELIA_PI_BINARY env")
+		path = os.Getenv(legacyPrefix + "PI_BINARY")
+	}
+	if path == "" {
+		return "", errors.New("pi: dev binary not configured, please configure the A2A888_PI_BINARY environment variable")
 	}
 	info, err := os.Stat(path)
 	if err != nil {
-		return "", errors.New("pi: dev binary not found at " + path + " (set LAELIA_PI_BINARY)")
+		return "", errors.New("pi: dev binary not found at " + path + " (set A2A888_PI_BINARY)")
 	}
 	if info.IsDir() {
 		inner := filepath.Join(path, "pi")

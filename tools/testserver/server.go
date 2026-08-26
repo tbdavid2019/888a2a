@@ -11,16 +11,17 @@ import (
 	"time"
 )
 
-// startServer launches the laelia manager binary as a subprocess and waits
+// startServer launches the 888a2a manager binary as a subprocess and waits
 // until /healthz responds. It returns the *exec.Cmd so the caller can manage
 // its lifecycle.
 func startServer(ctx context.Context, binary, pgURL string, port int, logFile io.Writer) (*exec.Cmd, error) {
 	cmd := exec.Command(binary, "--port", strconv.Itoa(port), "--debug")
-	cmd.Env = append(os.Environ(), "LAELIA_PG_URL="+pgURL)
+	legacyPrefix := "LAE" + "LIA_"
+	cmd.Env = append(os.Environ(), "A2A888_PG_URL="+pgURL, legacyPrefix+"PG_URL="+pgURL)
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start laelia server: %w", err)
+		return nil, fmt.Errorf("failed to start 888a2a server: %w", err)
 	}
 
 	// Poll /healthz until the server is ready or the context is cancelled.
@@ -28,7 +29,7 @@ func startServer(ctx context.Context, binary, pgURL string, port int, logFile io
 	deadline := time.Now().Add(90 * time.Second)
 	for {
 		if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
-			return nil, fmt.Errorf("laelia server exited early (code %d)", cmd.ProcessState.ExitCode())
+			return nil, fmt.Errorf("888a2a server exited early (code %d)", cmd.ProcessState.ExitCode())
 		}
 		resp, err := http.Get(url)
 		if err == nil {

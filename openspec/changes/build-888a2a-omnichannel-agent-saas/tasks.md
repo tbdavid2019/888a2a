@@ -14,14 +14,14 @@ Agent Network gate: 12 Agents across two Machines SHALL discover peers, exchange
 
 ## 0. Product Identity Migration
 
-- [ ] 0.1 Inventory every legacy product identifier across Go module/imports, Proto, binaries, CLI, environment variables, data/config paths, Docker images, release assets, services, cookies, metrics, permissions, UI and docs; verify the reviewed mapping has an 888a2a target for every occurrence class.
-- [ ] 0.2 Define public naming as `888a2a`, `888a2a Agent`, target CLI binaries and the `A2A888_` environment prefix; verify naming lint fixtures reject new legacy identifiers.
-- [ ] 0.3 Rename repository/module imports and internal Go package references through a mechanical migration; verify `go list ./...`, formatting, lint and unit tests pass.
-- [ ] 0.4 Rename Proto package/resource names and generated clients with an explicit compatibility decision; verify `buf format`, `buf lint`, generation and wire-compatibility tests pass.
-- [ ] 0.5 Rename Manager/Machine binaries, CLI commands, Docker images, release assets and install scripts; verify Linux, Windows and macOS build manifests contain only 888a2a targets.
-- [ ] 0.6 Rename environment variables, config keys, data directories, sockets, service names, cookies, metrics and permission prefixes; verify clean installs write only 888a2a identifiers.
+- [x] 0.1 Inventory every legacy product identifier across Go module/imports, Proto, binaries, CLI, environment variables, data/config paths, Docker images, release assets, services, cookies, metrics, permissions, UI and docs; verify the reviewed mapping has an 888a2a target for every occurrence class.
+- [x] 0.2 Define public naming as `888a2a`, `888a2a Agent`, target CLI binaries and the `A2A888_` environment prefix; verify naming lint fixtures reject new legacy identifiers.
+- [x] 0.3 Rename repository/module imports and internal Go package references through a mechanical migration; verify `go list ./...`, formatting, lint and unit tests pass.
+- [x] 0.4 Rename Proto package/resource names and generated clients with an explicit compatibility decision; verify `buf format`, `buf lint`, generation and wire-compatibility tests pass.
+- [x] 0.5 Rename Manager/Machine binaries, CLI commands, Docker images, release assets and install scripts; verify Linux, Windows and macOS build manifests contain only 888a2a targets.
+- [x] 0.6 Rename environment variables, config keys, data directories, sockets, service names, cookies, metrics and permission prefixes; verify clean installs write only 888a2a identifiers.
 - [ ] 0.7 Implement one-time import or compatibility readers for existing local state and server configuration; verify an existing fixture upgrades without losing Machine credentials, Agent sessions or workspaces.
-- [ ] 0.8 Replace UI, localization, README, deployment, generated docs and examples with 888a2a branding while preserving required license attribution; verify documentation and snapshot searches contain no product-name leakage.
+- [x] 0.8 Replace UI, localization, README, deployment, generated docs and examples with 888a2a branding while preserving required license attribution; verify documentation and snapshot searches contain no product-name leakage.
 - [ ] 0.9 Remove temporary compatibility aliases after migration verification and run a repository-wide zero-legacy-identifier gate, excluding only approved license/source-attribution records.
 
 ## 1. Architecture Spikes and Decision Gates
@@ -33,7 +33,7 @@ Agent Network gate: 12 Agents across two Machines SHALL discover peers, exchange
 - [ ] 1.5 Prototype the canonical connector envelope with LINE, Slack and Web Widget fixtures; verify duplicate and out-of-order fixtures converge to one deterministic event sequence.
 - [ ] 1.6 Prototype runtime permission-to-Organization-approval flow with a fake ACP Provider; verify allow, deny, expiry and parameter-change invalidation.
 - [ ] 1.7 Select the first external connector from target-customer evidence and platform review lead time; verify the decision record names the pilot market, required capabilities and acceptance suite.
-- [ ] 1.8 Decide SaaS-managed versus BYOC Machine scope for the first sellable release; verify threat model, operational owner and supported deployment modes are documented.
+- [x] 1.8 Decide SaaS-managed versus BYOC Machine scope for the first sellable release; verify threat model, operational owner and supported deployment modes are documented.
 
 ## 2. Organization and Tenant Foundation
 

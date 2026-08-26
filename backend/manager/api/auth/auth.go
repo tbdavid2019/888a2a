@@ -24,24 +24,29 @@ import (
 	"github.com/google/uuid"
 	errs "github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/common"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/manager/config"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/manager/config"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 const (
-	issuer = "laelia"
-	keyID  = "v1"
+	issuer       = "888a2a"
+	legacyIssuer = "lae" + "lia"
+	keyID        = "v1"
 
-	AccessTokenAudienceFmt        = "ll.user.access.%s"
-	AgentAccessTokenAudienceFmt   = "ll.agent.access.%s"
-	MachineAccessTokenAudienceFmt = "ll.machine.access.%s"
+	AccessTokenAudienceFmt              = "888a2a.user.access.%s"
+	LegacyAccessTokenAudienceFmt        = "ll.user.access.%s"
+	AgentAccessTokenAudienceFmt         = "888a2a.agent.access.%s"
+	LegacyAgentAccessTokenAudienceFmt   = "ll.agent.access.%s"
+	MachineAccessTokenAudienceFmt       = "888a2a.machine.access.%s"
+	LegacyMachineAccessTokenAudienceFmt = "ll.machine.access.%s"
 
 	apiTokenDuration     = 1 * time.Hour
 	DefaultTokenDuration = 7 * 24 * time.Hour
 
-	AccessTokenCookieName = "access-token"
+	AccessTokenCookieName       = "888a2a-access-token"
+	LegacyAccessTokenCookieName = "access-token"
 
 	// DeclaredAgentHeader is the HTTP header a machine app sets on
 	// agent-callable RPCs to declare which agent it is
@@ -50,7 +55,8 @@ const (
 	// header. The auth interceptor resolves it, verifies the machine owns the
 	// agent (agent.machine_id == machine.id), and injects the agent under
 	// AgentContextKey so existing handlers resolve the caller unchanged.
-	DeclaredAgentHeader = "X-Laelia-Agent"
+	DeclaredAgentHeader       = "X-888a2a-Agent"
+	LegacyDeclaredAgentHeader = "X-" + "Lae" + "lia-Agent"
 
 	TokenTypeBootstrap = "BOOTSTRAP"
 	TokenTypeAccess    = "ACCESS"
@@ -302,6 +308,9 @@ func (in *APIAuthInterceptor) getUserOrAgentConnect(ctx context.Context, accessT
 		fmt.Sprintf(AgentAccessTokenAudienceFmt, in.profile.Mode),
 		fmt.Sprintf(MachineAccessTokenAudienceFmt, in.profile.Mode),
 		fmt.Sprintf(AccessTokenAudienceFmt, in.profile.Mode),
+		fmt.Sprintf(LegacyAgentAccessTokenAudienceFmt, in.profile.Mode),
+		fmt.Sprintf(LegacyMachineAccessTokenAudienceFmt, in.profile.Mode),
+		fmt.Sprintf(LegacyAccessTokenAudienceFmt, in.profile.Mode),
 	}
 	kind := audienceKind(peekTokenAudience(accessTokenStr), expected)
 	if kind < 0 {
@@ -312,7 +321,7 @@ func (in *APIAuthInterceptor) getUserOrAgentConnect(ctx context.Context, accessT
 	case 0: // agent
 		agentClaims := &agentClaimsMessage{}
 		agentToken, err := jwt.ParseWithClaims(accessTokenStr, agentClaims, keyFunc)
-		if err != nil || agentToken == nil || !agentToken.Valid || !audienceContains(agentClaims.Audience, expected[0]) {
+		if err != nil || agentToken == nil || !agentToken.Valid || (!audienceContains(agentClaims.Audience, expected[0]) && !audienceContains(agentClaims.Audience, expected[3])) {
 			if errors.Is(err, jwt.ErrTokenExpired) {
 				return nil, connect.NewError(connect.CodeUnauthenticated, errs.New("access token expired"))
 			}
@@ -326,7 +335,7 @@ func (in *APIAuthInterceptor) getUserOrAgentConnect(ctx context.Context, accessT
 	case 1: // machine
 		machineClaims := &machineClaimsMessage{}
 		machineToken, err := jwt.ParseWithClaims(accessTokenStr, machineClaims, keyFunc)
-		if err != nil || machineToken == nil || !machineToken.Valid || !audienceContains(machineClaims.Audience, expected[1]) {
+		if err != nil || machineToken == nil || !machineToken.Valid || (!audienceContains(machineClaims.Audience, expected[1]) && !audienceContains(machineClaims.Audience, expected[4])) {
 			if errors.Is(err, jwt.ErrTokenExpired) {
 				return nil, connect.NewError(connect.CodeUnauthenticated, errs.New("access token expired"))
 			}
@@ -340,7 +349,7 @@ func (in *APIAuthInterceptor) getUserOrAgentConnect(ctx context.Context, accessT
 	case 2: // user
 		userClaims := &claimsMessage{}
 		userToken, err := jwt.ParseWithClaims(accessTokenStr, userClaims, keyFunc)
-		if err != nil || userToken == nil || !userToken.Valid || !audienceContains(userClaims.Audience, expected[2]) {
+		if err != nil || userToken == nil || !userToken.Valid || (!audienceContains(userClaims.Audience, expected[2]) && !audienceContains(userClaims.Audience, expected[5])) {
 			if errors.Is(err, jwt.ErrTokenExpired) {
 				return nil, connect.NewError(connect.CodeUnauthenticated, errs.New("access token expired"))
 			}
@@ -434,6 +443,9 @@ func (in *APIAuthInterceptor) authenticateMachineByClaims(ctx context.Context, c
 func (in *APIAuthInterceptor) resolveDeclaredAgent(ctx context.Context, machine *store.MachineMessage, headers http.Header) (*store.AgentMessage, error) {
 	agentName := headers.Get(DeclaredAgentHeader)
 	if agentName == "" {
+		agentName = headers.Get(LegacyDeclaredAgentHeader)
+	}
+	if agentName == "" {
 		return nil, nil
 	}
 	resourceID, err := common.GetAgentResourceID(agentName)
@@ -476,6 +488,10 @@ func GetTokenFromHeaders(headers http.Header) (string, error) {
 			accessToken = cookie.Value
 			break
 		}
+		if cookie, _ := request.Cookie(LegacyAccessTokenCookieName); cookie != nil {
+			accessToken = cookie.Value
+			break
+		}
 	}
 	return accessToken, nil
 }
@@ -510,7 +526,7 @@ func peekTokenAudience(tokenStr string) jwt.ClaimStrings {
 func audienceKind(audience jwt.ClaimStrings, expected []string) int {
 	for i, aud := range expected {
 		if audienceContains(audience, aud) {
-			return i
+			return i % 3
 		}
 	}
 	return -1

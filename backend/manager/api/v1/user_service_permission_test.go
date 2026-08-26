@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Ranxy/laelia/backend/common/permission"
-	"github.com/Ranxy/laelia/backend/manager/component/iam"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/common/permission"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/iam"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // TestUserUpdatePermission covers the self-or-permission authorization of

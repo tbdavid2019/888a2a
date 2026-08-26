@@ -8,12 +8,12 @@ import (
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	daemonsrv "github.com/Ranxy/laelia/backend/agent/daemon"
-	"github.com/Ranxy/laelia/backend/agent/home"
-	"github.com/Ranxy/laelia/backend/agent/supervisor"
-	"github.com/Ranxy/laelia/backend/agent/workspace"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/generated-go/v1/v1connect"
+	daemonsrv "github.com/tbdavid2019/888a2a/backend/agent/daemon"
+	"github.com/tbdavid2019/888a2a/backend/agent/home"
+	"github.com/tbdavid2019/888a2a/backend/agent/supervisor"
+	"github.com/tbdavid2019/888a2a/backend/agent/workspace"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/v1/v1connect"
 )
 
 // runControlStream opens the machine-level MachineChannel bidi stream and pumps

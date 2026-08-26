@@ -13,8 +13,8 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/Ranxy/laelia/backend/agent/assignment"
-	"github.com/Ranxy/laelia/backend/generated-go/a2a888"
+	"github.com/tbdavid2019/888a2a/backend/agent/assignment"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
 )
 
 // MachineAssignmentState represents the durable state and roster tracking for

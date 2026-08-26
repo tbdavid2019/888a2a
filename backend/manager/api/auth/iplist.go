@@ -7,7 +7,7 @@ import (
 	"connectrpc.com/connect"
 	errs "github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/common"
 )
 
 type IPValidationPolicy int

@@ -17,8 +17,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
-	"github.com/Ranxy/laelia/backend/generated-go/v1/v1connect"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/v1/v1connect"
 )
 
 // Deps bundles the per-call dependencies: a Connect client carrying the live

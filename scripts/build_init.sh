@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared variables for the laelia build scripts. Source from the repo root.
+# Shared variables for the 888a2a build scripts. Source from the repo root.
 set -euo pipefail
 
 VERSION="${VERSION:-local}"

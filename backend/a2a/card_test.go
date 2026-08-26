@@ -3,8 +3,8 @@ package a2a
 import (
 	"testing"
 
-	"github.com/Ranxy/laelia/backend/generated-go/a2a888"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 func TestProjectAgentCard(t *testing.T) {

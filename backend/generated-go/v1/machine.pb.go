@@ -3039,7 +3039,7 @@ const file_v1_machine_proto_rawDesc = "" +
 	"\x11MachineDisconnect\x12#.laelia.v1.MachineDisconnectRequest\x1a\x16.google.protobuf.Empty\"\b\x90\xea0\x02\x98\xea0\x01\x12n\n" +
 	"\x13RefreshMachineToken\x12%.laelia.v1.RefreshMachineTokenRequest\x1a&.laelia.v1.RefreshMachineTokenResponse\"\b\x90\xea0\x02\x98\xea0\x012u\n" +
 	"\x14MachineStreamService\x12]\n" +
-	"\x0eMachineChannel\x12\x1f.laelia.v1.MachineStreamMessage\x1a&.laelia.v1.ManagerMachineStreamMessage(\x010\x01B1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\x0eMachineChannel\x12\x1f.laelia.v1.MachineStreamMessage\x1a&.laelia.v1.ManagerMachineStreamMessage(\x010\x01B7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_machine_proto_rawDescOnce sync.Once

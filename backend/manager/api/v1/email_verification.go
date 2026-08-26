@@ -10,8 +10,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/manager/component/mailer"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/mailer"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // verificationTokenTTL is how long a verification link stays valid. Unverified

@@ -773,7 +773,7 @@ const file_v1_api_provider_service_proto_rawDesc = "" +
 	"\x11CreateAPIProvider\x12#.laelia.v1.CreateApiProviderRequest\x1a\x16.laelia.v1.ApiProvider\"5\xdaA\fapi_provider\x8a\xea0\x1alaelia.apiProviders.create\x90\xea0\x01\x98\xea0\x01\x12\x93\x01\n" +
 	"\x11UpdateAPIProvider\x12#.laelia.v1.UpdateApiProviderRequest\x1a\x16.laelia.v1.ApiProvider\"A\xdaA\x18api_provider,update_mask\x8a\xea0\x1alaelia.apiProviders.update\x90\xea0\x01\x98\xea0\x01\x12\x7f\n" +
 	"\x11DeleteAPIProvider\x12#.laelia.v1.DeleteApiProviderRequest\x1a\x16.google.protobuf.Empty\"-\xdaA\x04name\x8a\xea0\x1alaelia.apiProviders.delete\x90\xea0\x01\x98\xea0\x01\x12\x8e\x01\n" +
-	"\x15ListAPIProviderModels\x12'.laelia.v1.ListApiProviderModelsRequest\x1a(.laelia.v1.ListApiProviderModelsResponse\"\"\x8a\xea0\x1alaelia.apiProviders.update\x90\xea0\x01B1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\x15ListAPIProviderModels\x12'.laelia.v1.ListApiProviderModelsRequest\x1a(.laelia.v1.ListApiProviderModelsResponse\"\"\x8a\xea0\x1alaelia.apiProviders.update\x90\xea0\x01B7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_api_provider_service_proto_rawDescOnce sync.Once

@@ -7,7 +7,7 @@ import "google/protobuf/field_mask.proto";
 import "store/setting.proto";
 import "v1/annotation.proto";
 
-option go_package = "github.com/Ranxy/laelia/backend/generated-go/v1";
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/v1";
 
 // Setting is a workspace-level configuration resource. The resource name is
 // "settings/{setting}", where {setting} maps to laelia.store.SettingName in

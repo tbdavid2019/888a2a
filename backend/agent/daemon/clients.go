@@ -6,8 +6,8 @@ import (
 
 	"connectrpc.com/connect"
 
-	"github.com/Ranxy/laelia/backend/agent/chattools"
-	"github.com/Ranxy/laelia/backend/generated-go/v1/v1connect"
+	"github.com/tbdavid2019/888a2a/backend/agent/chattools"
+	"github.com/tbdavid2019/888a2a/backend/generated-go/v1/v1connect"
 )
 
 // BatchDeps returns a Deps for the agent identified by agentBareID (the bare

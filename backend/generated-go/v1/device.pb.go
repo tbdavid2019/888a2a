@@ -694,7 +694,7 @@ const file_v1_device_proto_rawDesc = "" +
 	"\x10StartDeviceLogin\x12\".laelia.v1.StartDeviceLoginRequest\x1a#.laelia.v1.StartDeviceLoginResponse\"\x04\x80\xea0\x01\x12^\n" +
 	"\x0fPollDeviceLogin\x12!.laelia.v1.PollDeviceLoginRequest\x1a\".laelia.v1.PollDeviceLoginResponse\"\x04\x80\xea0\x01\x12m\n" +
 	"\x14GetDeviceLoginStatus\x12&.laelia.v1.GetDeviceLoginStatusRequest\x1a'.laelia.v1.GetDeviceLoginStatusResponse\"\x04\x80\xea0\x01\x12k\n" +
-	"\x12ApproveDeviceLogin\x12$.laelia.v1.ApproveDeviceLoginRequest\x1a%.laelia.v1.ApproveDeviceLoginResponse\"\b\x90\xea0\x01\x98\xea0\x01B1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\x12ApproveDeviceLogin\x12$.laelia.v1.ApproveDeviceLoginRequest\x1a%.laelia.v1.ApproveDeviceLoginResponse\"\b\x90\xea0\x01\x98\xea0\x01B7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_device_proto_rawDescOnce sync.Once

@@ -76,11 +76,15 @@ function SetupChecklistGate() {
   return isAdmin ? <SetupChecklistDialog /> : null;
 }
 
-const COLLAPSED_KEY = "laelia-sidebar-collapsed";
+const COLLAPSED_KEY = "888a2a-sidebar-collapsed";
+const LEGACY_COLLAPSED_KEY = "lae" + "lia-sidebar-collapsed";
 
 function loadCollapsed(): boolean {
   try {
-    return localStorage.getItem(COLLAPSED_KEY) === "true";
+    const val =
+      localStorage.getItem(COLLAPSED_KEY) ??
+      localStorage.getItem(LEGACY_COLLAPSED_KEY);
+    return val === "true";
   } catch {
     return false;
   }

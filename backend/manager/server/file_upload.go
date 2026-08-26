@@ -7,8 +7,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/labstack/echo/v5"
 
-	"github.com/Ranxy/laelia/backend/manager/api/auth"
-	apiv1 "github.com/Ranxy/laelia/backend/manager/api/v1"
+	"github.com/tbdavid2019/888a2a/backend/manager/api/auth"
+	apiv1 "github.com/tbdavid2019/888a2a/backend/manager/api/v1"
 )
 
 // registerFileUploadRoute exposes a browser-friendly multipart upload endpoint.

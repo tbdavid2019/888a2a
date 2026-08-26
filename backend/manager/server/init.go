@@ -8,10 +8,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/Ranxy/laelia/backend/common"
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
-	"github.com/Ranxy/laelia/backend/manager/component/webpush"
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/webpush"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 func (s *Server) initializeSetting(ctx context.Context) error {

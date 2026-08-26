@@ -3,8 +3,8 @@ package store
 import (
 	"testing"
 
-	"github.com/Ranxy/laelia/backend/common"
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 func mustIamPolicy(t *testing.T, payload string) *models.IamPolicy {

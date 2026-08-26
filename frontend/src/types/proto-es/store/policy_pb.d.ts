@@ -2,7 +2,7 @@
 // @generated from file store/policy.proto (package laelia.store, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 import type { Expr } from "../google/type/expr_pb";
 
@@ -10,6 +10,141 @@ import type { Expr } from "../google/type/expr_pb";
  * Describes the file store/policy.proto.
  */
 export declare const file_store_policy: GenFile;
+
+/**
+ * @generated from message laelia.store.Policy
+ */
+export declare type Policy = Message<"laelia.store.Policy"> & {
+};
+
+/**
+ * Describes the message laelia.store.Policy.
+ * Use `create(PolicySchema)` to create a new message.
+ */
+export declare const PolicySchema: GenMessage<Policy>;
+
+/**
+ * @generated from enum laelia.store.Policy.Type
+ */
+export enum Policy_Type {
+  /**
+   * @generated from enum value: TYPE_UNSPECIFIED = 0;
+   */
+  TYPE_UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: IAM = 1;
+   */
+  IAM = 1,
+
+  /**
+   * @generated from enum value: TAG = 2;
+   */
+  TAG = 2,
+}
+
+/**
+ * Describes the enum laelia.store.Policy.Type.
+ */
+export declare const Policy_TypeSchema: GenEnum<Policy_Type>;
+
+/**
+ * @generated from enum laelia.store.Policy.Resource
+ */
+export enum Policy_Resource {
+  /**
+   * @generated from enum value: RESOURCE_UNSPECIFIED = 0;
+   */
+  RESOURCE_UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: WORKSPACE = 1;
+   */
+  WORKSPACE = 1,
+
+  /**
+   * ENVIRONMENT and PROJECT are reserved for a future multi-tenant
+   * workspace model; the IM permission model does not implement them.
+   *
+   * @generated from enum value: ENVIRONMENT = 2;
+   */
+  ENVIRONMENT = 2,
+
+  /**
+   * @generated from enum value: PROJECT = 3;
+   */
+  PROJECT = 3,
+
+  /**
+   * CONVERSATION is the per-conversation IAM policy: the single source of
+   * truth for chat membership. Members/owners are expressed as bindings
+   * (roles/conversationMember, roles/conversationAdmin,
+   * roles/conversationOwner) on conversations/{id}.
+   *
+   * @generated from enum value: CONVERSATION = 4;
+   */
+  CONVERSATION = 4,
+
+  /**
+   * AGENT is a per-agent IAM policy. The agent's creator is bound to
+   * roles/agentEditor on agents/{resource_id}.
+   *
+   * @generated from enum value: AGENT = 5;
+   */
+  AGENT = 5,
+
+  /**
+   * COMMAND / REMINDER / FILE are engine-only resource kinds: they are never
+   * stored in the policy table. The IAM engine resolves access to these
+   * objects from their owning agent / parent conversation membership.
+   *
+   * @generated from enum value: COMMAND = 6;
+   */
+  COMMAND = 6,
+
+  /**
+   * @generated from enum value: REMINDER = 7;
+   */
+  REMINDER = 7,
+
+  /**
+   * @generated from enum value: FILE = 8;
+   */
+  FILE = 8,
+
+  /**
+   * MACHINE is a per-machine IAM policy: who may create agents on the
+   * machine. Machine-scoped access (laelia.machines.createAgent) is
+   * authorized from this policy at authorization time.
+   *
+   * @generated from enum value: MACHINE = 9;
+   */
+  MACHINE = 9,
+}
+
+/**
+ * Describes the enum laelia.store.Policy.Resource.
+ */
+export declare const Policy_ResourceSchema: GenEnum<Policy_Resource>;
+
+/**
+ * @generated from message laelia.store.TagPolicy
+ */
+export declare type TagPolicy = Message<"laelia.store.TagPolicy"> & {
+  /**
+   * tags is the key - value map for resources.
+   * for example, the environment resource can have the sql review config tag, like "ll.tag.review_config": "reviewConfigs/{review config resource id}"
+   *
+   * @generated from field: map<string, string> tags = 1;
+   */
+  tags: { [key: string]: string };
+};
+
+/**
+ * Describes the message laelia.store.TagPolicy.
+ * Use `create(TagPolicySchema)` to create a new message.
+ */
+export declare const TagPolicySchema: GenMessage<TagPolicy>;
 
 /**
  * @generated from message laelia.store.Binding
@@ -66,4 +201,52 @@ export declare type IamPolicy = Message<"laelia.store.IamPolicy"> & {
  * Use `create(IamPolicySchema)` to create a new message.
  */
 export declare const IamPolicySchema: GenMessage<IamPolicy>;
+
+/**
+ * EnvironmentTierPolicy is the tier of an environment.
+ *
+ * @generated from message laelia.store.EnvironmentTierPolicy
+ */
+export declare type EnvironmentTierPolicy = Message<"laelia.store.EnvironmentTierPolicy"> & {
+  /**
+   * @generated from field: laelia.store.EnvironmentTierPolicy.EnvironmentTier environment_tier = 1;
+   */
+  environmentTier: EnvironmentTierPolicy_EnvironmentTier;
+
+  /**
+   * @generated from field: string color = 2;
+   */
+  color: string;
+};
+
+/**
+ * Describes the message laelia.store.EnvironmentTierPolicy.
+ * Use `create(EnvironmentTierPolicySchema)` to create a new message.
+ */
+export declare const EnvironmentTierPolicySchema: GenMessage<EnvironmentTierPolicy>;
+
+/**
+ * @generated from enum laelia.store.EnvironmentTierPolicy.EnvironmentTier
+ */
+export enum EnvironmentTierPolicy_EnvironmentTier {
+  /**
+   * @generated from enum value: ENVIRONMENT_TIER_UNSPECIFIED = 0;
+   */
+  ENVIRONMENT_TIER_UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: PROTECTED = 1;
+   */
+  PROTECTED = 1,
+
+  /**
+   * @generated from enum value: UNPROTECTED = 2;
+   */
+  UNPROTECTED = 2,
+}
+
+/**
+ * Describes the enum laelia.store.EnvironmentTierPolicy.EnvironmentTier.
+ */
+export declare const EnvironmentTierPolicy_EnvironmentTierSchema: GenEnum<EnvironmentTierPolicy_EnvironmentTier>;
 

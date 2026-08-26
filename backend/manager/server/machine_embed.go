@@ -18,5 +18,8 @@ func machineManifest() ([]byte, error) {
 // openMachineGz opens the gzipped machine binary for the given target
 // (e.g. "linux-x64").
 func openMachineGz(target string) (fs.File, error) {
+	if f, err := embeddedMachine.Open("embedded_machine/888a2a-machine-" + target + ".gz"); err == nil {
+		return f, nil
+	}
 	return embeddedMachine.Open("embedded_machine/laelia-machine-" + target + ".gz")
 }

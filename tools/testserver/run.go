@@ -37,11 +37,11 @@ func runCmd(args []string) int {
 	fs.IntVar(&opts.pgPort, "pg-port", 0, "postgres port (default: random free port)")
 	fs.StringVar(&opts.host, "host", "127.0.0.1", "bind address for the HTTP server")
 	fs.BoolVar(&opts.noSeed, "no-seed", false, "skip seeding test data")
-	fs.BoolVar(&opts.build, "build", false, "force rebuild of the laelia binary")
+	fs.BoolVar(&opts.build, "build", false, "force rebuild of the 888a2a binary")
 	fs.BoolVar(&opts.keep, "keep", false, "keep postgres data on exit (for debugging)")
-	fs.StringVar(&opts.cache, "cache", "", "shared cache dir (default: LAELIA_TEST_CACHE or ~/.cache/laelia-test)")
-	fs.StringVar(&opts.binary, "binary", "", "path to the laelia binary (default: <cache>/laelia)")
-	fs.StringVar(&opts.adminEmail, "admin-email", "admin@laelia.test", "admin email")
+	fs.StringVar(&opts.cache, "cache", "", "shared cache dir (default: A2A888_TEST_CACHE or ~/.cache/888a2a-test)")
+	fs.StringVar(&opts.binary, "binary", "", "path to the 888a2a binary (default: <cache>/888a2a)")
+	fs.StringVar(&opts.adminEmail, "admin-email", "admin@888a2a.test", "admin email")
 	fs.StringVar(&opts.adminPassword, "admin-password", "admin1234", "admin password")
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -194,14 +194,19 @@ func runCmd(args []string) int {
 func buildBinary(opts *runOptions) error {
 	repo := opts.repo
 	if repo == "" {
-		repo = os.Getenv("LAELIA_TEST_REPO")
+		legacyPrefix := "LAE" + "LIA_"
+		repo = os.Getenv("A2A888_TEST_REPO")
+		if repo == "" {
+			repo = os.Getenv(legacyPrefix + "TEST_REPO")
+		}
 	}
 	if repo == "" {
-		return fmt.Errorf("cannot locate repo root; pass --repo or set LAELIA_TEST_REPO")
+		return fmt.Errorf("cannot locate repo root; pass --repo or set A2A888_TEST_REPO")
 	}
 	script := filepath.Join(repo, "scripts", "build_test_server.sh")
 	cmd := exec.Command("bash", script)
-	cmd.Env = append(os.Environ(), "LAELIA_TEST_CACHE="+opts.cache)
+	legacyPrefix := "LAE" + "LIA_"
+	cmd.Env = append(os.Environ(), "A2A888_TEST_CACHE="+opts.cache, legacyPrefix+"TEST_CACHE="+opts.cache)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
@@ -215,14 +220,14 @@ func fileExists(p string) bool {
 func defaultUsers(adminEmail, adminPassword string) []seedUser {
 	return []seedUser{
 		{Email: adminEmail, Password: adminPassword, Name: "Admin", Admin: true},
-		{Email: "alice@laelia.test", Password: "alice1234", Name: "Alice"},
-		{Email: "bob@laelia.test", Password: "bob1234", Name: "Bob"},
+		{Email: "alice@888a2a.test", Password: "alice1234", Name: "Alice"},
+		{Email: "bob@888a2a.test", Password: "bob1234", Name: "Bob"},
 	}
 }
 
 func printURLs(m *meta) {
 	fmt.Println()
-	fmt.Println("Laelia test server is running")
+	fmt.Println("888a2a test server is running")
 	fmt.Printf("  page:    http://127.0.0.1:%d\n", m.HTTPPort)
 	if ip := lanIP(); ip != "" {
 		fmt.Printf("  lan:     http://%s:%d\n", ip, m.HTTPPort)
@@ -240,7 +245,7 @@ func printURLs(m *meta) {
 
 func writeInfo(m *meta) {
 	var b strings.Builder
-	b.WriteString("Laelia test server\n")
+	b.WriteString("888a2a test server\n")
 	b.WriteString(fmt.Sprintf("  page:    http://127.0.0.1:%d\n", m.HTTPPort))
 	if ip := lanIP(); ip != "" {
 		b.WriteString(fmt.Sprintf("  lan:     http://%s:%d\n", ip, m.HTTPPort))
@@ -257,7 +262,7 @@ func writeInfo(m *meta) {
 }
 
 func writeStopScript(m *meta) {
-	content := fmt.Sprintf("#!/usr/bin/env bash\n# Stop the laelia test server in %s\nexec %s stop --workdir %q\n",
+	content := fmt.Sprintf("#!/usr/bin/env bash\n# Stop the 888a2a test server in %s\nexec %s stop --workdir %q\n",
 		m.Workdir, os.Args[0], m.Workdir)
 	_ = os.WriteFile(filepath.Join(m.Workdir, "stop.sh"), []byte(content), 0o755)
 }

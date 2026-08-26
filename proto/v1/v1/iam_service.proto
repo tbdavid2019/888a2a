@@ -8,7 +8,7 @@ import "google/type/expr.proto";
 import "store/policy.proto";
 import "v1/annotation.proto";
 
-option go_package = "github.com/Ranxy/laelia/backend/generated-go/v1";
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/v1";
 
 // IamPolicyView is an IAM policy together with its etag. The etag is returned
 // by Get and must be supplied on Set for optimistic concurrency: a Set whose

@@ -323,7 +323,7 @@ const file_v1_common_proto_rawDesc = "" +
 	"\x16RISK_LEVEL_UNSPECIFIED\x10\x00\x12\a\n" +
 	"\x03LOW\x10\x01\x12\f\n" +
 	"\bMODERATE\x10\x02\x12\b\n" +
-	"\x04HIGH\x10\x03B1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\x04HIGH\x10\x03B7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_common_proto_rawDescOnce sync.Once

@@ -5,9 +5,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 
-	storepb "github.com/Ranxy/laelia/backend/generated-go/store"
+	storepb "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 // TestGetCallerIAMPolicyBindings covers the agent-aware binding resolver

@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	daemonsrv "github.com/Ranxy/laelia/backend/agent/daemon"
-	"github.com/Ranxy/laelia/backend/agent/executor"
-	"github.com/Ranxy/laelia/backend/agent/home"
-	"github.com/Ranxy/laelia/backend/agent/provider"
-	agentruntime "github.com/Ranxy/laelia/backend/agent/runtime"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
+	daemonsrv "github.com/tbdavid2019/888a2a/backend/agent/daemon"
+	"github.com/tbdavid2019/888a2a/backend/agent/executor"
+	"github.com/tbdavid2019/888a2a/backend/agent/home"
+	"github.com/tbdavid2019/888a2a/backend/agent/provider"
+	agentruntime "github.com/tbdavid2019/888a2a/backend/agent/runtime"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
 type preparedRuntimeRunner struct {

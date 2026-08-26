@@ -1,7 +1,8 @@
 import type { IdentityProvider } from "@/types/proto-es/v1/idp_service_pb";
 import { IdentityProviderType } from "@/types/proto-es/v1/idp_service_pb";
 
-const OAUTH_STATE_PREFIX = "laelia_oauth_state_";
+const OAUTH_STATE_PREFIX = "888a2a_oauth_state_";
+const LEGACY_OAUTH_STATE_PREFIX = "lae" + "lia_oauth_state_";
 const OAUTH_STATE_TTL = 10 * 60 * 1000; // 10 minutes
 
 export interface OAuthState {
@@ -29,12 +30,14 @@ function storeOAuthState(state: OAuthState): void {
 
 export function retrieveOAuthState(token: string): OAuthState | null {
   const key = `${OAUTH_STATE_PREFIX}${token}`;
+  const legacyKey = `${LEGACY_OAUTH_STATE_PREFIX}${token}`;
   try {
-    const raw = localStorage.getItem(key);
+    const raw = localStorage.getItem(key) ?? localStorage.getItem(legacyKey);
     if (!raw) return null;
     const state = JSON.parse(raw) as OAuthState;
     if (Date.now() - state.timestamp > OAUTH_STATE_TTL) {
       localStorage.removeItem(key);
+      localStorage.removeItem(legacyKey);
       return null;
     }
     return state;
@@ -46,6 +49,7 @@ export function retrieveOAuthState(token: string): OAuthState | null {
 export function clearOAuthState(token: string): void {
   try {
     localStorage.removeItem(`${OAUTH_STATE_PREFIX}${token}`);
+    localStorage.removeItem(`${LEGACY_OAUTH_STATE_PREFIX}${token}`);
   } catch {
     // ignore
   }

@@ -820,7 +820,7 @@ const file_v1_group_service_proto_rawDesc = "" +
 	"\vCreateGroup\x12\x1d.laelia.v1.CreateGroupRequest\x1a\x10.laelia.v1.Group\"4\xdaA\x11group_email,group\x8a\xea0\x14laelia.groups.create\x90\xea0\x01\x98\xea0\x01\x12t\n" +
 	"\vUpdateGroup\x12\x1d.laelia.v1.UpdateGroupRequest\x1a\x10.laelia.v1.Group\"4\xdaA\x11group,update_mask\x8a\xea0\x14laelia.groups.update\x90\xea0\x01\x98\xea0\x01\x12m\n" +
 	"\vDeleteGroup\x12\x1d.laelia.v1.DeleteGroupRequest\x1a\x16.google.protobuf.Empty\"'\xdaA\x04name\x8a\xea0\x14laelia.groups.delete\x90\xea0\x01\x98\xea0\x01\x12g\n" +
-	"\x12GetGroupReferences\x12\x1a.laelia.v1.GetGroupRequest\x1a\x1a.laelia.v1.GroupReferences\"\x19\x8a\xea0\x11laelia.groups.get\x90\xea0\x01B1Z/github.com/Ranxy/laelia/backend/generated-go/v1b\x06proto3"
+	"\x12GetGroupReferences\x12\x1a.laelia.v1.GetGroupRequest\x1a\x1a.laelia.v1.GroupReferences\"\x19\x8a\xea0\x11laelia.groups.get\x90\xea0\x01B7Z5github.com/tbdavid2019/888a2a/backend/generated-go/v1b\x06proto3"
 
 var (
 	file_v1_group_service_proto_rawDescOnce sync.Once

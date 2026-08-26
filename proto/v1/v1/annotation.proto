@@ -4,7 +4,7 @@ package laelia.v1;
 
 import "google/protobuf/descriptor.proto";
 
-option go_package = "github.com/Ranxy/laelia/backend/generated-go/v1";
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/v1";
 
 extend google.protobuf.MethodOptions {
   bool allow_without_credential = 100000;

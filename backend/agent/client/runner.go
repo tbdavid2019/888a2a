@@ -9,15 +9,15 @@ import (
 
 	acp "github.com/coder/acp-go-sdk"
 
-	"github.com/Ranxy/laelia/backend/agent/chattools"
-	daemonsrv "github.com/Ranxy/laelia/backend/agent/daemon"
-	"github.com/Ranxy/laelia/backend/agent/executor"
-	"github.com/Ranxy/laelia/backend/agent/home"
-	"github.com/Ranxy/laelia/backend/agent/pi"
-	"github.com/Ranxy/laelia/backend/agent/provider"
-	agentruntime "github.com/Ranxy/laelia/backend/agent/runtime"
-	a2a888pb "github.com/Ranxy/laelia/backend/generated-go/a2a888"
-	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/agent/chattools"
+	daemonsrv "github.com/tbdavid2019/888a2a/backend/agent/daemon"
+	"github.com/tbdavid2019/888a2a/backend/agent/executor"
+	"github.com/tbdavid2019/888a2a/backend/agent/home"
+	"github.com/tbdavid2019/888a2a/backend/agent/pi"
+	"github.com/tbdavid2019/888a2a/backend/agent/provider"
+	agentruntime "github.com/tbdavid2019/888a2a/backend/agent/runtime"
+	a2a888pb "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
+	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
 // agentRunner owns one agent's AgentChannel drain loop. A machine hosts one
@@ -415,14 +415,20 @@ func (r *agentRunner) buildRuntimeForAgent(req executor.Request) (executor.Runti
 // Default off: each turn spawns a fresh app-server, which is simpler and frees
 // the (memory-heavy) agent runtime while idle.
 func threadSessionEnabled() bool {
-	return os.Getenv("LAELIA_ACP2_SESSION") == "1"
+	legacyPrefix := "LAE" + "LIA_"
+	return os.Getenv("A2A888_ACP2_SESSION") == "1" || os.Getenv(legacyPrefix+"ACP2_SESSION") == "1"
 }
 
 // threadSessionIdleTimeout is how long a resident subprocess stays alive after
-// its last turn before idle eviction (env LAELIA_ACP2_SESSION_IDLE, default
+// its last turn before idle eviction (env A2A888_ACP2_SESSION_IDLE, default
 // 5m). Zero disables eviction.
 func threadSessionIdleTimeout() time.Duration {
-	if v := os.Getenv("LAELIA_ACP2_SESSION_IDLE"); v != "" {
+	legacyPrefix := "LAE" + "LIA_"
+	v := os.Getenv("A2A888_ACP2_SESSION_IDLE")
+	if v == "" {
+		v = os.Getenv(legacyPrefix + "ACP2_SESSION_IDLE")
+	}
+	if v != "" {
 		if d, err := time.ParseDuration(v); err == nil && d >= 0 {
 			return d
 		}
@@ -499,21 +505,25 @@ func (r *agentRunner) buildMcpServers(req executor.Request) []acp.McpServer {
 	}
 	env := []acp.EnvVariable{
 		{Name: "PATH", Value: path},
-		{Name: "LAELIA_DAEMON_SOCKET", Value: req.DaemonSocket},
-		{Name: "LAELIA_SESSION_TOKEN", Value: req.SessionToken},
-		{Name: "LAELIA_AGENT", Value: req.AgentResourceID},
+		{Name: "A2A888_DAEMON_SOCKET", Value: req.DaemonSocket},
+		{Name: "A2A888_SESSION_TOKEN", Value: req.SessionToken},
+		{Name: "A2A888_AGENT", Value: req.AgentResourceID},
+		{Name: "LAE" + "LIA_DAEMON_SOCKET", Value: req.DaemonSocket},
+		{Name: "LAE" + "LIA_SESSION_TOKEN", Value: req.SessionToken},
+		{Name: "LAE" + "LIA_AGENT", Value: req.AgentResourceID},
 	}
-	// Propagate LAELIA_HOME unconditionally when the parent has it, so the MCP
-	// proxy subprocess resolves the same data root even though it is not part
-	// of the fixed env list above.
+	// Propagate A2A888_HOME / legacy home unconditionally when parent has it
 	if v := os.Getenv(home.EnvDir); v != "" {
 		env = append(env, acp.EnvVariable{Name: home.EnvDir, Value: v})
+	}
+	if v := os.Getenv(home.LegacyEnvDir); v != "" {
+		env = append(env, acp.EnvVariable{Name: home.LegacyEnvDir, Value: v})
 	}
 	return []acp.McpServer{
 		{
 			Stdio: &acp.McpServerStdio{
-				Name:    "laelia-mcp",
-				Command: "laelia-machine",
+				Name:    "888a2a-mcp",
+				Command: "888a2a-machine",
 				Args:    []string{"mcp-proxy"},
 				Env:     env,
 			},

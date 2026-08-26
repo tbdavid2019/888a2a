@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Ranxy/laelia/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
 // auditLogWriter is the narrow store dependency the buffer flushes to.

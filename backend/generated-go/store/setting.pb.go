@@ -1268,7 +1268,7 @@ const file_store_setting_proto_rawDesc = "" +
 	" IP_VALIDATION_POLICY_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11IP_VALIDATION_OFF\x10\x01\x12\x16\n" +
 	"\x12IP_VALIDATION_WARN\x10\x02\x12\x18\n" +
-	"\x14IP_VALIDATION_STRICT\x10\x03B4Z2github.com/Ranxy/laelia/backend/generated-go/storeb\x06proto3"
+	"\x14IP_VALIDATION_STRICT\x10\x03B:Z8github.com/tbdavid2019/888a2a/backend/generated-go/storeb\x06proto3"
 
 var (
 	file_store_setting_proto_rawDescOnce sync.Once

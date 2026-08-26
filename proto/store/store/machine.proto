@@ -4,7 +4,7 @@ package laelia.store;
 
 import "store/agent.proto";
 
-option go_package = "github.com/Ranxy/laelia/backend/generated-go/store";
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/store";
 
 enum MachineTokenType {
   MACHINE_TOKEN_TYPE_UNSPECIFIED = 0;

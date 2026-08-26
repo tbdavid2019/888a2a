@@ -9,23 +9,35 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Added
 
+- Added Product Identity Inventory document (`docs/product_identity_inventory.md`) mapping all legacy identifiers to approved `888a2a` targets and shell-safe `A2A888_` environment variables.
+- Published draft Section 1 Architecture Decision Records (`docs/decisions/1.1-single-workspace-inventory.md` through `docs/decisions/1.8-saas-vs-byoc-scope.md`). External WuKongIM, connector, approval, and tenant integration evidence remains pending.
 - Added multi-tenant Organization, Workspace, OrganizationMembership, and TenantPrincipal resource contracts in Protobuf (`proto/v1/a2a888/organization.proto`).
 - Added `OrganizationService` Connect RPC service and handler (`backend/manager/api/v1/organization_service.go`) supporting `ListOrganizations`, `GetOrganization` (with indistinguishable denial against tenant probing), `SwitchOrganization`, `ListWorkspaces`, and `ListMemberships`.
 - Added request header tenant resolution (`X-Organization-ID`, `X-Tenant-ID`) in auth interceptor (`backend/manager/api/auth/auth.go`), injecting active tenant context to all downstream RPCs.
 - Enforced strict Agent tenant isolation and active owner verification in IAM evaluator (`backend/manager/component/iam/manager.go`).
 - Wired `TenantObjectKey` S3 prefix isolation to production upload handlers (`channel_file_service.go`, `user_avatar_service.go`, `agent_avatar_service.go`).
 - Added database migration `0028##organization-tenancy.sql` and `LATEST.sql` creating `organizations`, `workspaces`, `organization_memberships` tables, and adding foreign key indexes and `organization_id` columns across `file`, `task`, `audit_log`, `api_provider`, `user_group`, and `reminder`.
+- Added `TenantCacheKey` and `TenantProjectionKey` helpers in `store` ensuring multi-tenant isolation for in-memory caches and localized data projections.
+- Added static contract tests for default Organization backfill, collaboration resource foreign keys/indexes, IAM lifecycle matrix evaluation, adversarial input rejection, and S3 object key prefix collision resistance. Real PostgreSQL and cross-tenant integration tests remain pending.
 - Added Go `OrganizationStore` (`backend/manager/store/organization.go`) providing transactional organization CRUD, slug lookup, workspace management, membership queries, and comprehensive unit tests.
-- Added tenant-aware IAM permission evaluator (`CheckTenantPermission`, `CheckOrganizationActive`) in `backend/manager/component/iam/manager.go` enforcing lifecycle states and role boundaries (strictly rejecting `INVITED` and `SUSPENDED` memberships).
+- Added tenant-aware IAM permission evaluator (`CheckTenantPermission`, `CheckOrganizationActive`, `EvaluateMembershipPermission`) in `backend/manager/component/iam/manager.go` enforcing lifecycle states and role boundaries (strictly rejecting `INVITED` and `SUSPENDED` memberships).
 - Added frontend `OrgSwitcher` component mounted into `DesktopSidebar` and `MobileSidebar` navigation (`frontend/src/components/sidebar.tsx`) with active tenant switching, suspended banner, and cache clearing on tenant switch.
 - Added frontend `OrganizationSlice` (`frontend/src/stores/organization.ts`) with active organization selection, membership state tracking, and unit tests.
 
 ### Changed
 
+- Renamed binaries (`build/888a2a`, `888a2a-machine`), CLI commands, Docker image targets (`888a2a/manager`, `888a2a/machine`), and build scripts (`scripts/build_888a2a.sh`, `scripts/build_888a2a_manager_docker.sh`, `scripts/build_888a2a_machine_docker.sh`) while providing backwards-compatible invocation wrappers.
+- Renamed environment variables (`A2A888_PG_URL`, `A2A888_ALLOWED_ORIGINS`, `A2A888_COOKIE_SAMESITE`, `A2A888_MANAGER_URL`, `A2A888_DAEMON_SOCKET`, `A2A888_SESSION_TOKEN`, `A2A888_AGENT`, `A2A888_COMMAND`, `A2A888_TEST_CACHE`), home directory (`~/.888a2a`), socket paths, cookies (`888a2a-access-token`), headers (`X-888a2a-Agent`), and UI storage keys (`888a2a-sidebar-collapsed`, `888a2a.language`, `888a2a_oauth_state_`) with dual-read fallback compatibility.
+- Updated UI localization files (`frontend/src/locales/en-US.json`, `frontend/src/locales/zh-CN.json`), frontend command helpers (`machine-token.ts`, `agent-token.ts`, `oauth.ts`), documentation (`docs/deploy.md`, `docs/deploy_zh.md`, `docs/test-server.md`), developer guides (`AGENTS.md`), and testserver launcher (`tools/testserver/`, `scripts/test-server.sh`, `scripts/build_test_server.sh`) to `888a2a` branding and `A2A888_` environment variables while preserving required upstream license/copyright attributions.
+- Established wire-compatibility strategy for Protobuf services preserving legacy service package namespaces for backwards compatibility while exposing new multi-agent/organization capabilities under `proto/v1/a2a888/` (`a2a888.v1`) and generating code to `backend/generated-go/a2a888`.
+- Updated authentication and permission evaluators to recognize both `888a2a.*` and legacy tokens and permission prefixes seamlessly.
+- Migrated Go module path and package references repository-wide from `github.com/Ranxy/laelia` to `github.com/tbdavid2019/888a2a` across `go.mod`, 299 Go source files, `.proto` files, build scripts, Dockerfiles, and linter settings.
 - Synchronized OpenSpec main specifications (`a2a-agent-network`, `agent-network-safety`, `agent-runtime-foundation`, `product-identity-migration`) and archived completed change `build-888a2a-agent-network-foundation`.
 
 ### Fixed
 
+- Made legacy machine state migration copy an existing legacy home into `.888a2a` atomically before startup continues.
+- Updated the active Dockerfiles and pi build documentation to use `A2A888_*` variables and `888a2a` runtime targets while retaining explicit legacy aliases.
 - Loaded the persisted default Organization, Agent tenant, workspace, and Machine tenant fields into runtime models before authorization and tenant-aware object-key generation.
 - Added resource-level Organization checks for Agent, Machine, Conversation, File, Command, and Reminder IAM targets.
 - Restricted Organization membership listing to active owners and admins, and rejected unknown active-organization candidates.

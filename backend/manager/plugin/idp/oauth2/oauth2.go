@@ -14,10 +14,10 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 
-	"github.com/Ranxy/laelia/backend/common"
-	"github.com/Ranxy/laelia/backend/common/log"
-	storepb "github.com/Ranxy/laelia/backend/generated-go/store"
-	"github.com/Ranxy/laelia/backend/manager/plugin/idp"
+	"github.com/tbdavid2019/888a2a/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/common/log"
+	storepb "github.com/tbdavid2019/888a2a/backend/generated-go/store"
+	"github.com/tbdavid2019/888a2a/backend/manager/plugin/idp"
 )
 
 // IdentityProvider represents an OAuth2 Identity Provider.

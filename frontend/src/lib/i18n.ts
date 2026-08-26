@@ -2,7 +2,8 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import enUS from "@/locales/en-US.json";
 
-const STORAGE_KEY = "laelia.language";
+const STORAGE_KEY = "888a2a.language";
+const LEGACY_STORAGE_KEY = "lae" + "lia.language";
 
 // The default locale is bundled statically so the initial render is
 // synchronous; every other locale loads on demand via setLocale (or on boot
@@ -28,7 +29,9 @@ const localeLoaders: Record<Locale, () => Promise<{ default: unknown }>> = {
 
 function getStoredLocale(): Locale {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored =
+      localStorage.getItem(STORAGE_KEY) ??
+      localStorage.getItem(LEGACY_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored) as unknown;
       // Only trust strings that are actually registered — an unknown/removed

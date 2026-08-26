@@ -14,8 +14,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/Ranxy/laelia/backend/agent/chattools"
-	daemonsrv "github.com/Ranxy/laelia/backend/agent/daemon"
+	"github.com/tbdavid2019/888a2a/backend/agent/chattools"
+	daemonsrv "github.com/tbdavid2019/888a2a/backend/agent/daemon"
 )
 
 // These subcommands are the LLM's interface to Laelia during an autonomous drain
@@ -40,22 +40,29 @@ type identity struct {
 	command string
 }
 
+func getEnvWithFallback(primary, fallback string) string {
+	if v := os.Getenv(primary); v != "" {
+		return v
+	}
+	return os.Getenv(fallback)
+}
+
 // loadIdentity reads the daemon-injected env vars. A missing socket or token is
 // a local bootstrap error (MISSING_*/TOKEN_*): it is reported to stderr and ok
 // is false — there is no daemon to talk to.
 func loadIdentity() (*identity, bool) {
 	id := &identity{
-		socket:  os.Getenv(daemonsrv.EnvDaemonSocket),
-		token:   os.Getenv(daemonsrv.EnvSessionToken),
-		agent:   os.Getenv(daemonsrv.EnvAgent),
-		command: os.Getenv(daemonsrv.EnvCommand),
+		socket:  getEnvWithFallback(daemonsrv.EnvDaemonSocket, daemonsrv.LegacyEnvDaemonSocket),
+		token:   getEnvWithFallback(daemonsrv.EnvSessionToken, daemonsrv.LegacyEnvSessionToken),
+		agent:   getEnvWithFallback(daemonsrv.EnvAgent, daemonsrv.LegacyEnvAgent),
+		command: getEnvWithFallback(daemonsrv.EnvCommand, daemonsrv.LegacyEnvCommand),
 	}
 	switch {
 	case id.socket == "":
-		printError("MISSING_DAEMON", "LAELIA_DAEMON_SOCKET is not set", "Run inside a drain session started by `laelia-machine run`.")
+		printError("MISSING_DAEMON", "A2A888_DAEMON_SOCKET is not set", "Run inside a drain session started by `888a2a-machine run`.")
 		return nil, false
 	case id.token == "":
-		printError("TOKEN_MISSING", "LAELIA_SESSION_TOKEN is not set", "Run inside a drain session started by `laelia-machine run`.")
+		printError("TOKEN_MISSING", "A2A888_SESSION_TOKEN is not set", "Run inside a drain session started by `888a2a-machine run`.")
 		return nil, false
 	}
 	return id, true

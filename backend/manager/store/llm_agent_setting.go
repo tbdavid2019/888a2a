@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 
-	models "github.com/Ranxy/laelia/backend/generated-go/store"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
 // GetLlmAgentConfigSetting returns the workspace LLM agent configuration. It
