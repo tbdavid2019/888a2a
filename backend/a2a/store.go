@@ -41,6 +41,9 @@ func (d *DurableTaskStoreAdapter) Create(ctx context.Context, task *a2a.Task) (t
 	if tenant == "" {
 		tenant = "default"
 	}
+	if err := d.store.RequireOrganizationActive(ctx, tenant); err != nil {
+		return 0, errors.Wrap(err, "organization is not active")
+	}
 
 	workID := string(task.ID)
 	if workID == "" {
@@ -125,6 +128,9 @@ func (d *DurableTaskStoreAdapter) Update(ctx context.Context, update *taskstore.
 	tenant, _ := a2a.TenantFrom(ctx)
 	if tenant == "" {
 		tenant = "default"
+	}
+	if err := d.store.RequireOrganizationActive(ctx, tenant); err != nil {
+		return 0, errors.Wrap(err, "organization is not active")
 	}
 
 	workID := string(update.Task.ID)

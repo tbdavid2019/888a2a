@@ -20,7 +20,8 @@ var (
 	// ErrWorkspaceNotFound is returned when a workspace does not exist.
 	ErrWorkspaceNotFound = errors.New("workspace not found")
 	// ErrMembershipNotFound is returned when a principal membership does not exist.
-	ErrMembershipNotFound = errors.New("organization membership not found")
+	ErrMembershipNotFound   = errors.New("organization membership not found")
+	ErrOrganizationInactive = errors.New("organization is not active")
 )
 
 // OrganizationStore encapsulates database operations for organizations, workspaces, and memberships.
@@ -31,6 +32,26 @@ type OrganizationStore struct {
 // NewOrganizationStore creates a new OrganizationStore.
 func NewOrganizationStore(db *sql.DB) *OrganizationStore {
 	return &OrganizationStore{db: db}
+}
+
+// RequireOrganizationActive is the shared write guard for connectors, A2A,
+// runtime, and other durable paths that do not pass through the IAM interceptor.
+func (s *Store) RequireOrganizationActive(ctx context.Context, organizationID string) error {
+	if organizationID == "" {
+		return ErrOrganizationNotFound
+	}
+	var state string
+	err := s.GetDB().QueryRowContext(ctx, `SELECT state FROM organizations WHERE id = $1`, organizationID).Scan(&state)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrOrganizationNotFound
+	}
+	if err != nil {
+		return errors.Wrap(err, "check organization state")
+	}
+	if state != "ACTIVE" {
+		return ErrOrganizationInactive
+	}
+	return nil
 }
 
 // CreateOrganization inserts a new organization.

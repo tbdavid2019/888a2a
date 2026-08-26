@@ -48,6 +48,9 @@ func (s *Store) RecordConnectorInbox(ctx context.Context, event ConnectorInboxEv
 	if err := event.Validate(); err != nil {
 		return false, err
 	}
+	if err := s.RequireOrganizationActive(ctx, event.OrganizationID); err != nil {
+		return false, err
+	}
 	result, err := s.GetDB().ExecContext(ctx, `
 		INSERT INTO a2a888_connector_inbox (
 			organization_id, installation_id, external_event_id, external_event_type,
