@@ -568,6 +568,50 @@ func TestMigrateSchema_OrganizationTenancyUpgrade(t *testing.T) {
 	assertHistoryVersions(t, db, "1.1.27", "1.1.28")
 }
 
+func TestMigrateSchema_DurableEventUpgrade(t *testing.T) {
+	db := integrationDB(t)
+	ctx := context.Background()
+	latestVersion := embeddedLatestVersion(t).String()
+
+	if err := MigrateSchema(ctx, db); err != nil {
+		t.Fatalf("MigrateSchema (fresh): %v", err)
+	}
+	assertHistoryVersions(t, db, latestVersion)
+	for _, table := range []string{"a2a888_connector_inbox", "a2a888_outbox_event"} {
+		if _, err := db.ExecContext(ctx, "DROP TABLE IF EXISTS "+table+" CASCADE"); err != nil {
+			t.Fatalf("drop %s: %v", table, err)
+		}
+	}
+	if _, err := db.ExecContext(ctx, "UPDATE schema_migration_history SET version = $1", "1.1.28"); err != nil {
+		t.Fatalf("rewind schema history: %v", err)
+	}
+
+	outboxPath := "migration/1.1/0029##durable-outbox.sql"
+	inboxPath := "migration/1.1/0030##connector-inbox.sql"
+	outbox, err := fs.ReadFile(migrationFS, outboxPath)
+	if err != nil {
+		t.Fatalf("read durable outbox migration: %v", err)
+	}
+	inbox, err := fs.ReadFile(migrationFS, inboxPath)
+	if err != nil {
+		t.Fatalf("read connector inbox migration: %v", err)
+	}
+	upgradeFS := fstest.MapFS{
+		latestSchemaFileName: {Data: []byte("-- existing schema")},
+		outboxPath:           {Data: outbox},
+		inboxPath:            {Data: inbox},
+	}
+	if err := migrateSchemaFS(ctx, db, upgradeFS); err != nil {
+		t.Fatalf("durable event upgrade: %v", err)
+	}
+	for _, table := range []string{"a2a888_outbox_event", "a2a888_connector_inbox"} {
+		if !tableExistsQ(t, db, table) {
+			t.Fatalf("durable event upgrade did not recreate %s", table)
+		}
+	}
+	assertHistoryVersions(t, db, "1.1.28", "1.1.29", "1.1.30")
+}
+
 // --- helpers ---
 
 func tableExistsQ(t *testing.T, db *sql.DB, table string) bool {
