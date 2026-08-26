@@ -64,8 +64,8 @@ Evidence notes (2026-08-26): 2.1 and 2.11 are proven by `buf format`, `buf lint`
 - [x] 3.9 Add dead-letter state, authorized replay and reconciliation records; verify terminal retry exhaustion is visible and replay is idempotent.
 
 Evidence notes (2026-08-26): Task 3.4 is proven by GitHub Actions run `32938870163`, where the PostgreSQL assignment replay gate passed create/update/remove durable outbox intents, ordered replay, idempotent re-submit, cumulative ACK, and post-ACK empty replay; reducer tests cover duplicate-runner prevention and reconnect full-replay hydration.
-Task 3.5 is proven by the PostgreSQL LISTEN/NOTIFY peer-replica gate in the next CI run; `PostgresHub` publishes on one notifier and wakes a waiter registered on a second notifier.
-Task 3.6 is proven by the PostgreSQL shared nonce replay gate in the next CI run; the first replica/store consumes the nonce and the second consume returns false through the same durable table.
+Task 3.5 is proven by GitHub Actions run `32939669502`, where the PostgreSQL LISTEN/NOTIFY peer-replica gate passed; `PostgresHub` published on one notifier and woke a waiter registered on a second notifier.
+Task 3.6 is proven by GitHub Actions run `32940075554`, where the PostgreSQL shared nonce replay gate passed; the first replica/store consumed the nonce and the second consume returned false through the same durable table.
 
 ## 4. IM Message Plane and Collaboration Events
 
