@@ -69,12 +69,14 @@ Task 3.6 is proven by GitHub Actions run `32940075554`, where the PostgreSQL sha
 Task 3.8 is proven by GitHub Actions run `32940753738`, where the tenant queue fairness gate passed; OutboxWorker uses a bounded per-Organization queue and limiter, and the control tenant is serviced before a second flood event from the same tenant.
 Task 3.7 is proven by the PostgreSQL command event replay gate wired in CI: `command_event` remains the source of truth, a peer replica receives a shared wake, replays all events after its cursor, and a disconnected watcher recovers later events without duplication while the local Dispatcher live path remains enabled.
 
+Tasks 4.3 and 4.4 are proven by GitHub Actions run `32943879682`, where the PostgreSQL MessagePlane identity gate passed concurrent per-conversation sequence allocation, global message identity creation, idempotent `client_msg_no` retry, and cross-tenant cursor rejection; projection unit tests cover create, edit, recall, redaction, reaction, thread, and command lifecycle events with recall/redaction visibility rules.
+
 ## 4. IM Message Plane and Collaboration Events
 
 - [x] 4.1 Define the internal `MessagePlane` contract for connection credentials, append, history, cursor sync, membership projection and health; verify fake-engine contract tests pass.
 - [ ] 4.2 Implement the selected WuKongIM adapter without exposing its admin API publicly; verify internal-network and authentication boundary tests.
-- [ ] 4.3 Add `client_msg_no`, global message identity and per-conversation `message_seq` projections; verify concurrent sends converge on one order and retries deduplicate.
-- [ ] 4.4 Define append-only collaboration event types for create, edit, recall, redaction, reaction, thread and command lifecycle; verify projection tests produce the expected visible message state.
+- [x] 4.3 Add `client_msg_no`, global message identity and per-conversation `message_seq` projections; verify concurrent sends converge on one order and retries deduplicate.
+- [x] 4.4 Define append-only collaboration event types for create, edit, recall, redaction, reaction, thread and command lifecycle; verify projection tests produce the expected visible message state.
 - [ ] 4.5 Implement dual projection from Message Plane to PostgreSQL during migration; verify parity for text, attachments, mentions, threads, reactions and unread cursors.
 - [ ] 4.6 Implement resumable per-device and per-Agent cursors; verify offline reconnection returns all authorized events once in sequence order.
 - [ ] 4.7 Add edit, recall and moderation policies with audit/legal-hold behavior; verify normal readers lose recalled content while authorized hold access remains.
