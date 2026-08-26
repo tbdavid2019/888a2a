@@ -7418,6 +7418,8 @@ permanently remove its workspace directory under the machine data root.
 | disconnect_notice | [MachineDisconnectNotice](#laelia-v1-MachineDisconnectNotice) |  | graceful shutdown |
 | machine_workspace_scan_response | [MachineWorkspaceScanResponse](#laelia-v1-MachineWorkspaceScanResponse) |  | response to ManagerMachineStreamMessage.machine_workspace_scan_request |
 | upgrade_progress | [UpgradeProgress](#laelia-v1-UpgradeProgress) |  | self-upgrade progress report, response to ManagerMachineStreamMessage.upgrade_request |
+| machine_assignment_ack | [a2a888.v1.MachineAssignmentAck](#a2a888-v1-MachineAssignmentAck) |  | acknowledgement after applying a durable assignment event |
+| machine_assignment_replay_request | [a2a888.v1.MachineAssignmentReplayRequest](#a2a888-v1-MachineAssignmentReplayRequest) |  | replay request sent after reconnect |
 
 
 
@@ -7520,6 +7522,8 @@ MachineWorkspaceSummary is one agent workspace directory&#39;s usage summary.
 | machine_workspace_scan_request | [MachineWorkspaceScanRequest](#laelia-v1-MachineWorkspaceScanRequest) |  | scan per-agent workspace directories on this machine |
 | delete_agent_workspace | [DeleteAgentWorkspace](#laelia-v1-DeleteAgentWorkspace) |  | stop the runner and delete an agent&#39;s workspace directory |
 | upgrade_request | [UpgradeRequest](#laelia-v1-UpgradeRequest) |  | self-upgrade to the manager&#39;s embedded binary |
+| assignment_event | [a2a888.v1.MachineAssignmentEvent](#a2a888-v1-MachineAssignmentEvent) |  | durable assignment delivery |
+| assignment_replay | [a2a888.v1.MachineAssignmentReplayResponse](#a2a888-v1-MachineAssignmentReplayResponse) |  | ordered replay after reconnect |
 
 
 

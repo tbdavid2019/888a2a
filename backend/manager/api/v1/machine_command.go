@@ -77,6 +77,28 @@ func (s *MachineStreamService) MachineChannel(
 		}
 
 		switch m := msg.Message.(type) {
+		case *v1pb.MachineStreamMessage_MachineAssignmentReplayRequest:
+			req := m.MachineAssignmentReplayRequest
+			if req == nil || req.GetMachineResourceId() != machine.ResourceID {
+				return connect.NewError(connect.CodePermissionDenied, errors.New("machine assignment identity mismatch"))
+			}
+			replay, err := s.dispatcher.HandleAssignmentReplay(ctx, req)
+			if err != nil {
+				return connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to load assignment replay"))
+			}
+			if err := s.dispatcher.SendMachineAssignmentReplay(machine.ResourceID, replay); err != nil {
+				return connect.NewError(connect.CodeUnavailable, errors.Wrap(err, "failed to send assignment replay"))
+			}
+
+		case *v1pb.MachineStreamMessage_MachineAssignmentAck:
+			ack := m.MachineAssignmentAck
+			if ack == nil || ack.GetMachineResourceId() != machine.ResourceID {
+				return connect.NewError(connect.CodePermissionDenied, errors.New("machine assignment identity mismatch"))
+			}
+			if err := s.dispatcher.HandleAssignmentAck(ctx, ack); err != nil {
+				return connect.NewError(connect.CodeInvalidArgument, errors.Wrap(err, "failed to persist assignment acknowledgement"))
+			}
+
 		case *v1pb.MachineStreamMessage_MachineReady:
 			// The machine echoes the session id ConnectMachine minted; nothing
 			// to persist (the session row is already ACTIVE). Acknowledged for

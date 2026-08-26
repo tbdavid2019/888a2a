@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	a2a888 "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
 	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
@@ -186,6 +187,42 @@ func New(s *store.Store) *Dispatcher {
 // machine is offline.
 func (d *Dispatcher) sendToMachine(machineID int, msg *v1pb.ManagerMachineStreamMessage) error {
 	return d.registry.sendToMachine(machineID, msg)
+}
+
+// SendMachineAssignmentEvent delivers one durable assignment instruction to a
+// connected Machine. The event remains in the assignment log and is replayed
+// from the Machine's acknowledged cursor after a disconnect.
+func (d *Dispatcher) SendMachineAssignmentEvent(machineResourceID string, event *a2a888.MachineAssignmentEvent) error {
+	if d == nil || d.registry == nil || machineResourceID == "" || event == nil {
+		return errors.New("machine assignment event is invalid")
+	}
+	sess, ok := d.registry.getMachineByResourceID(machineResourceID)
+	if !ok {
+		return errors.New("machine is not connected")
+	}
+	return sess.Send(&v1pb.ManagerMachineStreamMessage{
+		Message: &v1pb.ManagerMachineStreamMessage_AssignmentEvent{
+			AssignmentEvent: event,
+		},
+	})
+}
+
+// SendMachineAssignmentReplay returns ordered durable assignment events over a
+// connected Machine's control stream. The session send lock keeps replay
+// responses serialized with other manager-to-machine messages.
+func (d *Dispatcher) SendMachineAssignmentReplay(machineResourceID string, replay *a2a888.MachineAssignmentReplayResponse) error {
+	if d == nil || d.registry == nil || machineResourceID == "" || replay == nil {
+		return errors.New("machine assignment replay is invalid")
+	}
+	sess, ok := d.registry.getMachineByResourceID(machineResourceID)
+	if !ok {
+		return errors.New("machine is not connected")
+	}
+	return sess.Send(&v1pb.ManagerMachineStreamMessage{
+		Message: &v1pb.ManagerMachineStreamMessage_AssignmentReplay{
+			AssignmentReplay: replay,
+		},
+	})
 }
 
 // sendToAgent is the single agent-session send path: look up the connected

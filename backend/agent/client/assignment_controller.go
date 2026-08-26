@@ -35,6 +35,20 @@ func (c *MachineClient) LastAcknowledgedCursor() *a2a888.AssignmentCursor {
 	return nil
 }
 
+// assignmentReplayCursor returns the persisted cursor only when this process
+// has already hydrated its reducer. A fresh Machine process must request the
+// full assignment log: applying only events after a persisted cursor to an
+// empty reducer would create a sequence gap and lose the active roster.
+func (c *MachineClient) assignmentReplayCursor() *a2a888.AssignmentCursor {
+	c.mu.RLock()
+	red := c.reducer
+	c.mu.RUnlock()
+	if red == nil || red.LastSequence() == 0 {
+		return nil
+	}
+	return c.LastAcknowledgedCursor()
+}
+
 // ApplyAssignmentEvent applies one assignment event to the machine's state,
 // manages the corresponding agent runner, and produces an acknowledgement cursor.
 // Applying duplicate events is idempotent and does not create duplicate runners.
@@ -98,6 +112,17 @@ func (c *MachineClient) ApplyAssignmentEvent(ctx context.Context, event *a2a888.
 func (c *MachineClient) ApplyAssignmentReplay(ctx context.Context, replay *a2a888.MachineAssignmentReplayResponse) (*a2a888.MachineAssignmentAck, error) {
 	if replay == nil {
 		return nil, pkgerrors.Wrap(assignment.ErrInvalidEvent, "replay response is required")
+	}
+	if len(replay.GetEvents()) == 0 {
+		c.mu.RLock()
+		hydrated := c.reducer != nil && c.reducer.LastSequence() > 0
+		c.mu.RUnlock()
+		if !hydrated {
+			// ConnectMachine already returned the authoritative current roster.
+			// There is no durable delta to apply and no local reducer state to
+			// reconcile against, so preserve those runners.
+			return nil, nil
+		}
 	}
 
 	var lastAck *a2a888.MachineAssignmentAck

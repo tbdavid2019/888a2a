@@ -65,6 +65,17 @@ func (r *sessionRegistry) getMachine(machineID int) (*MachineSession, bool) {
 	return sess, ok
 }
 
+func (r *sessionRegistry) getMachineByResourceID(resourceID string) (*MachineSession, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, sess := range r.machines {
+		if sess.machineResourceID == resourceID {
+			return sess, true
+		}
+	}
+	return nil, false
+}
+
 // deleteMachineWithAgents removes the machine session and every agent session
 // owned by it in one critical section. ok is false when no machine session was
 // registered for machineID.

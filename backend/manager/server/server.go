@@ -57,6 +57,10 @@ type Server struct {
 	// grace goroutines on shutdown.
 	dispatcher *dispatcher.Dispatcher
 
+	// machineAssignmentOutboxWorker delivers durable assignment events and
+	// stops with runnerCtx during server shutdown.
+	machineAssignmentOutboxWorker *store.OutboxWorker
+
 	// scheduler fires reminders at their scheduled time; Stop joins its scan
 	// loops on shutdown. It is stopped before the dispatcher so it stops waking
 	// agents while the dispatcher tears down sessions.
@@ -120,6 +124,7 @@ func NewServer(ctx context.Context, profile *config.Profile) (*Server, error) {
 	}
 
 	s.dispatcher = dispatcher.New(stores)
+	s.machineAssignmentOutboxWorker = s.newMachineAssignmentOutboxWorker()
 	s.scheduler = scheduler.New(stores, s.dispatcher)
 
 	auditInterceptor, err := configureV1Routers(ctx, s.echoServer, s.store, secret, s.profile, s.stateCfg, s.s3clientManager, s.dispatcher)
@@ -189,6 +194,16 @@ func (s *Server) Run(ctx context.Context, port int) error {
 	// Audit log buffer: flush loop with a final flush on shutdown.
 	if s.auditInterceptor != nil {
 		s.auditInterceptor.Start(s.runnerCtx)
+	}
+
+	if s.machineAssignmentOutboxWorker != nil {
+		s.runnerWG.Add(1)
+		go func() {
+			defer s.runnerWG.Done()
+			if err := s.machineAssignmentOutboxWorker.Run(s.runnerCtx, time.Second); err != nil && !errors.Is(err, context.Canceled) {
+				slog.Error("machine assignment outbox worker stopped", log.WithError(err))
+			}
+		}()
 	}
 
 	// Start the reminder scheduler once the dispatcher is ready (it wakes agents

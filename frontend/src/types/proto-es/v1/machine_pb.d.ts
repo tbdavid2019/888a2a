@@ -8,6 +8,7 @@ import type { AgentACPConfig, AgentCapability, AgentProviderInfo, AgentSummary }
 import type { EmptySchema, Timestamp } from "@bufbuild/protobuf/wkt";
 import type { State } from "./common_pb";
 import type { DiscoverProviders, Ping, Pong, ProvidersDiscovered } from "./command_pb";
+import type { MachineAssignmentAck, MachineAssignmentEvent, MachineAssignmentReplayRequest, MachineAssignmentReplayResponse } from "../a2a888/machine_assignment_pb";
 
 /**
  * Describes the file v1/machine.proto.
@@ -1004,6 +1005,22 @@ export declare type MachineStreamMessage = Message<"laelia.v1.MachineStreamMessa
      */
     value: UpgradeProgress;
     case: "upgradeProgress";
+  } | {
+    /**
+     * acknowledgement after applying a durable assignment event
+     *
+     * @generated from field: a2a888.v1.MachineAssignmentAck machine_assignment_ack = 7;
+     */
+    value: MachineAssignmentAck;
+    case: "machineAssignmentAck";
+  } | {
+    /**
+     * replay request sent after reconnect
+     *
+     * @generated from field: a2a888.v1.MachineAssignmentReplayRequest machine_assignment_replay_request = 8;
+     */
+    value: MachineAssignmentReplayRequest;
+    case: "machineAssignmentReplayRequest";
   } | { case: undefined; value?: undefined };
 };
 
@@ -1090,6 +1107,22 @@ export declare type ManagerMachineStreamMessage = Message<"laelia.v1.ManagerMach
      */
     value: UpgradeRequest;
     case: "upgradeRequest";
+  } | {
+    /**
+     * durable assignment delivery
+     *
+     * @generated from field: a2a888.v1.MachineAssignmentEvent assignment_event = 10;
+     */
+    value: MachineAssignmentEvent;
+    case: "assignmentEvent";
+  } | {
+    /**
+     * ordered replay after reconnect
+     *
+     * @generated from field: a2a888.v1.MachineAssignmentReplayResponse assignment_replay = 11;
+     */
+    value: MachineAssignmentReplayResponse;
+    case: "assignmentReplay";
   } | { case: undefined; value?: undefined };
 };
 

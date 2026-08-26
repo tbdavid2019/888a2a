@@ -12,6 +12,7 @@ import (
 	"github.com/tbdavid2019/888a2a/backend/agent/home"
 	"github.com/tbdavid2019/888a2a/backend/agent/supervisor"
 	"github.com/tbdavid2019/888a2a/backend/agent/workspace"
+	a2a888pb "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
 	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 	"github.com/tbdavid2019/888a2a/backend/generated-go/v1/v1connect"
 )
@@ -50,6 +51,16 @@ func (c *MachineClient) runControlStream(ctx context.Context, _ *daemonsrv.Serve
 	}); err != nil {
 		return err
 	}
+	if err := sendStream(&v1pb.MachineStreamMessage{
+		Message: &v1pb.MachineStreamMessage_MachineAssignmentReplayRequest{
+			MachineAssignmentReplayRequest: &a2a888pb.MachineAssignmentReplayRequest{
+				MachineResourceId: c.machineID,
+				LastAcknowledged:  c.assignmentReplayCursor(),
+			},
+		},
+	}); err != nil {
+		return err
+	}
 
 	pingTicker := time.NewTicker(machinePingInterval)
 	defer pingTicker.Stop()
@@ -74,6 +85,50 @@ func (c *MachineClient) runControlStream(ctx context.Context, _ *daemonsrv.Serve
 			}
 
 			switch m := msg.Message.(type) {
+			case *v1pb.ManagerMachineStreamMessage_AssignmentEvent:
+				ack, err := c.ApplyAssignmentEvent(ctx, m.AssignmentEvent)
+				if err != nil {
+					select {
+					case errCh <- err:
+					case <-doneCh:
+					}
+					return
+				}
+				if err := sendStream(&v1pb.MachineStreamMessage{
+					Message: &v1pb.MachineStreamMessage_MachineAssignmentAck{
+						MachineAssignmentAck: ack,
+					},
+				}); err != nil {
+					select {
+					case errCh <- err:
+					case <-doneCh:
+					}
+					return
+				}
+
+			case *v1pb.ManagerMachineStreamMessage_AssignmentReplay:
+				ack, err := c.ApplyAssignmentReplay(ctx, m.AssignmentReplay)
+				if err != nil {
+					select {
+					case errCh <- err:
+					case <-doneCh:
+					}
+					return
+				}
+				if ack != nil {
+					if err := sendStream(&v1pb.MachineStreamMessage{
+						Message: &v1pb.MachineStreamMessage_MachineAssignmentAck{
+							MachineAssignmentAck: ack,
+						},
+					}); err != nil {
+						select {
+						case errCh <- err:
+						case <-doneCh:
+						}
+						return
+					}
+				}
+
 			case *v1pb.ManagerMachineStreamMessage_AgentAssignment:
 				c.spawnOrUpdate(ctx, m.AgentAssignment)
 

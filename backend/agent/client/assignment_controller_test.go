@@ -143,6 +143,29 @@ func TestApplyAssignmentReplayAndReconciliation(t *testing.T) {
 	assert.Equal(t, 2, len(c.runners))
 }
 
+func TestApplyAssignmentReplayWithoutEventsPreservesConnectedRoster(t *testing.T) {
+	c := newTestMachineClient(t, "machine-1")
+	c.runnersMu.Lock()
+	c.runners["agent-1"] = &agentRunner{
+		machine:   c,
+		agentName: "agents/agent-1",
+		agentID:   "agent-1",
+	}
+	c.runnersMu.Unlock()
+
+	_, err := c.ApplyAssignmentReplay(context.Background(), &a2a888.MachineAssignmentReplayResponse{
+		MachineResourceId:          "machine-1",
+		AuthoritativeHighWatermark: 1,
+		FullRosterRevision:         "authoritative-revision",
+	})
+	require.NoError(t, err)
+
+	c.runnersMu.Lock()
+	_, exists := c.runners["agent-1"]
+	c.runnersMu.Unlock()
+	assert.True(t, exists, "an empty replay must not reap the roster already returned by ConnectMachine")
+}
+
 func TestReconcileRosterConvergesStaleConfigs(t *testing.T) {
 	c := newTestMachineClient(t, "machine-1")
 	ctx := context.Background()

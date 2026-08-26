@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	a2a888 "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
 	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
@@ -57,4 +58,30 @@ func TestAgentReadinessAndAvailability(t *testing.T) {
 	assert.True(t, ready)
 	assert.Empty(t, reason)
 	assert.Equal(t, AgentAvailabilityReady, d.GetAgentAvailability(context.Background(), 10))
+}
+
+func TestSendMachineAssignmentEventByResourceID(t *testing.T) {
+	d := New(nil)
+	defer d.Stop()
+
+	var received *v1pb.ManagerMachineStreamMessage
+	d.RegisterMachine(100, "machines/m1", func(msg *v1pb.ManagerMachineStreamMessage) error {
+		received = msg
+		return nil
+	})
+
+	event := &a2a888.MachineAssignmentEvent{
+		MachineResourceId: "machines/m1",
+		AgentResourceId:   "agents/a1",
+		Sequence:          1,
+		EventId:           "event-1",
+		IdempotencyKey:    "idem-1",
+		EventType:         a2a888.AssignmentEventType_CREATE,
+	}
+	require.NoError(t, d.SendMachineAssignmentEvent("machines/m1", event))
+	require.NotNil(t, received)
+	assignment := received.GetAssignmentEvent()
+	require.NotNil(t, assignment)
+	assert.Equal(t, event.GetEventId(), assignment.GetEventId())
+	assert.Equal(t, event.GetSequence(), assignment.GetSequence())
 }
