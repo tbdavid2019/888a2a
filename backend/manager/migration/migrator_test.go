@@ -424,11 +424,12 @@ func TestMigrateSchema_Upgrade(t *testing.T) {
 func TestMigrateSchema_A2AWorkUpgrade(t *testing.T) {
 	db := integrationDB(t)
 	ctx := context.Background()
+	latestVersion := embeddedLatestVersion(t).String()
 
 	if err := MigrateSchema(ctx, db); err != nil {
 		t.Fatalf("MigrateSchema (fresh): %v", err)
 	}
-	assertHistoryVersions(t, db, "1.1.27")
+	assertHistoryVersions(t, db, latestVersion)
 
 	// Remove only the four work tables from this throwaway database, in reverse
 	// dependency order, then rewind the sole history row to the preceding
@@ -476,11 +477,12 @@ func TestMigrateSchema_A2AWorkUpgrade(t *testing.T) {
 func TestMigrateSchema_MachineAssignmentUpgrade(t *testing.T) {
 	db := integrationDB(t)
 	ctx := context.Background()
+	latestVersion := embeddedLatestVersion(t).String()
 
 	if err := MigrateSchema(ctx, db); err != nil {
 		t.Fatalf("MigrateSchema (fresh): %v", err)
 	}
-	assertHistoryVersions(t, db, "1.1.27")
+	assertHistoryVersions(t, db, latestVersion)
 
 	for _, table := range []string{
 		"a2a888_machine_assignment_event",

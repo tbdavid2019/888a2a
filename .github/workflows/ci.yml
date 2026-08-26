@@ -14,6 +14,20 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_user -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,6 +51,9 @@ jobs:
 
       - name: Test
         run: go test ./...
+        env:
+          A2A888_RUN_MIGRATION_TESTS: "1"
+          A2A888_TEST_PG_URL: postgresql://ci_user:ci_password@127.0.0.1:5432/postgres?sslmode=disable
 
       - name: Build
         run: go build -ldflags "-w -s" -p=16 -o ./build/888a2a ./backend/manager/bin/server/main.go
