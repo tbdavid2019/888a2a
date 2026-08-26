@@ -23,6 +23,7 @@ import (
 	"github.com/Ranxy/laelia/backend/manager/store"
 	"github.com/Ranxy/laelia/backend/manager/utils"
 
+	a2a888 "github.com/Ranxy/laelia/backend/generated-go/a2a888"
 	models "github.com/Ranxy/laelia/backend/generated-go/store"
 )
 
@@ -402,4 +403,64 @@ func (m *Manager) rolePermissions(ctx context.Context, role string) map[permissi
 		return nil
 	}
 	return roleMessage.Permissions
+}
+
+// CheckTenantPermission evaluates whether a principal has a permission in an organization context.
+func (m *Manager) CheckTenantPermission(ctx context.Context, orgID string, perm permission.Permission, principalID int) (bool, error) {
+	if orgID == "" || principalID == 0 {
+		return false, nil
+	}
+
+	// 1. Check organization state
+	orgStore := store.NewOrganizationStore(m.store.GetDB())
+	org, err := orgStore.GetOrganization(ctx, orgID)
+	if err != nil {
+		if errors.Is(err, store.ErrOrganizationNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	if org.State == a2a888.OrganizationState_ORGANIZATION_STATE_SUSPENDED || org.State == a2a888.OrganizationState_ORGANIZATION_STATE_CLOSED {
+		return false, nil
+	}
+
+	// 2. Check membership
+	membership, err := orgStore.GetMembership(ctx, orgID, principalID)
+	if err != nil {
+		if errors.Is(err, store.ErrMembershipNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	if membership.State == a2a888.MembershipState_MEMBERSHIP_STATE_SUSPENDED {
+		return false, nil
+	}
+
+	// 3. Evaluate role
+	switch membership.Role {
+	case a2a888.OrganizationRole_ORGANIZATION_ROLE_OWNER, a2a888.OrganizationRole_ORGANIZATION_ROLE_ADMIN:
+		return true, nil
+	case a2a888.OrganizationRole_ORGANIZATION_ROLE_MEMBER:
+		return store.GetPredefinedRole(store.WorkspaceMemberRole).Permissions[perm], nil
+	case a2a888.OrganizationRole_ORGANIZATION_ROLE_GUEST:
+		return perm == permission.ConversationsRead || perm == permission.ConversationsSend, nil
+	default:
+		return false, nil
+	}
+}
+
+// CheckOrganizationActive checks whether an organization exists and is in active state.
+func (m *Manager) CheckOrganizationActive(ctx context.Context, orgID string) (bool, error) {
+	if orgID == "" {
+		return false, nil
+	}
+	orgStore := store.NewOrganizationStore(m.store.GetDB())
+	org, err := orgStore.GetOrganization(ctx, orgID)
+	if err != nil {
+		if errors.Is(err, store.ErrOrganizationNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return org.State == a2a888.OrganizationState_ORGANIZATION_STATE_ACTIVE, nil
 }

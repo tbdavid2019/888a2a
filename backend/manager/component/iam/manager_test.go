@@ -155,3 +155,24 @@ func TestMachineRolePermissionsResolve(t *testing.T) {
 		t.Error("machineAgentCreator must not be a predefined workspace role")
 	}
 }
+
+func TestCheckTenantPermission_EmptyInputs(t *testing.T) {
+	m := newManagerWithoutStore()
+	ctx := context.Background()
+
+	// Empty orgID or principalID should fail closed without touching the DB
+	allowed, err := m.CheckTenantPermission(ctx, "", permission.ConversationsRead, 101)
+	if err != nil || allowed {
+		t.Errorf("CheckTenantPermission with empty orgID = (%v, %v); want (false, nil)", allowed, err)
+	}
+
+	allowed, err = m.CheckTenantPermission(ctx, "org-1", permission.ConversationsRead, 0)
+	if err != nil || allowed {
+		t.Errorf("CheckTenantPermission with zero principalID = (%v, %v); want (false, nil)", allowed, err)
+	}
+
+	allowed, err = m.CheckOrganizationActive(ctx, "")
+	if err != nil || allowed {
+		t.Errorf("CheckOrganizationActive with empty orgID = (%v, %v); want (false, nil)", allowed, err)
+	}
+}

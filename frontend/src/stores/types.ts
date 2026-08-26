@@ -8,6 +8,11 @@ import type {
   WorkspaceProfileSetting,
 } from "@/types/proto-es/store/setting_pb";
 import type {
+  Organization,
+  OrganizationMembership,
+  Workspace,
+} from "@/types/proto-es/a2a888/organization_pb";
+import type {
   Agent,
   AgentProviderInfo,
   AgentStatus_ConnectionState,
@@ -812,12 +817,24 @@ export interface WorkspaceSlice {
   listMachineWorkspaces: (name: string) => Promise<MachineWorkspaceSummary[]>;
 }
 
+export interface OrganizationSlice {
+  currentOrganizationId: string;
+  organizations: Organization[];
+  workspaces: Workspace[];
+  memberships: OrganizationMembership[];
+  setCurrentOrganizationId: (orgId: string) => void;
+  setOrganizations: (orgs: Organization[]) => void;
+  setWorkspaces: (workspaces: Workspace[]) => void;
+  setMemberships: (memberships: OrganizationMembership[]) => void;
+}
+
 export type AppStoreState = AuthSlice &
   ApiProviderSlice &
   McpServerSlice &
   AgentSlice &
   MachineSlice &
   WorkspaceSlice &
+  OrganizationSlice &
   MembersSlice &
   CommandSlice &
   ChatSlice &

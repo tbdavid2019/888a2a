@@ -41,13 +41,13 @@ Agent Network gate: 12 Agents across two Machines SHALL discover peers, exchange
 - [x] 2.2 Add Organization, workspace and membership store schema as additive migrations; verify fresh install and upgrade migration tests pass.
 - [x] 2.3 Create a default Organization migration for existing deployments; verify every existing principal, Agent, Machine and conversation receives a valid tenant owner.
 - [x] 2.4 Add `organization_id` and applicable `workspace_id` to collaboration resources in bounded migration batches; verify foreign keys, uniqueness and tenant indexes through migration tests.
-- [ ] 2.5 Implement active-Organization selection for authenticated humans; verify one user can switch between two memberships without permission or cache leakage.
-- [ ] 2.6 Refactor human, Agent and service-account principals into distinct tenant-scoped identities; verify requester and executor are both present in delegated-action audit tests.
-- [ ] 2.7 Implement Organization roles, groups and workspace bindings; verify group grants, suspension and role removal update effective permissions.
-- [ ] 2.8 Make IAM resource resolution tenant-first; verify adversarial tests return indistinguishable denial for guessed cross-tenant identifiers.
-- [ ] 2.9 Prefix object-storage keys, cache keys and local projections with Organization scope; verify cross-tenant key-collision tests pass.
-- [ ] 2.10 Add Organization lifecycle enforcement for active, suspended and closed states; verify human, connector, A2A and runtime writes stop consistently when suspended.
-- [ ] 2.11 Add Organization switcher and membership administration UI; verify frontend tests cover multi-membership, inaccessible routes and suspended state.
+- [x] 2.5 Implement active-Organization selection for authenticated humans; verify one user can switch between two memberships without permission or cache leakage.
+- [x] 2.6 Refactor human, Agent and service-account principals into distinct tenant-scoped identities; verify requester and executor are both present in delegated-action audit tests.
+- [x] 2.7 Implement Organization roles, groups and workspace bindings; verify group grants, suspension and role removal update effective permissions.
+- [x] 2.8 Make IAM resource resolution tenant-first; verify adversarial tests return indistinguishable denial for guessed cross-tenant identifiers.
+- [x] 2.9 Prefix object-storage keys, cache keys and local projections with Organization scope; verify cross-tenant key-collision tests pass.
+- [x] 2.10 Add Organization lifecycle enforcement for active, suspended and closed states; verify human, connector, A2A and runtime writes stop consistently when suspended.
+- [x] 2.11 Add Organization switcher and membership administration UI; verify frontend tests cover multi-membership, inaccessible routes and suspended state.
 
 ## 3. Durable Event and Multi-Instance Foundation
 

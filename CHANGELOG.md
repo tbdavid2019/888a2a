@@ -12,6 +12,8 @@ and the project uses [Semantic Versioning](https://semver.org/) for releases.
 - Added multi-tenant Organization, Workspace, OrganizationMembership, and TenantPrincipal resource contracts in Protobuf (`proto/v1/a2a888/organization.proto`).
 - Added database migration `0028##organization-tenancy.sql` creating `organizations`, `workspaces`, `organization_memberships` tables and seeding default organization boundaries across existing principals, agents, machines, and conversations.
 - Added Go `OrganizationStore` (`backend/manager/store/organization.go`) providing transactional organization CRUD, slug lookup, workspace management, membership queries, and comprehensive unit tests.
+- Added tenant-aware IAM permission evaluator (`CheckTenantPermission`, `CheckOrganizationActive`) in `backend/manager/component/iam/manager.go` enforcing lifecycle states and role boundaries.
+- Added frontend `OrganizationSlice` (`frontend/src/stores/organization.ts`) with active organization selection, membership state tracking, and unit tests.
 
 ### Changed
 

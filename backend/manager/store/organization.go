@@ -338,6 +338,45 @@ func (s *OrganizationStore) GetMembership(ctx context.Context, orgID string, pri
 	}, nil
 }
 
+// UpdateMembership updates role, state, or workspace bindings for a member.
+func (s *OrganizationStore) UpdateMembership(ctx context.Context, m *a2a888.OrganizationMembership) error {
+	if m == nil || m.OrganizationId == "" || m.PrincipalId == "" {
+		return errors.New("organization id and principal id are required")
+	}
+
+	query := `
+		UPDATE organization_memberships
+		SET role = $1, state = $2, workspace_ids = $3, updated_at = now()
+		WHERE organization_id = $4 AND principal_id = $5
+	`
+	res, err := s.db.ExecContext(ctx, query, m.Role.String(), m.State.String(), pq.Array(m.WorkspaceIds), m.OrganizationId, m.PrincipalId)
+	if err != nil {
+		return errors.Wrap(err, "failed to update organization membership")
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "failed to get affected rows")
+	}
+	if rows == 0 {
+		return ErrMembershipNotFound
+	}
+	return nil
+}
+
+// SetDefaultOrganizationForPrincipal sets the active default organization for a principal.
+func (s *OrganizationStore) SetDefaultOrganizationForPrincipal(ctx context.Context, principalID int, orgID string) error {
+	query := `
+		UPDATE principal
+		SET default_organization_id = $1
+		WHERE id = $2
+	`
+	_, err := s.db.ExecContext(ctx, query, orgID, principalID)
+	if err != nil {
+		return errors.Wrap(err, "failed to set default organization for principal")
+	}
+	return nil
+}
+
 // ListOrganizationsForPrincipal retrieves all active organizations a principal belongs to.
 func (s *OrganizationStore) ListOrganizationsForPrincipal(ctx context.Context, principalID int) ([]*a2a888.Organization, error) {
 	query := `

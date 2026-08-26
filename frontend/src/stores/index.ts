@@ -6,6 +6,7 @@ import { createMcpServerSlice } from "./mcp";
 import { createAgentSlice } from "./agent";
 import { createMachineSlice } from "./machine";
 import { createWorkspaceSlice } from "./workspace";
+import { createOrganizationSlice } from "./organization";
 import { createMembersSlice } from "./members";
 import { createCommandSlice } from "./command";
 import { createChatSlice } from "./chat";
@@ -63,6 +64,7 @@ export const useAppStore = create<AppStoreState>()((...args) => {
     ...createAgentSlice(...wrappedArgs),
     ...createMachineSlice(...wrappedArgs),
     ...createWorkspaceSlice(...wrappedArgs),
+    ...createOrganizationSlice(...wrappedArgs),
     ...createMembersSlice(...wrappedArgs),
     ...createCommandSlice(...wrappedArgs),
     ...createChatSlice(...wrappedArgs),
