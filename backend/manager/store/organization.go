@@ -75,6 +75,19 @@ func (s *Store) RequireOrganizationActive(ctx context.Context, organizationID st
 	return nil
 }
 
+// SetDefaultOrganizationForPrincipal persists a human's active organization
+// and invalidates the unscoped user cache so the next authenticated request
+// observes the new tenant selection.
+func (s *Store) SetDefaultOrganizationForPrincipal(ctx context.Context, principalID int, organizationID string) error {
+	if err := NewOrganizationStore(s.GetDB()).SetDefaultOrganizationForPrincipal(ctx, principalID, organizationID); err != nil {
+		return err
+	}
+	if user, err := s.GetUserByID(ctx, principalID); err == nil && user != nil {
+		s.invalidateUserCache(user.ID, user.Email)
+	}
+	return nil
+}
+
 func organizationStateAllowsWrites(state string) bool {
 	return state == "ACTIVE"
 }

@@ -27,6 +27,23 @@ type AgentSessionMessage struct {
 }
 
 func (s *Store) CreateAgentSession(ctx context.Context, session *AgentSessionMessage) error {
+	if session == nil {
+		return errors.New("agent session is required")
+	}
+	var organizationID string
+	if err := s.GetDB().QueryRowContext(ctx, `
+		SELECT COALESCE(organization_id, 'default')
+		FROM agent
+		WHERE id = $1
+	`, session.AgentID).Scan(&organizationID); err != nil {
+		if err == sql.ErrNoRows {
+			return errors.New("agent not found")
+		}
+		return errors.Wrap(err, "resolve agent organization")
+	}
+	if err := s.RequireOrganizationActive(ctx, organizationID); err != nil {
+		return err
+	}
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
 		return err

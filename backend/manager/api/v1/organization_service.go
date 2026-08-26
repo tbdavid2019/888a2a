@@ -113,7 +113,7 @@ func (s *OrganizationService) SwitchOrganization(ctx context.Context, req *conne
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("organization is closed"))
 	}
 
-	if err := orgStore.SetDefaultOrganizationForPrincipal(ctx, user.ID, targetOrgID); err != nil {
+	if err := s.store.SetDefaultOrganizationForPrincipal(ctx, user.ID, targetOrgID); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to set active organization"))
 	}
 

@@ -145,6 +145,9 @@ func (s *Store) EnsureWorkContext(ctx context.Context, tenantID, contextID, root
 	if contextID == "" {
 		return nil, errors.New("context_id cannot be empty")
 	}
+	if err := s.RequireOrganizationActive(ctx, tenantID); err != nil {
+		return nil, err
+	}
 
 	var rootWorkNull sql.NullString
 	if rootWorkID != "" {
@@ -198,6 +201,9 @@ func (s *Store) CreateWork(ctx context.Context, work *WorkMessage) error {
 	}
 	if work.TenantID == "" {
 		work.TenantID = "default"
+	}
+	if err := s.RequireOrganizationActive(ctx, work.TenantID); err != nil {
+		return err
 	}
 	if work.State == "" {
 		work.State = "SUBMITTED"

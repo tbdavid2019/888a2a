@@ -9,6 +9,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Added
 
+- Added one PostgreSQL/API Organization tenancy isolation gate covering two-tenant human switching and cache invalidation, service-account audit requester/executor evidence, live group permission changes, indistinguishable cross-tenant denial, tenant key isolation, and suspended/closed write rejection across conversation, connector, A2A, and runtime session paths.
 - Added a gated PostgreSQL assignment integration test covering create/update/remove outbox intents, ordered replay, idempotent re-submit, cumulative ACK, and post-ACK empty replay.
 - Added a dedicated verbose GitHub Actions assignment replay gate so durable Machine delivery evidence is visible in CI logs.
 - Added a PostgreSQL-backed shared room notifier with a peer-replica integration gate for cross-Manager conversation wakeups.
@@ -39,6 +40,8 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Changed
 
+- Routed Organization switching through a Store wrapper that invalidates the authenticated user cache after the persisted default tenant changes.
+- Added active-Organization guards to A2A work/context creation and Agent session creation so suspended or closed tenants cannot create durable work or runtime sessions.
 - Changed command-event watchers to re-read persisted events after subscribing and deduplicate by sequence, closing the historical/live race during reconnect.
 - Added a dedicated verbose GitHub Actions PostgreSQL migration gate so fresh install, Organization upgrade, existing-row backfill, foreign-key, and uniqueness evidence is visible in CI logs.
 - Renamed binaries (`build/888a2a`, `888a2a-machine`), CLI commands, Docker image targets (`888a2a/manager`, `888a2a/machine`), and build scripts (`scripts/build_888a2a.sh`, `scripts/build_888a2a_manager_docker.sh`, `scripts/build_888a2a_machine_docker.sh`) while providing backwards-compatible invocation wrappers.
