@@ -450,3 +450,22 @@ func TestDurableOutboxSchemaPresent(t *testing.T) {
 		}
 	}
 }
+
+func TestDurableConnectorInboxSchemaPresent(t *testing.T) {
+	latest := latestSQL(t)
+	incBytes, err := os.ReadFile("migration/1.1/0030##connector-inbox.sql")
+	if err != nil {
+		t.Fatalf("read 0030##connector-inbox.sql: %v", err)
+	}
+	incremental := string(incBytes)
+	for _, want := range []string{
+		"CREATE TABLE IF NOT EXISTS a2a888_connector_inbox",
+		"PRIMARY KEY (organization_id, installation_id, external_event_id)",
+		"a2a888_connector_inbox_status_check",
+		"idx_a2a888_connector_inbox_pending",
+	} {
+		if !strings.Contains(latest, want) || !strings.Contains(incremental, want) {
+			t.Errorf("connector inbox schema missing %q", want)
+		}
+	}
+}
