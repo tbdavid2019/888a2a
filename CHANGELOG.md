@@ -10,6 +10,7 @@ This project records changes by calendar date and does not maintain release vers
 ### Added
 
 - Added a gated PostgreSQL assignment integration test covering create/update/remove outbox intents, ordered replay, idempotent re-submit, cumulative ACK, and post-ACK empty replay.
+- Added a dedicated verbose GitHub Actions assignment replay gate so durable Machine delivery evidence is visible in CI logs.
 - Added durable Machine assignment delivery over MachineChannel, including full-log replay after process restart, ordered delta replay after reconnect, idempotent reducer application, and cumulative ACK handling.
 - Added MachineChannel durable assignment replay/ACK messages and Manager-side assignment outbox delivery with per-Organization queue and concurrency limits.
 - Added tenant-scoped membership administration RPCs/UI, delegated requester/executor audit evidence, composite Organization IAM bindings, collaboration projection tenant columns, and cache/S3 isolation guards.

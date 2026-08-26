@@ -56,7 +56,7 @@ Evidence notes (2026-08-26): 2.1 and 2.11 are proven by `buf format`, `buf lint`
 - [x] 3.1 Define durable event envelope, correlation, tenant, idempotency and retry metadata; verify schema fixtures round-trip and reject missing tenant identity.
 - [x] 3.2 Add transactional outbox storage and worker claim/ack/retry behavior; verify a process crash after source commit is recovered by another worker.
 - [x] 3.3 Add durable connector inbox with unique external-event keys; verify repeated webhook fixtures produce one committed canonical event.
-- [ ] 3.4 Replace critical Machine assignment best-effort delivery with outbox sequence and ack; verify create/update/remove replay after disconnect without duplicate runners.
+- [x] 3.4 Replace critical Machine assignment best-effort delivery with outbox sequence and ack; verify create/update/remove replay after disconnect without duplicate runners.
 - [ ] 3.5 Introduce shared conversation notification behind the room notifier interface; verify a write on Manager replica A wakes a reader on replica B.
 - [ ] 3.6 Replace process-local nonce replay correctness with shared state; verify the same nonce is rejected across two Manager replicas.
 - [ ] 3.7 Make command event replay authoritative across replicas while retaining live fast paths; verify slow/disconnected watchers recover every persisted event.
