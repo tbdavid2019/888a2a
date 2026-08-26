@@ -19,6 +19,7 @@ This project records changes by calendar date and does not maintain release vers
 - Added a tenant-scoped conversation execution event ledger for Agent start, steer, cancel, and completion lifecycle records with idempotent terminal transitions.
 - Added ApprovalPolicy, ApprovalRequest, ApprovalDecision, and BoundAction protobuf contracts with round-trip and deterministic state-transition tests.
 - Added an explicit GitHub Actions Approval contract gate for protobuf round-trip and lifecycle transition coverage.
+- Recorded GitHub Actions evidence for OpenSpec tasks 5.3 and 6.1 after the conversation execution lifecycle and Approval contract gates passed in run `32952769187`.
 - Added tenant-scoped MessagePlane reconciliation that repairs canonical/projection and membership drift while recording unknown memberships as quarantine audit records.
 - Added message moderation policy evaluation for bounded edit/recall, moderator-only redaction, tenant checks, legal-hold projection, and audit-safe mutation decisions.
 - Added explicit presence, typing, delivery-receipt, and read-receipt capability contracts with fail-closed unsupported results and CI coverage.
