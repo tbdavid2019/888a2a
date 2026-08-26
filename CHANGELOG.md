@@ -45,6 +45,7 @@ This project records changes by calendar date and does not maintain release vers
 - Connected Machine assignment persistence to the durable outbox in the same database transaction; replay/ACK behavior remains covered by the existing reducer tests while real multi-replica recovery remains pending.
 - Added authorized dead-letter replay with tenant-scoped outbox reconciliation records.
 - Added active-Organization write guards to Connector inbox and durable A2A create/update paths so suspended or closed tenants cannot enqueue new work.
+- Added PostgreSQL integration gates for outbox lease reclaim, connector event deduplication, and dead-letter replay/reconciliation.
 - Loaded the persisted default Organization, Agent tenant, workspace, and Machine tenant fields into runtime models before authorization and tenant-aware object-key generation.
 - Added resource-level Organization checks for Agent, Machine, Conversation, File, Command, and Reminder IAM targets.
 - Restricted Organization membership listing to active owners and admins, and rejected unknown active-organization candidates.

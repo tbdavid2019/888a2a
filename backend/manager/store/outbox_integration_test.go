@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -100,5 +101,38 @@ func TestConnectorInboxDeduplicatesExternalEvent(t *testing.T) {
 	}
 	if err := stores.MarkConnectorInboxProcessed(context.Background(), event.OrganizationID, event.InstallationID, event.ExternalEventID); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestOutboxDeadLetterReplayRecordsReconciliation(t *testing.T) {
+	stores := requireIntegrationStore(t)
+	ctx := context.Background()
+	event := DurableEventEnvelope{
+		EventID: "integration-event-dead-letter", Organization: "default", AggregateType: "test",
+		AggregateID: "aggregate-dead-letter", EventType: "TEST", CorrelationID: "trace-dead-letter",
+		IdempotencyKey: "integration-idempotency-dead-letter", Payload: []byte(`{"ok":true}`), MaxAttempts: 1,
+	}
+	if err := stores.EnqueueOutboxEvent(ctx, event); err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := stores.ClaimOutboxEvents(ctx, "worker-dead-letter", 1)
+	if err != nil || len(claimed) != 1 {
+		t.Fatalf("claim = %d, %v", len(claimed), err)
+	}
+	if err := stores.RetryOutboxEvent(ctx, "worker-dead-letter", event.EventID, "permanent failure", time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if err := stores.ReplayDeadLetterOutboxEvent(ctx, "default", event.EventID, "operator-1"); err != nil {
+		t.Fatal(err)
+	}
+	replayed, err := stores.ClaimOutboxEvents(ctx, "worker-replay", 1)
+	if err != nil || len(replayed) != 1 {
+		t.Fatalf("replayed claim = %d, %v", len(replayed), err)
+	}
+	if err := stores.AckOutboxEvent(ctx, "worker-replay", event.EventID); err != nil {
+		t.Fatal(err)
+	}
+	if err := stores.ReplayDeadLetterOutboxEvent(ctx, "default", event.EventID, "operator-1"); !errors.Is(err, ErrOutboxNotDeadLetter) {
+		t.Fatalf("second replay error = %v, want ErrOutboxNotDeadLetter", err)
 	}
 }

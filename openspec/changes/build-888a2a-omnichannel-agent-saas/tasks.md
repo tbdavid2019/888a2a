@@ -52,14 +52,14 @@ Agent Network gate: 12 Agents across two Machines SHALL discover peers, exchange
 ## 3. Durable Event and Multi-Instance Foundation
 
 - [x] 3.1 Define durable event envelope, correlation, tenant, idempotency and retry metadata; verify schema fixtures round-trip and reject missing tenant identity.
-- [ ] 3.2 Add transactional outbox storage and worker claim/ack/retry behavior; verify a process crash after source commit is recovered by another worker.
-- [ ] 3.3 Add durable connector inbox with unique external-event keys; verify repeated webhook fixtures produce one committed canonical event.
+- [x] 3.2 Add transactional outbox storage and worker claim/ack/retry behavior; verify a process crash after source commit is recovered by another worker.
+- [x] 3.3 Add durable connector inbox with unique external-event keys; verify repeated webhook fixtures produce one committed canonical event.
 - [ ] 3.4 Replace critical Machine assignment best-effort delivery with outbox sequence and ack; verify create/update/remove replay after disconnect without duplicate runners.
 - [ ] 3.5 Introduce shared conversation notification behind the room notifier interface; verify a write on Manager replica A wakes a reader on replica B.
 - [ ] 3.6 Replace process-local nonce replay correctness with shared state; verify the same nonce is rejected across two Manager replicas.
 - [ ] 3.7 Make command event replay authoritative across replicas while retaining live fast paths; verify slow/disconnected watchers recover every persisted event.
 - [ ] 3.8 Implement per-Organization queue and worker limits; verify a flood from one tenant does not delay a control tenant beyond the test SLO.
-- [ ] 3.9 Add dead-letter state, authorized replay and reconciliation records; verify terminal retry exhaustion is visible and replay is idempotent.
+- [x] 3.9 Add dead-letter state, authorized replay and reconciliation records; verify terminal retry exhaustion is visible and replay is idempotent.
 
 ## 4. IM Message Plane and Collaboration Events
 
