@@ -197,6 +197,9 @@ func (s *CommandService) ListConversationMessages(ctx context.Context, req *conn
 	case s.collaborationPathMode(ctx) == messageplane.PathModeMessagePlane && s.messagePlane != nil:
 		nativeRead = true
 		msgs, currentVersion, err = s.listConversationMessagesFromPlane(ctx, convID, req.Msg.AfterVersion, offset.offset, offset.limit)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, errors.Wrapf(err, "failed to list MessagePlane conversation messages"))
+		}
 	default:
 		msgs, currentVersion, err = s.store.ListConversationMessages(ctx, convID, 0, 0, offset.limit, 0)
 		if err != nil {

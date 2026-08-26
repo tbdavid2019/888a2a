@@ -71,6 +71,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Fixed
 
+- Fixed native MessagePlane history error handling so CI lint and runtime failures are both surfaced instead of leaving an ineffectual error assignment.
 - Fixed MessagePlane reconciliation to close canonical message result rows before querying projections in the same PostgreSQL transaction, preventing pgx re-entrant row errors.
 - Fixed fresh-install migration ordering so the MessagePlane dual projection foreign key is created only after the canonical message table exists.
 - Corrected the PostgreSQL message cursor integration fixture to acknowledge the first persisted room sequence instead of assuming conversations start at sequence zero.
