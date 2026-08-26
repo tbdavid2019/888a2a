@@ -14,6 +14,18 @@ import (
 	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
+func TestCommandEventAfterCursor(t *testing.T) {
+	if !commandEventAfterCursor(&v1pb.CommandEvent{SeqNo: 4}, 3) {
+		t.Fatal("event after cursor should be delivered")
+	}
+	if commandEventAfterCursor(&v1pb.CommandEvent{SeqNo: 3}, 3) {
+		t.Fatal("event at cursor should be deduplicated")
+	}
+	if commandEventAfterCursor(nil, 0) {
+		t.Fatal("nil event should be ignored")
+	}
+}
+
 func TestBuildLightChatContext(t *testing.T) {
 	entries := []*store.ChatMessage{
 		{Role: 1, Content: "Hello"},

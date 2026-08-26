@@ -205,6 +205,10 @@ func (s *CommandService) WatchCommand(ctx context.Context, req *connect.Request[
 	}
 }
 
+func commandEventAfterCursor(event *v1pb.CommandEvent, cursor int32) bool {
+	return event != nil && event.SeqNo > cursor
+}
+
 func (s *CommandService) WatchCommandEvents(ctx context.Context, req *connect.Request[v1pb.WatchCommandEventsRequest], stream *connect.ServerStream[v1pb.CommandEvent]) error {
 	cmd, err := s.store.GetCommandByName(ctx, req.Msg.Name)
 	if err != nil {
@@ -221,9 +225,13 @@ func (s *CommandService) WatchCommandEvents(ctx context.Context, req *connect.Re
 		return connect.NewError(connect.CodeInternal, errors.Wrapf(err, "failed to get historical command events"))
 	}
 
+	lastSeqNo := req.Msg.AfterSeqNo
 	for _, event := range historicalEvents {
 		if err := stream.Send(convertToV1CommandEvent(event)); err != nil {
 			return err
+		}
+		if event.SeqNo > lastSeqNo {
+			lastSeqNo = event.SeqNo
 		}
 	}
 
@@ -237,6 +245,22 @@ func (s *CommandService) WatchCommandEvents(ctx context.Context, req *connect.Re
 	}
 	defer s.dispatcher.UnsubscribeEvents(cmd.ID.String(), ch)
 
+	// The event may have been persisted and broadcast between the historical
+	// query and subscription. Re-read after subscribing to close that race;
+	// sequence filtering below deduplicates an event that arrived in both reads.
+	catchUp, err := s.store.GetCommandEvents(ctx, cmd.ID, lastSeqNo)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, errors.Wrapf(err, "failed to catch up command events"))
+	}
+	for _, event := range catchUp {
+		if err := stream.Send(convertToV1CommandEvent(event)); err != nil {
+			return err
+		}
+		if event.SeqNo > lastSeqNo {
+			lastSeqNo = event.SeqNo
+		}
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -245,6 +269,10 @@ func (s *CommandService) WatchCommandEvents(ctx context.Context, req *connect.Re
 			if !ok {
 				return nil
 			}
+			if !commandEventAfterCursor(event, lastSeqNo) {
+				continue
+			}
+			lastSeqNo = event.SeqNo
 			if err := stream.Send(event); err != nil {
 				return err
 			}

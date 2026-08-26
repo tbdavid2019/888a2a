@@ -37,6 +37,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Changed
 
+- Changed command-event watchers to re-read persisted events after subscribing and deduplicate by sequence, closing the historical/live race during reconnect.
 - Added a dedicated verbose GitHub Actions PostgreSQL migration gate so fresh install, Organization upgrade, existing-row backfill, foreign-key, and uniqueness evidence is visible in CI logs.
 - Renamed binaries (`build/888a2a`, `888a2a-machine`), CLI commands, Docker image targets (`888a2a/manager`, `888a2a/machine`), and build scripts (`scripts/build_888a2a.sh`, `scripts/build_888a2a_manager_docker.sh`, `scripts/build_888a2a_machine_docker.sh`) while providing backwards-compatible invocation wrappers.
 - Renamed environment variables (`A2A888_PG_URL`, `A2A888_ALLOWED_ORIGINS`, `A2A888_COOKIE_SAMESITE`, `A2A888_MANAGER_URL`, `A2A888_DAEMON_SOCKET`, `A2A888_SESSION_TOKEN`, `A2A888_AGENT`, `A2A888_COMMAND`, `A2A888_TEST_CACHE`), home directory (`~/.888a2a`), socket paths, cookies (`888a2a-access-token`), headers (`X-888a2a-Agent`), and UI storage keys (`888a2a-sidebar-collapsed`, `888a2a.language`, `888a2a_oauth_state_`) with dual-read fallback compatibility.
