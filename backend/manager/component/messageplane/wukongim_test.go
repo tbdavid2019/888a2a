@@ -98,3 +98,23 @@ func TestRawNumberStringRejectsNonIntegerMessageIDs(t *testing.T) {
 	_, err = rawNumberString(json.RawMessage(`"42"`))
 	require.NoError(t, err)
 }
+
+func TestWuKongIMHealthFallsBackToCurrentReleaseEndpoint(t *testing.T) {
+	paths := make(chan string, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths <- r.URL.Path
+		if r.URL.Path == "/readyz" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+	defer server.Close()
+	adapter, err := NewWuKongIMAdapter(WuKongIMConfig{BaseURL: server.URL})
+	require.NoError(t, err)
+	health, err := adapter.Health(context.Background())
+	require.NoError(t, err)
+	require.True(t, health.Healthy)
+	require.Equal(t, "/readyz", <-paths)
+	require.Equal(t, "/health", <-paths)
+}

@@ -26,6 +26,7 @@ This project records changes by calendar date and does not maintain release vers
 - Added exact Web Widget origin allowlists, CSP frame-ancestor responses, and tenant/client bootstrap rate limiting.
 - Added a reusable Web Widget conversation component with attachment handling, human handoff, light/dark/high-contrast themes, bilingual labels, keyboard interaction, and accessibility semantics.
 - Added deterministic approval approver resolution across active users, groups, and Organization roles, excluding suspended/invited members and requester conflicts.
+- Updated the WuKongIM health probe to support the current official image's `/health` endpoint after `/readyz` returned 404 on the controlled VM; full production readiness remains pending.
 - Excluded the Web Widget API path from embedded SPA fallback so bootstrap requests always receive JSON responses.
 - Recorded GitHub Actions evidence for OpenSpec tasks 5.3 and 6.1 after the conversation execution lifecycle and Approval contract gates passed in run `32952769187`.
 - Recorded GitHub Actions evidence for OpenSpec tasks 5.4 and 6.2 after Web Widget bootstrap and PostgreSQL approval schema gates passed in run `32954034076`.

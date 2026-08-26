@@ -250,19 +250,25 @@ func (a *WuKongIMAdapter) ProjectMembership(ctx context.Context, projection Memb
 
 // Health checks WuKongIM readiness without exposing or calling its manager API.
 func (a *WuKongIMAdapter) Health(ctx context.Context) (Health, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, a.baseURL+"/readyz", nil)
-	if err != nil {
-		return Health{Healthy: false, Detail: err.Error()}, err
+	for _, endpoint := range []string{"/readyz", "/health"} {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, a.baseURL+endpoint, nil)
+		if err != nil {
+			return Health{Healthy: false, Detail: err.Error()}, err
+		}
+		response, err := a.client.Do(req)
+		if err != nil {
+			return Health{Healthy: false, Detail: err.Error()}, err
+		}
+		status := response.StatusCode
+		_ = response.Body.Close()
+		if status >= http.StatusOK && status < http.StatusMultipleChoices {
+			return Health{Healthy: true, Detail: "WuKongIM ready"}, nil
+		}
+		if status != http.StatusNotFound || endpoint != "/readyz" {
+			return Health{Healthy: false, Detail: fmt.Sprintf("readiness returned HTTP %d", status)}, fmt.Errorf("WuKongIM readiness returned HTTP %d", status)
+		}
 	}
-	response, err := a.client.Do(req)
-	if err != nil {
-		return Health{Healthy: false, Detail: err.Error()}, err
-	}
-	defer response.Body.Close()
-	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		return Health{Healthy: false, Detail: fmt.Sprintf("readiness returned HTTP %d", response.StatusCode)}, fmt.Errorf("WuKongIM readiness returned HTTP %d", response.StatusCode)
-	}
-	return Health{Healthy: true, Detail: "WuKongIM ready"}, nil
+	return Health{Healthy: false, Detail: "WuKongIM readiness endpoint unavailable"}, errors.New("WuKongIM readiness endpoint unavailable")
 }
 
 func (a *WuKongIMAdapter) postJSON(ctx context.Context, path string, body any, result any) error {
