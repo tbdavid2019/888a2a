@@ -37,6 +37,34 @@ func TestSchemaMigrationHistoryPresent(t *testing.T) {
 	}
 }
 
+// TestMessagePlaneIdentityMigrationPresent guards the additive MessagePlane
+// schema on both fresh installs and upgrades. The incremental and cumulative
+// files must expose the same tenant-scoped identity, sequence, retry, and
+// membership projection contracts.
+func TestMessagePlaneIdentityMigrationPresent(t *testing.T) {
+	latest := latestSQL(t)
+	incrementalBytes, err := os.ReadFile("migration/1.1/0034##message-plane-identity.sql")
+	if err != nil {
+		t.Fatalf("read MessagePlane identity migration: %v", err)
+	}
+	incremental := string(incrementalBytes)
+	for _, want := range []string{
+		"CREATE TABLE IF NOT EXISTS a2a888_message_cursor",
+		"CREATE TABLE IF NOT EXISTS a2a888_message",
+		"uq_a2a888_message_sequence",
+		"uq_a2a888_message_client_retry",
+		"CREATE TABLE IF NOT EXISTS a2a888_message_membership",
+		"organization_id TEXT NOT NULL REFERENCES organizations(id)",
+	} {
+		if !strings.Contains(latest, want) {
+			t.Errorf("LATEST.sql missing MessagePlane identity DDL %q", want)
+		}
+		if !strings.Contains(incremental, want) {
+			t.Errorf("0034 migration missing MessagePlane identity DDL %q", want)
+		}
+	}
+}
+
 // TestSearchChatHistoryTrgmIndexPresent locks in the pg_trgm GIN index that
 // makes SearchChatHistory's leading-wildcard `content ILIKE '%q%'` an index
 // scan instead of a full table scan. Both the extension and the index must be

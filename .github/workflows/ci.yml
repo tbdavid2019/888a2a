@@ -94,6 +94,12 @@ jobs:
           A2A888_RUN_MIGRATION_TESTS: "1"
           A2A888_TEST_PG_URL: postgresql://ci_user:ci_password@127.0.0.1:5432/postgres?sslmode=disable
 
+      - name: Verify PostgreSQL MessagePlane identity gate
+        run: go test -v ./backend/manager/component/messageplane -run TestPostgresPlaneConcurrentAppendAndRetry -count=1
+        env:
+          A2A888_RUN_MIGRATION_TESTS: "1"
+          A2A888_TEST_PG_URL: postgresql://ci_user:ci_password@127.0.0.1:5432/postgres?sslmode=disable
+
       - name: Build
         run: go build -ldflags "-w -s" -p=16 -o ./build/888a2a ./backend/manager/bin/server/main.go
 

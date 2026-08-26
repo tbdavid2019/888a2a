@@ -9,6 +9,8 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Added
 
+- Added a durable PostgreSQL MessagePlane with tenant-scoped message identity, concurrent per-conversation sequencing, retry deduplication, resumable history cursors, membership projection, and append-only collaboration event projections.
+- Added a PostgreSQL MessagePlane identity integration gate covering concurrent append order, global message IDs, idempotent client retries, and cross-tenant cursor rejection.
 - Added a shared PostgreSQL command-event wake hub and replay integration gate; slow or disconnected watchers recover every durable event by sequence while local Dispatcher delivery remains low-latency.
 - Added one PostgreSQL/API Organization tenancy isolation gate covering two-tenant human switching and cache invalidation, service-account audit requester/executor evidence, live group permission changes, indistinguishable cross-tenant denial, tenant key isolation, and suspended/closed write rejection across conversation, connector, A2A, and runtime session paths.
 - Added a gated PostgreSQL assignment integration test covering create/update/remove outbox intents, ordered replay, idempotent re-submit, cumulative ACK, and post-ACK empty replay.

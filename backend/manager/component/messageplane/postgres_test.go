@@ -1,0 +1,93 @@
+package messageplane
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"net/url"
+	"os"
+	"sort"
+	"sync"
+	"testing"
+	"time"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/stretchr/testify/require"
+
+	"github.com/tbdavid2019/888a2a/backend/common"
+	"github.com/tbdavid2019/888a2a/backend/manager/migration"
+)
+
+func requireMessagePlaneDatabase(t *testing.T) *sql.DB {
+	t.Helper()
+	if os.Getenv("A2A888_RUN_MIGRATION_TESTS") != "1" {
+		t.Skip("set A2A888_RUN_MIGRATION_TESTS=1 to run MessagePlane PostgreSQL integration tests")
+	}
+	rootURL := os.Getenv("A2A888_TEST_PG_URL")
+	if rootURL == "" {
+		t.Skip("set A2A888_TEST_PG_URL to a PostgreSQL URL")
+	}
+	root, err := sql.Open("pgx", rootURL)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = root.Close() })
+	databaseName := fmt.Sprintf("a2a888_message_plane_%d", time.Now().UnixNano())
+	if _, err := root.ExecContext(context.Background(), `CREATE DATABASE "`+databaseName+`"`); err != nil {
+		t.Skipf("test user cannot create database: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = root.ExecContext(context.Background(), `DROP DATABASE IF EXISTS "`+databaseName+`" WITH (FORCE)`)
+	})
+	databaseURL, err := url.Parse(rootURL)
+	require.NoError(t, err)
+	databaseURL.Path = "/" + databaseName
+	db, err := sql.Open("pgx", databaseURL.String())
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	require.NoError(t, migration.MigrateSchema(context.Background(), db))
+	return db
+}
+
+func TestPostgresPlaneConcurrentAppendAndRetry(t *testing.T) {
+	db := requireMessagePlaneDatabase(t)
+	plane, err := NewPostgresPlane(db)
+	require.NoError(t, err)
+	ctx := common.SetOrganizationIDToContext(context.Background(), "default")
+	const count = 12
+	inputs := make([]MessageInput, count)
+	for i := range inputs {
+		inputs[i] = MessageInput{OrganizationID: "default", ConversationID: "conversation-1", ClientMessageNo: fmt.Sprintf("client-%d", i), SenderID: "user-1", Payload: []byte(fmt.Sprintf(`{"index":%d}`, i))}
+	}
+	messages := make([]Message, count)
+	appendErrors := make([]error, count)
+	var wg sync.WaitGroup
+	for i := range inputs {
+		wg.Add(1)
+		go func(index int) {
+			defer wg.Done()
+			messages[index], appendErrors[index] = plane.Append(ctx, inputs[index])
+		}(i)
+	}
+	wg.Wait()
+	for _, appendErr := range appendErrors {
+		require.NoError(t, appendErr)
+	}
+	sequences := make([]int, count)
+	for i, message := range messages {
+		require.NotEmpty(t, message.MessageID)
+		sequences[i] = int(message.MessageSeq)
+	}
+	sort.Ints(sequences)
+	for i, sequence := range sequences {
+		require.Equal(t, i+1, sequence)
+	}
+	retry, err := plane.Append(ctx, inputs[0])
+	require.NoError(t, err)
+	require.Equal(t, messages[0].MessageID, retry.MessageID)
+	require.Equal(t, messages[0].MessageSeq, retry.MessageSeq)
+	history, err := plane.History(ctx, HistoryRequest{OrganizationID: "default", ConversationID: "conversation-1", Limit: 100})
+	require.NoError(t, err)
+	require.Len(t, history.Messages, count)
+	require.Equal(t, uint64(count), history.NextCursor.MessageSeq)
+	_, err = plane.History(common.SetOrganizationIDToContext(context.Background(), "other"), HistoryRequest{OrganizationID: "default", ConversationID: "conversation-1", Limit: 10})
+	require.Error(t, err)
+}
