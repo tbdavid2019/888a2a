@@ -27,3 +27,25 @@ func TestLimiterIsolatesTenantCapacity(t *testing.T) {
 		t.Fatalf("org-a active units = %d, want 0", got)
 	}
 }
+
+func TestQueueProvidesTenantFairnessAndBounds(t *testing.T) {
+	queue := NewQueue(2, 3)
+	if !queue.Enqueue(Item{OrganizationID: "org-a", Value: "a1"}) ||
+		!queue.Enqueue(Item{OrganizationID: "org-a", Value: "a2"}) {
+		t.Fatal("org-a items should be queued")
+	}
+	if queue.Enqueue(Item{OrganizationID: "org-a", Value: "a3"}) {
+		t.Fatal("org-a queue must be bounded")
+	}
+	if !queue.Enqueue(Item{OrganizationID: "org-b", Value: "b1"}) {
+		t.Fatal("org-b must retain an independent queue slot")
+	}
+	first, ok := queue.Dequeue()
+	if !ok || first.OrganizationID != "org-a" {
+		t.Fatalf("first dequeue = %+v, want org-a", first)
+	}
+	second, ok := queue.Dequeue()
+	if !ok || second.OrganizationID != "org-b" {
+		t.Fatalf("second dequeue = %+v, want org-b", second)
+	}
+}

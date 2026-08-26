@@ -36,6 +36,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Fixed
 
+- Added bounded fair tenant queueing and wired per-Organization admission limits into outbox workers.
 - Made legacy machine state migration copy an existing legacy home into `.888a2a` atomically before startup continues.
 - Updated the active Dockerfiles and pi build documentation to use `A2A888_*` variables and `888a2a` runtime targets while retaining explicit legacy aliases.
 - Added the tenant-scoped durable event envelope and PostgreSQL outbox schema with idempotency, claim, acknowledgement, retry, and dead-letter states; real PostgreSQL worker recovery remains an integration gate.

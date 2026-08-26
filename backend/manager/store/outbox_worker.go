@@ -3,6 +3,8 @@ package store
 import (
 	"context"
 	"time"
+
+	"github.com/tbdavid2019/888a2a/backend/manager/component/tenantqueue"
 )
 
 // OutboxRepository is the small persistence boundary needed by the worker.
@@ -25,6 +27,7 @@ type OutboxWorker struct {
 	RetryDelay func(attempts int) time.Duration
 	Handle     OutboxHandler
 	Now        func() time.Time
+	Limiter    *tenantqueue.Limiter
 }
 
 // Run polls until the context is cancelled. A failed batch does not stop the
@@ -67,11 +70,28 @@ func (w *OutboxWorker) RunOnce(ctx context.Context) error {
 		delay = w.RetryDelay
 	}
 	for _, event := range events {
+		var release func()
+		if w.Limiter != nil {
+			var admitted bool
+			release, admitted = w.Limiter.TryAcquire(event.Organization)
+			if !admitted {
+				if retryErr := w.Repository.RetryOutboxEvent(ctx, w.WorkerID, event.EventID, "organization worker limit reached", now().Add(delay(event.Attempts+1))); retryErr != nil {
+					return retryErr
+				}
+				continue
+			}
+		}
 		if err := w.Handle(ctx, event); err != nil {
+			if release != nil {
+				release()
+			}
 			if retryErr := w.Repository.RetryOutboxEvent(ctx, w.WorkerID, event.EventID, err.Error(), now().Add(delay(event.Attempts+1))); retryErr != nil {
 				return retryErr
 			}
 			continue
+		}
+		if release != nil {
+			release()
 		}
 		if err := w.Repository.AckOutboxEvent(ctx, w.WorkerID, event.EventID); err != nil {
 			return err
