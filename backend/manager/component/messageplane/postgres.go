@@ -110,6 +110,19 @@ func (p *PostgresPlane) Append(ctx context.Context, input MessageInput) (Message
 	`, input.OrganizationID, input.ConversationID, messageID, input.ClientMessageNo, next, input.SenderID, payload); err != nil {
 		return Message{}, errors.Wrap(err, "persist message")
 	}
+	projection, err := decodeProjectionPayload(payload)
+	if err != nil {
+		return Message{}, err
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO a2a888_message_projection (
+			organization_id, message_id, conversation_id, client_msg_no, message_seq,
+			sender_id, content, attachments, mentions, thread_root_id, reactions
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULLIF($10, ''), $11)
+	`, input.OrganizationID, messageID, input.ConversationID, input.ClientMessageNo, next,
+		input.SenderID, projection.Content, projection.Attachments, projection.Mentions, projection.ThreadRootID, projection.Reactions); err != nil {
+		return Message{}, errors.Wrap(err, "persist message projection")
+	}
 	if err := tx.Commit(); err != nil {
 		return Message{}, errors.Wrap(err, "commit message append")
 	}
@@ -175,6 +188,31 @@ func (p *PostgresPlane) ProjectMembership(ctx context.Context, projection Member
 	return errors.Wrap(err, "project message membership")
 }
 
+// AdvanceProjectionCursor advances a durable consumer cursor monotonically.
+// ConsumerType is normally "device" or "agent"; organization and
+// conversation are always part of the key so replay cannot cross tenants.
+func (p *PostgresPlane) AdvanceProjectionCursor(ctx context.Context, consumerType, consumerID string, cursor Cursor) (Cursor, error) {
+	if err := requirePlaneTenant(ctx, cursor.OrganizationID); err != nil {
+		return Cursor{}, err
+	}
+	if strings.TrimSpace(cursor.ConversationID) == "" || strings.TrimSpace(consumerType) == "" || strings.TrimSpace(consumerID) == "" {
+		return Cursor{}, errors.New("conversation and consumer cursor identity are required")
+	}
+	var sequence uint64
+	err := p.db.QueryRowContext(ctx, `
+		INSERT INTO a2a888_message_projection_cursor
+			(organization_id, conversation_id, consumer_type, consumer_id, message_seq)
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (organization_id, conversation_id, consumer_type, consumer_id) DO UPDATE
+		SET message_seq = GREATEST(a2a888_message_projection_cursor.message_seq, EXCLUDED.message_seq), updated_at = now()
+		RETURNING message_seq
+	`, cursor.OrganizationID, cursor.ConversationID, consumerType, consumerID, cursor.MessageSeq).Scan(&sequence)
+	if err != nil {
+		return Cursor{}, errors.Wrap(err, "advance message projection cursor")
+	}
+	return Cursor{OrganizationID: cursor.OrganizationID, ConversationID: cursor.ConversationID, MessageSeq: sequence}, nil
+}
+
 // Health checks the durable adapter connection.
 func (p *PostgresPlane) Health(ctx context.Context) (Health, error) {
 	if err := p.db.PingContext(ctx); err != nil {
@@ -184,3 +222,28 @@ func (p *PostgresPlane) Health(ctx context.Context) (Health, error) {
 }
 
 var _ MessagePlane = (*PostgresPlane)(nil)
+
+type projectionPayload struct {
+	Content      string          `json:"content"`
+	Attachments  json.RawMessage `json:"attachments"`
+	Mentions     json.RawMessage `json:"mentions"`
+	ThreadRootID string          `json:"thread_root_id"`
+	Reactions    json.RawMessage `json:"reactions"`
+}
+
+func decodeProjectionPayload(payload []byte) (projectionPayload, error) {
+	var projection projectionPayload
+	if err := json.Unmarshal(payload, &projection); err != nil {
+		return projectionPayload{}, errors.Wrap(err, "decode message projection payload")
+	}
+	if len(projection.Attachments) == 0 {
+		projection.Attachments = json.RawMessage(`[]`)
+	}
+	if len(projection.Mentions) == 0 {
+		projection.Mentions = json.RawMessage(`[]`)
+	}
+	if len(projection.Reactions) == 0 {
+		projection.Reactions = json.RawMessage(`[]`)
+	}
+	return projection, nil
+}

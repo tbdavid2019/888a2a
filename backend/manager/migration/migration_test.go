@@ -87,6 +87,30 @@ func TestTenantDeviceCursorMigrationPresent(t *testing.T) {
 	}
 }
 
+func TestMessagePlaneDualProjectionMigrationPresent(t *testing.T) {
+	latest := latestSQL(t)
+	incrementalBytes, err := os.ReadFile("migration/1.1/0036##message-plane-dual-projection.sql")
+	if err != nil {
+		t.Fatalf("read MessagePlane dual projection migration: %v", err)
+	}
+	incremental := string(incrementalBytes)
+	for _, want := range []string{
+		"CREATE TABLE IF NOT EXISTS a2a888_message_projection",
+		"a2a888_message_projection_message_fk",
+		"uq_a2a888_message_projection_sequence",
+		"FROM a2a888_message",
+		"CREATE TABLE IF NOT EXISTS a2a888_message_projection_cursor",
+		"idx_a2a888_message_projection_cursor_consumer",
+	} {
+		if !strings.Contains(latest, want) {
+			t.Errorf("LATEST.sql missing MessagePlane dual projection DDL %q", want)
+		}
+		if !strings.Contains(incremental, want) {
+			t.Errorf("0036 migration missing MessagePlane dual projection DDL %q", want)
+		}
+	}
+}
+
 // TestSearchChatHistoryTrgmIndexPresent locks in the pg_trgm GIN index that
 // makes SearchChatHistory's leading-wildcard `content ILIKE '%q%'` an index
 // scan instead of a full table scan. Both the extension and the index must be

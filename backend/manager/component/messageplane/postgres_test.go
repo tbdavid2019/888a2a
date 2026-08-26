@@ -3,6 +3,7 @@ package messageplane
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -90,4 +91,39 @@ func TestPostgresPlaneConcurrentAppendAndRetry(t *testing.T) {
 	require.Equal(t, uint64(count), history.NextCursor.MessageSeq)
 	_, err = plane.History(common.SetOrganizationIDToContext(context.Background(), "other"), HistoryRequest{OrganizationID: "default", ConversationID: "conversation-1", Limit: 10})
 	require.Error(t, err)
+}
+
+func TestPostgresPlaneDualProjectionParity(t *testing.T) {
+	db := requireMessagePlaneDatabase(t)
+	plane, err := NewPostgresPlane(db)
+	require.NoError(t, err)
+	ctx := common.SetOrganizationIDToContext(context.Background(), "default")
+	payload := []byte(`{"content":"hello","attachments":[{"id":"file-1"}],"mentions":[{"id":"user-2"}],"thread_root_id":"root-1","reactions":[{"emoji":"👍"}]}`)
+	message, err := plane.Append(ctx, MessageInput{
+		OrganizationID: "default", ConversationID: "conversation-parity", ClientMessageNo: "client-parity", SenderID: "user-1", Payload: payload,
+	})
+	require.NoError(t, err)
+
+	var content, attachments, mentions, reactions string
+	var threadRoot sql.NullString
+	err = db.QueryRowContext(ctx, `
+		SELECT content, attachments::text, mentions::text, thread_root_id, reactions::text
+		FROM a2a888_message_projection
+		WHERE organization_id = $1 AND message_id = $2
+	`, "default", message.MessageID).Scan(&content, &attachments, &mentions, &threadRoot, &reactions)
+	require.NoError(t, err)
+	require.Equal(t, "hello", content)
+	require.True(t, threadRoot.Valid)
+	require.Equal(t, "root-1", threadRoot.String)
+	for _, projected := range []string{attachments, mentions, reactions} {
+		var value any
+		require.NoError(t, json.Unmarshal([]byte(projected), &value))
+	}
+
+	projectionCursor, err := plane.AdvanceProjectionCursor(ctx, "device", "browser-1", Cursor{OrganizationID: "default", ConversationID: "conversation-parity", MessageSeq: message.MessageSeq})
+	require.NoError(t, err)
+	require.Equal(t, message.MessageSeq, projectionCursor.MessageSeq)
+	projectionCursor, err = plane.AdvanceProjectionCursor(ctx, "device", "browser-1", Cursor{OrganizationID: "default", ConversationID: "conversation-parity", MessageSeq: 0})
+	require.NoError(t, err)
+	require.Equal(t, message.MessageSeq, projectionCursor.MessageSeq)
 }
