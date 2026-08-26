@@ -132,6 +132,15 @@ jobs:
       - name: Verify Approval contract gate
         run: go test -v ./backend/a2a -run 'TestApprovalContractsRoundTrip|TestApprovalRequestStateMachine' -count=1
 
+      - name: Verify PostgreSQL approval schema gate
+        run: go test -v ./backend/manager/store -run TestApprovalSchemaIntentAndImmutability -count=1
+        env:
+          A2A888_RUN_MIGRATION_TESTS: "1"
+          A2A888_TEST_PG_URL: postgresql://ci_user:ci_password@127.0.0.1:5432/postgres?sslmode=disable
+
+      - name: Verify Web Widget bootstrap gate
+        run: go test -v ./backend/manager/component/widget -run 'TestBootstrap|TestHandler' -count=1
+
       - name: Verify moderation and capability contract gate
         run: go test -v ./backend/manager/component/messageplane -run 'TestEvaluateModeration|TestCapabilityPlaneReportsUnsupported' -count=1
 

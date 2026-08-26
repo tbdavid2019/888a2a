@@ -19,6 +19,11 @@ This project records changes by calendar date and does not maintain release vers
 - Added a tenant-scoped conversation execution event ledger for Agent start, steer, cancel, and completion lifecycle records with idempotent terminal transitions.
 - Added ApprovalPolicy, ApprovalRequest, ApprovalDecision, and BoundAction protobuf contracts with round-trip and deterministic state-transition tests.
 - Added an explicit GitHub Actions Approval contract gate for protobuf round-trip and lifecycle transition coverage.
+- Added organization-scoped Web Widget configuration and signed short-lived visitor bootstrap sessions with tenant and expiry validation.
+- Hardened approval intent hashing with canonical JSON normalization and verified decision-to-request intent binding.
+- Added a live PostgreSQL approval schema gate for nonce generation, tenant foreign keys, and immutable request/decision records.
+- Added a public JSON Web Widget bootstrap endpoint with bounded request bodies, no-store responses, and generic failure messages.
+- Excluded the Web Widget API path from embedded SPA fallback so bootstrap requests always receive JSON responses.
 - Recorded GitHub Actions evidence for OpenSpec tasks 5.3 and 6.1 after the conversation execution lifecycle and Approval contract gates passed in run `32952769187`.
 - Added tenant-scoped MessagePlane reconciliation that repairs canonical/projection and membership drift while recording unknown memberships as quarantine audit records.
 - Added message moderation policy evaluation for bounded edit/recall, moderator-only redaction, tenant checks, legal-hold projection, and audit-safe mutation decisions.

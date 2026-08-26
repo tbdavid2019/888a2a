@@ -26,6 +26,7 @@ import (
 	"github.com/tbdavid2019/888a2a/backend/manager/component/s3client"
 	"github.com/tbdavid2019/888a2a/backend/manager/component/state"
 	"github.com/tbdavid2019/888a2a/backend/manager/component/webpush"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/widget"
 	"github.com/tbdavid2019/888a2a/backend/manager/config"
 	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
@@ -226,6 +227,11 @@ func configureV1Routers(
 	}
 
 	registerFileUploadRoute(e, apiAuth, commandService)
+	widgetService, err := widget.New(stores.GetDB(), secret)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to configure Web Widget service")
+	}
+	e.Any("/api/widget/bootstrap", echo.WrapHandler(widgetService.Handler()))
 
 	return auditInterceptor, nil
 }

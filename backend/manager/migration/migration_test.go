@@ -181,6 +181,63 @@ func TestConversationExecutionEventMigrationPresent(t *testing.T) {
 	}
 }
 
+func TestOrganizationApprovalMigrationPresent(t *testing.T) {
+	latest := latestSQL(t)
+	incrementalBytes, err := os.ReadFile("migration/1.1/0040##organization-approval.sql")
+	if err != nil {
+		t.Fatalf("read organization approval migration: %v", err)
+	}
+	incremental := string(incrementalBytes)
+	for _, want := range []string{
+		"a2a888_approval_policy",
+		"a2a888_approval_policy_version",
+		"a2a888_approval_request",
+		"a2a888_approval_decision",
+		"organization_id TEXT NOT NULL REFERENCES organizations(id)",
+		"a2a888_approval_request_policy_fk",
+		"a2a888_approval_request_workspace_fk",
+		"uq_a2a888_approval_request_nonce",
+		"a2a888_approval_request_intent_immutable",
+		"a2a888_approval_decision_immutable",
+	} {
+		if !strings.Contains(latest, want) {
+			t.Errorf("LATEST.sql missing organization approval contract %q", want)
+		}
+		if !strings.Contains(incremental, want) {
+			t.Errorf("0040 migration missing organization approval contract %q", want)
+		}
+	}
+	policy := strings.Index(latest, "CREATE TABLE IF NOT EXISTS a2a888_approval_policy (")
+	version := strings.Index(latest, "CREATE TABLE IF NOT EXISTS a2a888_approval_policy_version (")
+	request := strings.Index(latest, "CREATE TABLE IF NOT EXISTS a2a888_approval_request (")
+	decision := strings.Index(latest, "CREATE TABLE IF NOT EXISTS a2a888_approval_decision (")
+	if policy < 0 || policy > version || version > request || request > decision {
+		t.Fatal("LATEST.sql approval tables are not ordered by their foreign-key dependencies")
+	}
+}
+
+func TestWebWidgetConfigMigrationPresent(t *testing.T) {
+	latest := latestSQL(t)
+	incrementalBytes, err := os.ReadFile("migration/1.1/0041##web-widget-config.sql")
+	if err != nil {
+		t.Fatalf("read web widget migration: %v", err)
+	}
+	incremental := string(incrementalBytes)
+	for _, want := range []string{
+		"CREATE TABLE IF NOT EXISTS a2a888_web_widget_config",
+		"organization_id TEXT NOT NULL REFERENCES organizations(id)",
+		"session_ttl_seconds",
+		"a2a888_web_widget_config_ttl_check",
+	} {
+		if !strings.Contains(latest, want) {
+			t.Errorf("LATEST.sql missing Web Widget DDL %q", want)
+		}
+		if !strings.Contains(incremental, want) {
+			t.Errorf("0041 migration missing Web Widget DDL %q", want)
+		}
+	}
+}
+
 // TestSearchChatHistoryTrgmIndexPresent locks in the pg_trgm GIN index that
 // makes SearchChatHistory's leading-wildcard `content ILIKE '%q%'` an index
 // scan instead of a full table scan. Both the extension and the index must be
