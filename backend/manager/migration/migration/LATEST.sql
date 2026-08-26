@@ -1753,6 +1753,7 @@ CREATE TABLE IF NOT EXISTS a2a888_web_widget_config (
     widget_id TEXT NOT NULL,
     enabled BOOLEAN NOT NULL DEFAULT false,
     session_ttl_seconds INTEGER NOT NULL DEFAULT 900,
+    allowed_origins TEXT[] NOT NULL DEFAULT '{}',
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (organization_id, widget_id),
     CONSTRAINT a2a888_web_widget_config_identity_check CHECK (organization_id <> '' AND widget_id <> ''),

@@ -9,13 +9,21 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"net/url"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/pkg/errors"
 )
 
 const defaultSessionTTL = 15 * time.Minute
+const bootstrapRateLimit = 30
+
+// ErrRateLimited lets the HTTP boundary return 429 without exposing internal
+// tenant or configuration lookup details.
+var ErrRateLimited = errors.New("widget bootstrap rate limit exceeded")
 
 // Config controls one Organization's embeddable widget.
 type Config struct {
@@ -23,6 +31,7 @@ type Config struct {
 	WidgetID       string
 	Enabled        bool
 	SessionTTL     time.Duration
+	AllowedOrigins []string
 }
 
 // BootstrapResponse is safe for an unauthenticated browser. It contains only
@@ -55,6 +64,13 @@ type Service struct {
 	now          func() time.Time
 	lookupState  OrganizationStateLookup
 	lookupConfig WidgetConfigLookup
+	rateMu       sync.Mutex
+	rateWindows  map[string]rateWindow
+}
+
+type rateWindow struct {
+	startedAt time.Time
+	count     int
 }
 
 func New(db *sql.DB, secret string) (*Service, error) {
@@ -62,7 +78,7 @@ func New(db *sql.DB, secret string) (*Service, error) {
 		return nil, errors.New("widget database and signing secret are required")
 	}
 	return &Service{
-		secret: []byte(secret), now: time.Now,
+		secret: []byte(secret), now: time.Now, rateWindows: make(map[string]rateWindow),
 		lookupState: func(ctx context.Context, organizationID string) (string, error) {
 			var state string
 			err := db.QueryRowContext(ctx, `SELECT state FROM organizations WHERE id = $1`, organizationID).Scan(&state)
@@ -75,11 +91,12 @@ func New(db *sql.DB, secret string) (*Service, error) {
 			config := Config{OrganizationID: organizationID, WidgetID: widgetID}
 			var enabled bool
 			var ttlSeconds int
+			var allowedOrigins pq.StringArray
 			err := db.QueryRowContext(ctx, `
-				SELECT enabled, session_ttl_seconds
+				SELECT enabled, session_ttl_seconds, allowed_origins
 				FROM a2a888_web_widget_config
 				WHERE organization_id = $1 AND widget_id = $2
-			`, organizationID, widgetID).Scan(&enabled, &ttlSeconds)
+			`, organizationID, widgetID).Scan(&enabled, &ttlSeconds, &allowedOrigins)
 			if errors.Is(err, sql.ErrNoRows) {
 				return Config{}, errors.New("widget configuration not found")
 			}
@@ -88,9 +105,55 @@ func New(db *sql.DB, secret string) (*Service, error) {
 			}
 			config.Enabled = enabled
 			config.SessionTTL = time.Duration(ttlSeconds) * time.Second
+			config.AllowedOrigins = append([]string(nil), allowedOrigins...)
 			return config, nil
 		},
 	}, nil
+}
+
+// NormalizeOrigin accepts only an origin, never a path or wildcard. Exact
+// scheme/host/port matching prevents an attacker-controlled subdomain or URL
+// path from being treated as an allowed embedding site.
+func NormalizeOrigin(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" || strings.Contains(parsed.Host, "*") || parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return "", errors.New("origin must be an absolute origin without path")
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "", errors.New("origin scheme is not supported")
+	}
+	return strings.ToLower(parsed.Scheme) + "://" + strings.ToLower(parsed.Host), nil
+}
+
+func originAllowed(allowed []string, raw string) bool {
+	origin, err := NormalizeOrigin(raw)
+	if err != nil {
+		return false
+	}
+	for _, candidate := range allowed {
+		if normalized, err := NormalizeOrigin(candidate); err == nil && normalized == origin {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Service) allowBootstrap(key string) bool {
+	now := s.now().UTC()
+	s.rateMu.Lock()
+	defer s.rateMu.Unlock()
+	window := s.rateWindows[key]
+	if window.startedAt.IsZero() || now.Sub(window.startedAt) >= time.Minute {
+		window = rateWindow{startedAt: now}
+	}
+	if window.count >= bootstrapRateLimit {
+		s.rateWindows[key] = window
+		return false
+	}
+	window.count++
+	s.rateWindows[key] = window
+	return true
 }
 
 func (s *Service) validateConfig(ctx context.Context, organizationID, widgetID string) (Config, error) {
@@ -126,6 +189,30 @@ func (s *Service) Bootstrap(ctx context.Context, organizationID, widgetID, exist
 	config, err := s.validateConfig(ctx, organizationID, widgetID)
 	if err != nil {
 		return BootstrapResponse{}, err
+	}
+	if existingToken != "" {
+		claims, err := s.VerifySession(existingToken, organizationID, widgetID)
+		if err != nil {
+			return BootstrapResponse{}, err
+		}
+		return BootstrapResponse{OrganizationID: claims.OrganizationID, WidgetID: claims.WidgetID, SessionToken: existingToken, ExpiresAt: time.Unix(claims.ExpiresAt, 0).UTC()}, nil
+	}
+	return s.issueSession(config)
+}
+
+// BootstrapFromOrigin applies the browser-origin and abuse controls before
+// issuing or resuming a visitor session. The rate key is supplied by the HTTP
+// handler and must not contain raw credentials.
+func (s *Service) BootstrapFromOrigin(ctx context.Context, organizationID, widgetID, existingToken, origin, rateKey string) (BootstrapResponse, error) {
+	config, err := s.validateConfig(ctx, organizationID, widgetID)
+	if err != nil {
+		return BootstrapResponse{}, err
+	}
+	if !originAllowed(config.AllowedOrigins, origin) {
+		return BootstrapResponse{}, errors.New("widget origin is not allowed")
+	}
+	if strings.TrimSpace(rateKey) == "" || !s.allowBootstrap(organizationID+":"+origin+":"+rateKey) {
+		return BootstrapResponse{}, ErrRateLimited
 	}
 	if existingToken != "" {
 		claims, err := s.VerifySession(existingToken, organizationID, widgetID)

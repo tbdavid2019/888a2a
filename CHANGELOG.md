@@ -23,6 +23,7 @@ This project records changes by calendar date and does not maintain release vers
 - Hardened approval intent hashing with canonical JSON normalization and verified decision-to-request intent binding.
 - Added a live PostgreSQL approval schema gate for nonce generation, tenant foreign keys, and immutable request/decision records.
 - Added a public JSON Web Widget bootstrap endpoint with bounded request bodies, no-store responses, and generic failure messages.
+- Added exact Web Widget origin allowlists, CSP frame-ancestor responses, and tenant/client bootstrap rate limiting.
 - Excluded the Web Widget API path from embedded SPA fallback so bootstrap requests always receive JSON responses.
 - Recorded GitHub Actions evidence for OpenSpec tasks 5.3 and 6.1 after the conversation execution lifecycle and Approval contract gates passed in run `32952769187`.
 - Recorded GitHub Actions evidence for OpenSpec tasks 5.4 and 6.2 after Web Widget bootstrap and PostgreSQL approval schema gates passed in run `32954034076`.

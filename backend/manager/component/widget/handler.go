@@ -3,6 +3,9 @@ package widget
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type bootstrapRequest struct {
@@ -27,12 +30,22 @@ func (s *Service) Handler() http.Handler {
 			writeBootstrapError(w, http.StatusBadRequest)
 			return
 		}
-		response, err := s.Bootstrap(r.Context(), request.OrganizationID, request.WidgetID, request.SessionToken)
+		origin := r.Header.Get("Origin")
+		if strings.TrimSpace(origin) == "" {
+			writeBootstrapError(w, http.StatusForbidden)
+			return
+		}
+		response, err := s.BootstrapFromOrigin(r.Context(), request.OrganizationID, request.WidgetID, request.SessionToken, origin, r.RemoteAddr)
 		if err != nil {
+			if errors.Is(err, ErrRateLimited) {
+				writeBootstrapError(w, http.StatusTooManyRequests)
+				return
+			}
 			writeBootstrapError(w, http.StatusForbidden)
 			return
 		}
 		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Content-Security-Policy", "frame-ancestors 'self' "+origin)
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(response)
 	})

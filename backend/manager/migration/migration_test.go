@@ -227,6 +227,7 @@ func TestWebWidgetConfigMigrationPresent(t *testing.T) {
 		"CREATE TABLE IF NOT EXISTS a2a888_web_widget_config",
 		"organization_id TEXT NOT NULL REFERENCES organizations(id)",
 		"session_ttl_seconds",
+		"allowed_origins TEXT[] NOT NULL DEFAULT '{}'",
 		"a2a888_web_widget_config_ttl_check",
 	} {
 		if !strings.Contains(latest, want) {
