@@ -1,6 +1,7 @@
 package a2a
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -157,4 +158,38 @@ func TestPolicy_EvaluateACPPermission(t *testing.T) {
 	})
 	assert.Equal(t, DecisionDeny, decision)
 	assert.Equal(t, acp.PermissionOptionId("reject"), optID)
+}
+
+func TestPolicyHighRiskRequiresApprovalAndSupportsWaitResume(t *testing.T) {
+	policy := &RuntimePolicy{AllowedCommands: []string{"deploy"}}
+	kind := acp.ToolKindExecute
+	title := "deploy command"
+	params := acp.RequestPermissionRequest{
+		Options:  []acp.PermissionOption{{OptionId: "reject", Kind: acp.PermissionOptionKindRejectOnce}, {OptionId: "allow", Kind: acp.PermissionOptionKindAllowOnce}},
+		ToolCall: acp.ToolCallUpdate{Kind: &kind, Title: &title, RawInput: map[string]any{"command": "deploy production"}},
+	}
+	_, decision, reason := policy.EvaluateACPPermission(params)
+	assert.Equal(t, DecisionDeny, decision)
+	assert.Contains(t, reason, "approval boundary")
+
+	_, decision, _ = policy.EvaluateACPPermissionWithApproval(context.Background(), params, func(_ context.Context, req PermissionRequest) (ApprovalCheckResult, error) {
+		assert.Equal(t, ActionShell, req.ActionKind)
+		return ApprovalCheckResult{Decision: DecisionAllow, Reason: "approved by owner"}, nil
+	})
+	assert.Equal(t, DecisionAllow, decision)
+
+	_, decision, reason = policy.EvaluateACPPermissionWithApproval(context.Background(), params, func(_ context.Context, _ PermissionRequest) (ApprovalCheckResult, error) {
+		return ApprovalCheckResult{Decision: DecisionDeny, Reason: "expired"}, nil
+	})
+	assert.Equal(t, DecisionDeny, decision)
+	assert.Equal(t, "expired", reason)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, decision, reason = policy.EvaluateACPPermissionWithApproval(ctx, params, func(ctx context.Context, _ PermissionRequest) (ApprovalCheckResult, error) {
+		<-ctx.Done()
+		return ApprovalCheckResult{}, ctx.Err()
+	})
+	assert.Equal(t, DecisionDeny, decision)
+	assert.Contains(t, reason, "approval failed")
 }

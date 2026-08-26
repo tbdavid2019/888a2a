@@ -1,6 +1,7 @@
 package a2a
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,8 +27,9 @@ const (
 type PolicyDecision string
 
 const (
-	DecisionAllow PolicyDecision = "ALLOWED"
-	DecisionDeny  PolicyDecision = "DENIED"
+	DecisionAllow            PolicyDecision = "ALLOWED"
+	DecisionDeny             PolicyDecision = "DENIED"
+	DecisionApprovalRequired PolicyDecision = "APPROVAL_REQUIRED"
 )
 
 // RuntimePolicy defines focused runtime safety rules for an Agent.
@@ -82,6 +84,18 @@ type PermissionResult struct {
 	ActionSummary string         `json:"action_summary"`
 	CanonicalPath string         `json:"canonical_path,omitempty"`
 }
+
+// ApprovalCheckResult is returned by the Organization approval boundary after
+// it waits for a bound action decision.
+type ApprovalCheckResult struct {
+	Decision PolicyDecision
+	Reason   string
+}
+
+// ApprovalChecker binds an ACP request to durable Organization approval. The
+// callback may block until the request is approved, denied, expired, or the
+// runtime context is canceled.
+type ApprovalChecker func(context.Context, PermissionRequest) (ApprovalCheckResult, error)
 
 // Evaluate applies focused runtime policy rules against a permission request.
 func (p *RuntimePolicy) Evaluate(req PermissionRequest) PermissionResult {
@@ -148,8 +162,8 @@ func (p *RuntimePolicy) Evaluate(req PermissionRequest) PermissionResult {
 			}
 		}
 		return PermissionResult{
-			Decision:      DecisionAllow,
-			Reason:        "filesystem write permitted within workspace root",
+			Decision:      DecisionApprovalRequired,
+			Reason:        "filesystem write requires Organization approval",
 			ActionSummary: "write: " + canonical,
 			CanonicalPath: canonical,
 		}
@@ -165,8 +179,8 @@ func (p *RuntimePolicy) Evaluate(req PermissionRequest) PermissionResult {
 		for _, allowed := range p.AllowedCommands {
 			if allowed == "*" || req.Command == allowed || strings.HasPrefix(req.Command, allowed+" ") {
 				return PermissionResult{
-					Decision:      DecisionAllow,
-					Reason:        "shell command matches allowlisted prefix: " + allowed,
+					Decision:      DecisionApprovalRequired,
+					Reason:        "shell command requires Organization approval: " + allowed,
 					ActionSummary: "shell: " + req.Command,
 				}
 			}
@@ -186,8 +200,8 @@ func (p *RuntimePolicy) Evaluate(req PermissionRequest) PermissionResult {
 			}
 		}
 		return PermissionResult{
-			Decision:      DecisionAllow,
-			Reason:        "network access permitted by policy",
+			Decision:      DecisionApprovalRequired,
+			Reason:        "network access requires Organization approval",
 			ActionSummary: "network: " + req.ToolName,
 		}
 
@@ -200,8 +214,8 @@ func (p *RuntimePolicy) Evaluate(req PermissionRequest) PermissionResult {
 			}
 		}
 		return PermissionResult{
-			Decision:      DecisionAllow,
-			Reason:        "secret access permitted by policy",
+			Decision:      DecisionApprovalRequired,
+			Reason:        "secret access requires Organization approval",
 			ActionSummary: "secret: " + req.ToolName,
 		}
 
@@ -216,8 +230,8 @@ func (p *RuntimePolicy) Evaluate(req PermissionRequest) PermissionResult {
 		for _, s := range p.AllowedMCPServers {
 			if s == "*" || s == req.MCPServer {
 				return PermissionResult{
-					Decision:      DecisionAllow,
-					Reason:        "MCP server allowlisted: " + req.MCPServer,
+					Decision:      DecisionApprovalRequired,
+					Reason:        "MCP server requires Organization approval: " + req.MCPServer,
 					ActionSummary: "mcp: " + req.MCPServer + "/" + req.MCPTool,
 				}
 			}
@@ -225,8 +239,8 @@ func (p *RuntimePolicy) Evaluate(req PermissionRequest) PermissionResult {
 		for _, t := range p.AllowedMCPTools {
 			if t == "*" || t == req.MCPTool {
 				return PermissionResult{
-					Decision:      DecisionAllow,
-					Reason:        "MCP tool allowlisted: " + req.MCPTool,
+					Decision:      DecisionApprovalRequired,
+					Reason:        "MCP tool requires Organization approval: " + req.MCPTool,
 					ActionSummary: "mcp: " + req.MCPServer + "/" + req.MCPTool,
 				}
 			}
@@ -337,8 +351,36 @@ func isInsideRoots(target string, allowedRoots []string) bool {
 
 // EvaluateACPPermission inspects an ACP permission request and selects the appropriate option ID.
 func (p *RuntimePolicy) EvaluateACPPermission(params acp.RequestPermissionRequest) (acp.PermissionOptionId, PolicyDecision, string) {
+	return p.EvaluateACPPermissionWithApproval(context.Background(), params, nil)
+}
+
+// EvaluateACPPermissionWithApproval evaluates a request and, when the local
+// policy requires it, waits on the supplied Organization approval boundary.
+func (p *RuntimePolicy) EvaluateACPPermissionWithApproval(ctx context.Context, params acp.RequestPermissionRequest, checker ApprovalChecker) (acp.PermissionOptionId, PolicyDecision, string) {
 	req := ClassifyACPRequest(params)
 	result := p.Evaluate(req)
+
+	if result.Decision == DecisionApprovalRequired {
+		if checker == nil {
+			result.Decision = DecisionDeny
+			result.Reason = "Organization approval is required but no approval boundary is configured"
+		} else {
+			approval, err := checker(ctx, req)
+			if err != nil || approval.Decision != DecisionAllow {
+				result.Decision = DecisionDeny
+				if err != nil {
+					result.Reason = "Organization approval failed: " + err.Error()
+				} else if approval.Reason != "" {
+					result.Reason = approval.Reason
+				} else {
+					result.Reason = "Organization approval denied"
+				}
+			} else {
+				result.Decision = DecisionAllow
+				result.Reason = "Organization approval granted: " + approval.Reason
+			}
+		}
+	}
 
 	if result.Decision == DecisionAllow {
 		for _, opt := range params.Options {

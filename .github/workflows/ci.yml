@@ -144,6 +144,9 @@ jobs:
       - name: Verify approval state machine gate
         run: go test -v ./backend/manager/store -run 'TestApplyApprovalTransition' -count=1
 
+      - name: Verify ACP approval gate
+        run: go test -v ./backend/a2a ./backend/agent/executor -run 'TestPolicyHighRiskRequiresApprovalAndSupportsWaitResume|TestACPRequestPermissionSelectsAllowOption' -count=1
+
       - name: Verify Web Widget bootstrap gate
         run: go test -v ./backend/manager/component/widget -run 'TestBootstrap|TestHandler|TestWidgetOriginAllowlistAndRateLimit|TestNormalizeOriginRejectsPathsAndWildcards' -count=1
 

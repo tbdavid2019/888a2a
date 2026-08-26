@@ -93,6 +93,7 @@ Task 5.3 has tenant-scoped conversation execution lifecycle records for Agent st
 Task 6.1 has generated ApprovalPolicy, ApprovalRequest, ApprovalDecision, and BoundAction contracts with deterministic lifecycle transition tests. The Approval contract gate passed in GitHub Actions run `32952769187`.
 Task 5.4 has Organization-scoped widget configuration, public JSON bootstrap, signed short-lived visitor sessions, tenant binding, inactive-tenant rejection, and expiry checks. The Web Widget bootstrap gate passed in GitHub Actions run `32954034076`.
 Task 6.2 has immutable organization approval policy/version/request/decision persistence, canonical intent hashing, nonce generation, expiry validation, and tenant/workspace foreign keys. The PostgreSQL approval schema gate passed in GitHub Actions run `32954034076`.
+Task 6.4 is proven by GitHub Actions run `32957057234`: quorum, deny, expiry, cancellation, supersession, execution, duplicate decision, intent binding, and timeout escalation transitions passed the dedicated state-machine gate.
 Task 6.4 has deterministic pure transition evaluation for quorum, deny, expiry, cancellation, supersession, execution, duplicate decisions, intent binding, and timeout escalation. Its dedicated CI state-machine gate is wired and remains pending until the batch CI completes.
 Tasks 5.5–5.7 are proven by GitHub Actions run `32956390948`: exact Widget origin/CSP/rate-limit controls, conversation/attachment/handoff UI, themes, localization, keyboard semantics, and accessibility tests passed.
 Task 6.3 is proven by GitHub Actions run `32956390948`: active same-tenant users, groups, and roles are resolved deterministically while suspended/invited members, requester conflicts, owner-only approval, and removed group members are excluded.
@@ -114,7 +115,7 @@ Task 4.10 has a durable per-Organization LEGACY/DUAL/MESSAGE_PLANE selector, nat
 - [x] 6.1 Define ApprovalPolicy, ApprovalRequest, ApprovalDecision and bound-action contracts; verify Proto generation and state-machine table tests.
 - [x] 6.2 Add approval policy/version/request/decision schema; verify immutable intent hash, nonce, expiry and tenant foreign keys.
 - [x] 6.3 Implement approver resolution for users, groups and roles; verify suspended members, conflicts and removed group members cannot decide.
-- [ ] 6.4 Implement quorum, deny, expiry, cancellation, supersession and escalation transitions; verify every transition is deterministic and audited.
+- [x] 6.4 Implement quorum, deny, expiry, cancellation, supersession and escalation transitions; verify every transition is deterministic and audited.
 - [ ] 6.5 Replace ACP unconditional permission granting with policy evaluation and approval wait/resume; verify fake Provider tests cover allow, deny, timeout and changed parameters.
 - [ ] 6.6 Build Organization Approval Center UI; verify eligible approvers can inspect bounded intent and ineligible users cannot view sensitive requests.
 - [ ] 6.7 Define billing account, subscription, entitlement, quota and usage-event contracts without payment-provider fields in authorization paths; verify API contract tests.

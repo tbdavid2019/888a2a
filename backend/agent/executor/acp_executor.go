@@ -876,7 +876,7 @@ func (c *acpRuntimeClient) WriteTextFile(_ context.Context, params acp.WriteText
 	return acp.WriteTextFileResponse{}, nil
 }
 
-func (c *acpRuntimeClient) RequestPermission(_ context.Context, params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
+func (c *acpRuntimeClient) RequestPermission(ctx context.Context, params acp.RequestPermissionRequest) (acp.RequestPermissionResponse, error) {
 	policy := &a2a.RuntimePolicy{
 		AgentID:             c.executor.request.AgentResourceID,
 		AllowedRoots:        c.executor.allowedRoots,
@@ -884,7 +884,7 @@ func (c *acpRuntimeClient) RequestPermission(_ context.Context, params acp.Reque
 		AllowWorkspaceWrite: c.executor.config.WriteTextFiles,
 	}
 
-	optID, decision, reason := policy.EvaluateACPPermission(params)
+	optID, decision, reason := policy.EvaluateACPPermissionWithApproval(ctx, params, c.executor.request.ApprovalChecker)
 
 	if c.executor.config.SupportsToolTraces {
 		c.executor.sendEvent(Event{

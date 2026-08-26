@@ -3,6 +3,7 @@ package executor
 import (
 	"time"
 
+	"github.com/tbdavid2019/888a2a/backend/a2a"
 	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
@@ -55,6 +56,9 @@ type Request struct {
 	DaemonSocket string
 	SessionToken string
 	BinaryDir    string
+	// ApprovalChecker blocks high-risk ACP permission requests until the
+	// Organization approval service returns an allow/deny/expiry decision.
+	ApprovalChecker a2a.ApprovalChecker
 }
 
 type Event struct {
