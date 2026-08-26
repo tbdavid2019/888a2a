@@ -28,6 +28,7 @@ type OutboxWorker struct {
 	Handle     OutboxHandler
 	Now        func() time.Time
 	Limiter    *tenantqueue.Limiter
+	Queue      *tenantqueue.Queue
 }
 
 // Run polls until the context is cancelled. A failed batch does not stop the
@@ -68,6 +69,28 @@ func (w *OutboxWorker) RunOnce(ctx context.Context) error {
 	delay := func(attempts int) time.Duration { return time.Second }
 	if w.RetryDelay != nil {
 		delay = w.RetryDelay
+	}
+	if w.Queue != nil {
+		for _, event := range events {
+			if w.Queue.Enqueue(tenantqueue.Item{OrganizationID: event.Organization, Value: event}) {
+				continue
+			}
+			if retryErr := w.Repository.RetryOutboxEvent(ctx, w.WorkerID, event.EventID, "organization queue limit reached", now().Add(delay(event.Attempts+1))); retryErr != nil {
+				return retryErr
+			}
+		}
+		events = events[:0]
+		for {
+			item, ok := w.Queue.Dequeue()
+			if !ok {
+				break
+			}
+			event, ok := item.Value.(OutboxEvent)
+			if !ok {
+				return ErrInvalidOutboxEvent
+			}
+			events = append(events, event)
+		}
 	}
 	for _, event := range events {
 		var release func()

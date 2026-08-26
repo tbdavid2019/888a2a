@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/tbdavid2019/888a2a/backend/manager/component/tenantqueue"
 )
 
 type fakeOutboxRepository struct {
@@ -67,5 +69,38 @@ func TestOutboxWorkerRetriesFailedDelivery(t *testing.T) {
 	}
 	if len(repo.acked) != 0 {
 		t.Fatalf("failed event was acknowledged: %v", repo.acked)
+	}
+}
+
+func TestOutboxWorkerUsesFairTenantQueue(t *testing.T) {
+	repo := &fakeOutboxRepository{events: []OutboxEvent{
+		{DurableEventEnvelope: DurableEventEnvelope{EventID: "a-1", Organization: "org-a"}},
+		{DurableEventEnvelope: DurableEventEnvelope{EventID: "a-2", Organization: "org-a"}},
+		{DurableEventEnvelope: DurableEventEnvelope{EventID: "b-1", Organization: "org-b"}},
+	}}
+	var delivered []string
+	worker := &OutboxWorker{
+		Repository: repo,
+		WorkerID:   "worker-1",
+		BatchSize:  10,
+		Queue:      tenantqueue.NewQueue(2, 3),
+		Handle: func(_ context.Context, event OutboxEvent) error {
+			delivered = append(delivered, event.EventID)
+			return nil
+		},
+	}
+
+	if err := worker.RunOnce(context.Background()); err != nil {
+		t.Fatalf("RunOnce: %v", err)
+	}
+
+	want := []string{"a-1", "b-1", "a-2"}
+	if len(delivered) != len(want) {
+		t.Fatalf("delivered = %v, want %v", delivered, want)
+	}
+	for i := range want {
+		if delivered[i] != want[i] {
+			t.Fatalf("delivered = %v, want %v", delivered, want)
+		}
 	}
 }

@@ -49,6 +49,7 @@ This project records changes by calendar date and does not maintain release vers
 - Added frontend compatibility resolution for both `888a2a.*` and legacy permission namespaces during the identity migration.
 - Added PostgreSQL integration gates for outbox lease reclaim, connector event deduplication, and dead-letter replay/reconciliation.
 - Added a bounded per-Organization execution limiter with deterministic fairness tests.
+- Wired the bounded tenant queue into OutboxWorker so claimed events are delivered in fair per-Organization order before acknowledgement.
 - Loaded the persisted default Organization, Agent tenant, workspace, and Machine tenant fields into runtime models before authorization and tenant-aware object-key generation.
 - Added resource-level Organization checks for Agent, Machine, Conversation, File, Command, and Reminder IAM targets.
 - Restricted Organization membership listing to active owners and admins, and rejected unknown active-organization candidates.
