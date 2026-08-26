@@ -27,6 +27,29 @@ type OutboxWorker struct {
 	Now        func() time.Time
 }
 
+// Run polls until the context is cancelled. A failed batch does not stop the
+// worker; individual event failures are returned to the durable retry path.
+func (w *OutboxWorker) Run(ctx context.Context, interval time.Duration) error {
+	if interval <= 0 {
+		interval = time.Second
+	}
+	if err := w.RunOnce(ctx); err != nil {
+		return err
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			if err := w.RunOnce(ctx); err != nil {
+				return err
+			}
+		}
+	}
+}
+
 func (w *OutboxWorker) RunOnce(ctx context.Context) error {
 	if w == nil || w.Repository == nil || w.WorkerID == "" || w.BatchSize <= 0 || w.Handle == nil {
 		return ErrInvalidOutboxEvent
