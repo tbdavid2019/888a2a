@@ -98,6 +98,7 @@ func upsertConversationPolicyTx(ctx context.Context, tx *sql.Tx, resource string
 		return err
 	}
 	_, err = upsertPolicyV2Impl(ctx, tx, &PolicyMessage{
+		OrganizationID:    tenantIDFromContext(ctx),
 		ResourceType:      models.Policy_CONVERSATION,
 		Resource:          resource,
 		Type:              models.Policy_IAM,
