@@ -63,7 +63,7 @@ Agent Network gate: 12 Agents across two Machines SHALL discover peers, exchange
 
 ## 4. IM Message Plane and Collaboration Events
 
-- [ ] 4.1 Define the internal `MessagePlane` contract for connection credentials, append, history, cursor sync, membership projection and health; verify fake-engine contract tests pass.
+- [x] 4.1 Define the internal `MessagePlane` contract for connection credentials, append, history, cursor sync, membership projection and health; verify fake-engine contract tests pass.
 - [ ] 4.2 Implement the selected WuKongIM adapter without exposing its admin API publicly; verify internal-network and authentication boundary tests.
 - [ ] 4.3 Add `client_msg_no`, global message identity and per-conversation `message_seq` projections; verify concurrent sends converge on one order and retries deduplicate.
 - [ ] 4.4 Define append-only collaboration event types for create, edit, recall, redaction, reaction, thread and command lifecycle; verify projection tests produce the expected visible message state.
