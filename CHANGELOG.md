@@ -9,6 +9,8 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Added
 
+- Added a durable per-Organization collaboration rollout selector with LEGACY, DUAL, and MESSAGE_PLANE modes, including a fail-safe legacy fallback and native MessagePlane read/write adapter.
+- Added migration `0038##collaboration-rollout.sql` and a cumulative fresh-install schema entry for reversible native chat cutover.
 - Added tenant-scoped MessagePlane reconciliation that repairs canonical/projection and membership drift while recording unknown memberships as quarantine audit records.
 - Added message moderation policy evaluation for bounded edit/recall, moderator-only redaction, tenant checks, legal-hold projection, and audit-safe mutation decisions.
 - Added explicit presence, typing, delivery-receipt, and read-receipt capability contracts with fail-closed unsupported results and CI coverage.

@@ -137,6 +137,27 @@ func TestMessagePlaneReconciliationMigrationPresent(t *testing.T) {
 	}
 }
 
+func TestCollaborationRolloutMigrationPresent(t *testing.T) {
+	latest := latestSQL(t)
+	incrementalBytes, err := os.ReadFile("migration/1.1/0038##collaboration-rollout.sql")
+	if err != nil {
+		t.Fatalf("read collaboration rollout migration: %v", err)
+	}
+	incremental := string(incrementalBytes)
+	for _, want := range []string{
+		"CREATE TABLE IF NOT EXISTS a2a888_collaboration_rollout",
+		"organization_id TEXT PRIMARY KEY REFERENCES organizations(id)",
+		"mode IN ('LEGACY', 'DUAL', 'MESSAGE_PLANE')",
+	} {
+		if !strings.Contains(latest, want) {
+			t.Errorf("LATEST.sql missing collaboration rollout DDL %q", want)
+		}
+		if !strings.Contains(incremental, want) {
+			t.Errorf("0038 migration missing collaboration rollout DDL %q", want)
+		}
+	}
+}
+
 // TestSearchChatHistoryTrgmIndexPresent locks in the pg_trgm GIN index that
 // makes SearchChatHistory's leading-wildcard `content ILIKE '%q%'` an index
 // scan instead of a full table scan. Both the extension and the index must be

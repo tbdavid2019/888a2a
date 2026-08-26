@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/tbdavid2019/888a2a/backend/common"
 	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/messageplane"
 	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
@@ -170,13 +172,14 @@ func (s *CommandService) ListConversationMessages(ctx context.Context, req *conn
 
 	var msgs []*store.ChatMessage
 	var currentVersion int64
+	nativeRead := false
 	switch {
 	case req.Msg.BeforeVersion > 0:
 		msgs, currentVersion, err = s.store.ListConversationMessages(ctx, convID, 0, req.Msg.BeforeVersion, offset.limit, 0)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, errors.Wrapf(err, "failed to list conversation messages"))
 		}
-	case req.Msg.AfterVersion > 0:
+	case req.Msg.AfterVersion > 0 && !(s.collaborationPathMode(ctx) == messageplane.PathModeMessagePlane && s.messagePlane != nil):
 		limitPlusOne := offset.limit + 1
 		readDelta := func() ([]*store.ChatMessage, int64, error) {
 			return s.store.ListConversationMessages(ctx, convID, req.Msg.AfterVersion, 0, limitPlusOne, offset.offset)
@@ -191,6 +194,9 @@ func (s *CommandService) ListConversationMessages(ctx context.Context, req *conn
 				return nil, err
 			}
 		}
+	case s.collaborationPathMode(ctx) == messageplane.PathModeMessagePlane && s.messagePlane != nil:
+		nativeRead = true
+		msgs, currentVersion, err = s.listConversationMessagesFromPlane(ctx, convID, req.Msg.AfterVersion, offset.offset, offset.limit)
 	default:
 		msgs, currentVersion, err = s.store.ListConversationMessages(ctx, convID, 0, 0, offset.limit, 0)
 		if err != nil {
@@ -236,8 +242,10 @@ func (s *CommandService) ListConversationMessages(ctx context.Context, req *conn
 		v1m.IsOwn = callerAgent != nil && msg.SenderAgentID.Valid && int(msg.SenderAgentID.Int32) == callerAgent.ID
 		v1msgs = append(v1msgs, v1m)
 	}
-	if err := s.fillReactions(ctx, msgs, v1msgs); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, errors.Wrapf(err, "failed to fill reactions"))
+	if !nativeRead {
+		if err := s.fillReactions(ctx, msgs, v1msgs); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, errors.Wrapf(err, "failed to fill reactions"))
+		}
 	}
 
 	return connect.NewResponse(&v1pb.ListConversationMessagesResponse{
@@ -245,6 +253,84 @@ func (s *CommandService) ListConversationMessages(ctx context.Context, req *conn
 		NextPageToken:  nextPageToken,
 		CurrentVersion: currentVersion,
 	}), nil
+}
+
+// listConversationMessagesFromPlane adapts the new append-only history to the
+// existing API response. The adapter is intentionally read-only: reactions,
+// task metadata, and backward pagination remain on the legacy path until their
+// native projections are cut over as separate capabilities.
+func (s *CommandService) listConversationMessagesFromPlane(ctx context.Context, convID uuid.UUID, afterVersion int64, offset, limit int) ([]*store.ChatMessage, int64, error) {
+	requestLimit := limit + offset + 1
+	if afterVersion == 0 {
+		requestLimit = 1000
+	}
+	history, err := s.messagePlane.History(ctx, messageplane.HistoryRequest{
+		OrganizationID: tenantIDForCommandContext(ctx), ConversationID: convID.String(),
+		After: messageplane.Cursor{OrganizationID: tenantIDForCommandContext(ctx), ConversationID: convID.String(), MessageSeq: uint64(afterVersion)},
+		Limit: requestLimit,
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+	messages := history.Messages
+	if afterVersion == 0 {
+		if len(messages) > limit {
+			messages = messages[len(messages)-limit:]
+		}
+	} else {
+		if offset >= len(messages) {
+			messages = nil
+		} else {
+			messages = messages[offset:]
+		}
+		if len(messages) > limit+1 {
+			messages = messages[:limit+1]
+		}
+	}
+	result := make([]*store.ChatMessage, 0, len(messages))
+	for _, message := range messages {
+		converted, err := chatMessageFromPlanePayload(message)
+		if err != nil {
+			return nil, 0, err
+		}
+		result = append(result, converted)
+	}
+	return result, int64(history.NextCursor.MessageSeq), nil
+}
+
+func chatMessageFromPlanePayload(message messageplane.Message) (*store.ChatMessage, error) {
+	var payload struct {
+		Content         string             `json:"content"`
+		Mentions        []*v1pb.Mention    `json:"mentions"`
+		Attachments     []*v1pb.Attachment `json:"attachments"`
+		PrincipalID     int                `json:"principal_id"`
+		PrincipalName   string             `json:"principal_name"`
+		PrincipalHandle string             `json:"principal_handle"`
+		SenderType      int32              `json:"sender_type"`
+	}
+	if err := json.Unmarshal(message.Payload, &payload); err != nil {
+		return nil, errors.Wrap(err, "decode MessagePlane message")
+	}
+	messageID, err := uuid.Parse(message.MessageID)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode MessagePlane message id")
+	}
+	return &store.ChatMessage{
+		OrganizationID: message.OrganizationID, ID: messageID,
+		ConversationID: convUUIDFromPlaneMessage(message), PrincipalID: payload.PrincipalID,
+		PrincipalName: payload.PrincipalName, PrincipalHandle: payload.PrincipalHandle,
+		Role: 1, Content: payload.Content, SenderType: payload.SenderType,
+		Mentions: payload.Mentions, Attachments: payload.Attachments,
+		CreatedAt: time.Now().UTC(), RoomVersion: int64(message.MessageSeq),
+	}, nil
+}
+
+func convUUIDFromPlaneMessage(message messageplane.Message) uuid.UUID {
+	// MessagePlane conversation identifiers are resource strings. Native chat
+	// cutover only accepts UUID conversations, so malformed values cannot leak
+	// into the response and are represented by the zero UUID.
+	id, _ := uuid.Parse(message.ConversationID)
+	return id
 }
 
 // ListThreadMessages returns the root message of a thread followed by its

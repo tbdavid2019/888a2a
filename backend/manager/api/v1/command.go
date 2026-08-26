@@ -19,6 +19,7 @@ import (
 	"github.com/tbdavid2019/888a2a/backend/generated-go/v1/v1connect"
 	"github.com/tbdavid2019/888a2a/backend/manager/component/dispatcher"
 	"github.com/tbdavid2019/888a2a/backend/manager/component/iam"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/messageplane"
 	"github.com/tbdavid2019/888a2a/backend/manager/component/s3client"
 	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
@@ -31,6 +32,8 @@ type CommandService struct {
 	iam             *iam.Manager
 	roomhub         RoomHub
 	commandEventHub CommandEventHub
+	messagePlane    messageplane.MessagePlane
+	pathSelector    *messageplane.PathSelector
 }
 
 // RoomHub is the wait/notify boundary used by long-polling conversation
@@ -50,7 +53,20 @@ type CommandEventHub interface {
 }
 
 func NewCommandService(s *store.Store, d *dispatcher.Dispatcher, s3clientManager *s3client.Client, iamManager *iam.Manager, hub RoomHub) *CommandService {
-	return &CommandService{store: s, dispatcher: d, s3clientManager: s3clientManager, iam: iamManager, roomhub: hub}
+	service := &CommandService{store: s, dispatcher: d, s3clientManager: s3clientManager, iam: iamManager, roomhub: hub}
+	if s != nil {
+		service.messagePlane, _ = messageplane.NewPostgresPlane(s.GetDB())
+		service.pathSelector, _ = messageplane.NewPathSelector(s.GetDB())
+	}
+	return service
+}
+
+// SetCollaborationPath allows tests and future service composition to inject a
+// different MessagePlane while retaining the production PostgreSQL rollout
+// selector.
+func (s *CommandService) SetCollaborationPath(plane messageplane.MessagePlane, selector *messageplane.PathSelector) {
+	s.messagePlane = plane
+	s.pathSelector = selector
 }
 
 // SetCommandEventHub injects the shared durable command-event wake-up source.
