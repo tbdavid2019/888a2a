@@ -9,6 +9,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Added
 
+- Added tenant-bound per-device user cursors and Organization-scoped Agent cursors with a PostgreSQL reconnect/replay gate for independent device progress and monotonic acknowledgements.
 - Added the internal WuKongIM MessagePlane adapter with private-network URL validation, redirect blocking, tenant/cursor checks, message send/history/membership mapping, and an opt-in real-service readiness gate.
 - Added the WuKongIM adapter decision record with internal endpoint boundaries and official API references; the real production-readiness benchmark remains pending until a controlled service is available.
 - Added a durable PostgreSQL MessagePlane with tenant-scoped message identity, concurrent per-conversation sequencing, retry deduplication, resumable history cursors, membership projection, and append-only collaboration event projections.

@@ -16,6 +16,7 @@ import (
 // ListChannelsWithUpdates), so a newly joined agent sees only future messages
 // unless it fetches history explicitly.
 type AgentChannelCursor struct {
+	OrganizationID   string
 	AgentID          int
 	ConversationID   uuid.UUID
 	ProcessedVersion int64
@@ -53,15 +54,16 @@ const agentRelevantMessageCondition = `(m.thread_root_message_id IS NULL
 // higher one (GREATEST), so an out-of-order or stale ack cannot rewind progress.
 // It returns the resulting processed_version.
 func (s *Store) UpsertCursor(ctx context.Context, agentID int, conversationID uuid.UUID, processedVersion int64) (int64, error) {
+	organizationID := tenantIDFromContext(ctx)
 	var result int64
 	err := s.GetDB().QueryRowContext(ctx, `
-		INSERT INTO agent_channel_cursor (agent_id, conversation_id, processed_version, updated_at)
-		VALUES ($1, $2, $3, now())
-		ON CONFLICT (agent_id, conversation_id) DO UPDATE
+		INSERT INTO agent_channel_cursor (organization_id, agent_id, conversation_id, processed_version, updated_at)
+		VALUES ($1, $2, $3, $4, now())
+		ON CONFLICT (organization_id, agent_id, conversation_id) DO UPDATE
 		   SET processed_version = GREATEST(agent_channel_cursor.processed_version, EXCLUDED.processed_version),
 		       updated_at = now()
 			RETURNING processed_version
-	`, agentID, conversationID, processedVersion).Scan(&result)
+	`, organizationID, agentID, conversationID, processedVersion).Scan(&result)
 	if err != nil {
 		return 0, errors.Wrapf(err, "failed to upsert agent channel cursor")
 	}
@@ -74,8 +76,8 @@ func (s *Store) UpsertCursor(ctx context.Context, agentID int, conversationID uu
 func (s *Store) GetCursor(ctx context.Context, agentID int, conversationID uuid.UUID) (processedVersion int64, found bool, err error) {
 	err = s.GetDB().QueryRowContext(ctx, `
 		SELECT processed_version FROM agent_channel_cursor
-		WHERE agent_id = $1 AND conversation_id = $2
-	`, agentID, conversationID).Scan(&processedVersion)
+		WHERE organization_id = $1 AND agent_id = $2 AND conversation_id = $3
+	`, tenantIDFromContext(ctx), agentID, conversationID).Scan(&processedVersion)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, false, nil
@@ -106,13 +108,16 @@ func (s *Store) ListChannelsWithUpdates(ctx context.Context, agentID int) ([]*Ch
 			       )
 			FROM conversation c
 			JOIN conversation_member_meta cm
-			  ON cm.conversation_id = c.id
+			  ON cm.organization_id = $3
+			 AND cm.conversation_id = c.id
 			 AND cm.member_type = $2
 			 AND cm.member_id = (SELECT resource_id FROM agent WHERE id = $1)
 			LEFT JOIN agent_channel_cursor acc
-			  ON acc.agent_id = $1
+			  ON acc.organization_id = $3
+			 AND acc.agent_id = $1
 			 AND acc.conversation_id = c.id
-			WHERE c.version > COALESCE(acc.processed_version, c.version)
+			WHERE c.organization_id = $3
+			  AND c.version > COALESCE(acc.processed_version, c.version)
 			  AND EXISTS (
 			        SELECT 1 FROM chat_message m
 			        WHERE m.conversation_id = c.id
@@ -120,7 +125,7 @@ func (s *Store) ListChannelsWithUpdates(ctx context.Context, agentID int) ([]*Ch
 			          AND (`+agentRelevantMessageCondition+`)
 			      )
 			ORDER BY c.updated_at DESC
-	`, agentID, MemberTypeAgent)
+	`, agentID, MemberTypeAgent, tenantIDFromContext(ctx))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list channels with updates")
 	}
@@ -151,13 +156,16 @@ func (s *Store) HasUpdates(ctx context.Context, agentID int) (bool, error) {
 			SELECT 1
 			FROM conversation c
 			JOIN conversation_member_meta cm
-			  ON cm.conversation_id = c.id
+			  ON cm.organization_id = $3
+			 AND cm.conversation_id = c.id
 			 AND cm.member_type = $2
 			 AND cm.member_id = (SELECT resource_id FROM agent WHERE id = $1)
 			LEFT JOIN agent_channel_cursor acc
-			  ON acc.agent_id = $1
+			  ON acc.organization_id = $3
+			 AND acc.agent_id = $1
 			 AND acc.conversation_id = c.id
-			WHERE c.version > COALESCE(acc.processed_version, c.version)
+			WHERE c.organization_id = $3
+			  AND c.version > COALESCE(acc.processed_version, c.version)
 			  AND EXISTS (
 			        SELECT 1 FROM chat_message m
 			        WHERE m.conversation_id = c.id
@@ -165,7 +173,7 @@ func (s *Store) HasUpdates(ctx context.Context, agentID int) (bool, error) {
 			          AND (`+agentRelevantMessageCondition+`)
 			      )
 		)
-	`, agentID, MemberTypeAgent).Scan(&exists)
+	`, agentID, MemberTypeAgent, tenantIDFromContext(ctx)).Scan(&exists)
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to check agent channel updates")
 	}
@@ -180,8 +188,8 @@ func (s *Store) HasUpdates(ctx context.Context, agentID int) (bool, error) {
 func (s *Store) SeedCursorOnJoin(ctx context.Context, agentID int, conversationID uuid.UUID) error {
 	var currentVersion int64
 	err := s.GetDB().QueryRowContext(ctx, `
-		SELECT version FROM conversation WHERE id = $1
-	`, conversationID).Scan(&currentVersion)
+		SELECT version FROM conversation WHERE organization_id = $1 AND id = $2
+	`, tenantIDFromContext(ctx), conversationID).Scan(&currentVersion)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read conversation version for cursor seed")
 	}

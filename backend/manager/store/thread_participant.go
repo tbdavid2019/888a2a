@@ -208,17 +208,20 @@ func (s *Store) ListSubscribedThreadUpdates(ctx context.Context, agentID int) ([
 		JOIN chat_message rep ON rep.thread_root_message_id = r.id
 		JOIN conversation cv ON cv.id = r.conversation_id
 		JOIN conversation_member_meta cm
-		  ON cm.conversation_id = r.conversation_id
+		  ON cm.organization_id = $3
+		 AND cm.conversation_id = r.conversation_id
 		 AND cm.member_type = $2
 		 AND cm.member_id = (SELECT resource_id FROM agent WHERE id = $1)
 		LEFT JOIN agent_channel_cursor acc
-		  ON acc.agent_id = $1
+		  ON acc.organization_id = $3
+		 AND acc.agent_id = $1
 		 AND acc.conversation_id = r.conversation_id
-		WHERE tp.agent_id = $1
+		WHERE tp.organization_id = $3
+		  AND tp.agent_id = $1
 		  AND rep.room_version > COALESCE(acc.processed_version, cv.version)
 		GROUP BY r.conversation_id, r.id
 		ORDER BY max(rep.room_version) DESC
-	`, agentID, MemberTypeAgent)
+	`, agentID, MemberTypeAgent, tenantIDFromContext(ctx))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list subscribed thread updates")
 	}

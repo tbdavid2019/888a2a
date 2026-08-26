@@ -582,7 +582,11 @@ const listUserConversationsWithUnreadSQL = `
 		       lm.content, lm.attachments, lm.created_at, lm.sender_name, lm.sender_principal_id
 		FROM conversation c
 		JOIN conversation_member_meta cm ON cm.organization_id = $1 AND cm.conversation_id = c.id
-		LEFT JOIN user_channel_cursor ucc ON ucc.organization_id = $1 AND ucc.principal_id = $4 AND ucc.conversation_id = c.id
+		LEFT JOIN LATERAL (
+		  SELECT MAX(read_version) AS read_version
+		  FROM user_channel_cursor
+		  WHERE organization_id = $1 AND principal_id = $4 AND conversation_id = c.id
+		) ucc ON true
 		LEFT JOIN LATERAL (
 		  SELECT m.content, m.attachments, m.created_at,
 		         CASE WHEN m.sender_type = 2 THEN COALESCE(ag.name, '')

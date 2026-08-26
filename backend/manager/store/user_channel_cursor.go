@@ -3,10 +3,13 @@ package store
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+
+	"github.com/tbdavid2019/888a2a/backend/common"
 )
 
 // UserChannelCursor records how far a user has read a conversation. The
@@ -15,7 +18,9 @@ import (
 // ListUserConversationsWithUnread), so a newly joined user sees only future
 // messages unless they fetch history explicitly.
 type UserChannelCursor struct {
+	OrganizationID string
 	PrincipalID    int
+	DeviceID       string
 	ConversationID uuid.UUID
 	ReadVersion    int64
 	UpdatedAt      time.Time
@@ -26,36 +31,31 @@ type UserChannelCursor struct {
 // one (GREATEST), so a stale mark cannot rewind progress. It returns the
 // resulting read_version.
 func (s *Store) UpsertUserReadCursor(ctx context.Context, principalID int, conversationID uuid.UUID, readVersion int64) (int64, error) {
+	return s.UpsertUserDeviceReadCursor(ctx, principalID, userCursorDeviceID(ctx), conversationID, readVersion)
+}
+
+// UpsertUserDeviceReadCursor advances one device's cursor monotonically. A
+// device has an independent durable cursor so reconnecting one browser cannot
+// silently mark another device as caught up.
+func (s *Store) UpsertUserDeviceReadCursor(ctx context.Context, principalID int, deviceID string, conversationID uuid.UUID, readVersion int64) (int64, error) {
+	organizationID := tenantIDFromContext(ctx)
+	deviceID, err := normalizeCursorDeviceID(deviceID)
+	if err != nil {
+		return 0, err
+	}
 	var result int64
-	err := s.GetDB().QueryRowContext(ctx, `
-		INSERT INTO user_channel_cursor (principal_id, conversation_id, read_version, updated_at)
-		VALUES ($1, $2, $3, now())
-		ON CONFLICT (principal_id, conversation_id) DO UPDATE
+	err = s.GetDB().QueryRowContext(ctx, `
+		INSERT INTO user_channel_cursor (organization_id, principal_id, device_id, conversation_id, read_version, updated_at)
+		VALUES ($1, $2, $3, $4, $5, now())
+		ON CONFLICT (organization_id, principal_id, device_id, conversation_id) DO UPDATE
 		   SET read_version = GREATEST(user_channel_cursor.read_version, EXCLUDED.read_version),
 		       updated_at = now()
 		RETURNING read_version
-	`, principalID, conversationID, readVersion).Scan(&result)
+	`, organizationID, principalID, deviceID, conversationID, readVersion).Scan(&result)
 	if err != nil {
 		return 0, errors.Wrapf(err, "failed to upsert user read cursor")
 	}
 	return result, nil
-}
-
-// upsertUserReadCursorTx is the tx-scoped variant used when seeding the cursor
-// inside the same transaction that creates the conversation, so a failure rolls
-// back the seed together with the conversation.
-func upsertUserReadCursorTx(ctx context.Context, tx *sql.Tx, principalID int, conversationID uuid.UUID, readVersion int64) error {
-	_, err := tx.ExecContext(ctx, `
-		INSERT INTO user_channel_cursor (principal_id, conversation_id, read_version, updated_at)
-		VALUES ($1, $2, $3, now())
-		ON CONFLICT (principal_id, conversation_id) DO UPDATE
-		   SET read_version = GREATEST(user_channel_cursor.read_version, EXCLUDED.read_version),
-		       updated_at = now()
-	`, principalID, conversationID, readVersion)
-	if err != nil {
-		return errors.Wrapf(err, "failed to upsert user read cursor in tx")
-	}
-	return nil
 }
 
 // GetUserReadCursor returns the user's read_version for a conversation. found is
@@ -63,9 +63,27 @@ func upsertUserReadCursorTx(ctx context.Context, tx *sql.Tx, principalID int, co
 // current version" (i.e. no unread messages), not as "read from zero".
 func (s *Store) GetUserReadCursor(ctx context.Context, principalID int, conversationID uuid.UUID) (readVersion int64, found bool, err error) {
 	err = s.GetDB().QueryRowContext(ctx, `
+		SELECT COALESCE(MAX(read_version), 0), COUNT(*) > 0
+		FROM user_channel_cursor
+		WHERE organization_id = $1 AND principal_id = $2 AND conversation_id = $3
+	`, tenantIDFromContext(ctx), principalID, conversationID).Scan(&readVersion, &found)
+	if err != nil {
+		return 0, false, errors.Wrapf(err, "failed to get user read cursor")
+	}
+	return readVersion, found, nil
+}
+
+// GetUserDeviceReadCursor returns one device's cursor without falling back to
+// another device's progress.
+func (s *Store) GetUserDeviceReadCursor(ctx context.Context, principalID int, deviceID string, conversationID uuid.UUID) (readVersion int64, found bool, err error) {
+	deviceID, err = normalizeCursorDeviceID(deviceID)
+	if err != nil {
+		return 0, false, err
+	}
+	err = s.GetDB().QueryRowContext(ctx, `
 		SELECT read_version FROM user_channel_cursor
-		WHERE principal_id = $1 AND conversation_id = $2
-	`, principalID, conversationID).Scan(&readVersion)
+		WHERE organization_id = $1 AND principal_id = $2 AND device_id = $3 AND conversation_id = $4
+	`, tenantIDFromContext(ctx), principalID, deviceID, conversationID).Scan(&readVersion)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, false, nil
@@ -93,4 +111,38 @@ func (s *Store) SeedUserReadCursorOnJoin(ctx context.Context, principalID int, c
 		return errors.Wrapf(err, "failed to seed user read cursor")
 	}
 	return nil
+}
+
+func upsertUserReadCursorTx(ctx context.Context, tx *sql.Tx, principalID int, conversationID uuid.UUID, readVersion int64) error {
+	organizationID := tenantIDFromContext(ctx)
+	deviceID := userCursorDeviceID(ctx)
+	_, err := tx.ExecContext(ctx, `
+		INSERT INTO user_channel_cursor (organization_id, principal_id, device_id, conversation_id, read_version, updated_at)
+		VALUES ($1, $2, $3, $4, $5, now())
+		ON CONFLICT (organization_id, principal_id, device_id, conversation_id) DO UPDATE
+		   SET read_version = GREATEST(user_channel_cursor.read_version, EXCLUDED.read_version),
+		       updated_at = now()
+	`, organizationID, principalID, deviceID, conversationID, readVersion)
+	if err != nil {
+		return errors.Wrapf(err, "failed to upsert user read cursor in tx")
+	}
+	return nil
+}
+
+func userCursorDeviceID(ctx context.Context) string {
+	if sessionID, ok := common.GetSessionIDFromContext(ctx); ok && sessionID != "" {
+		return sessionID
+	}
+	return "default"
+}
+
+func normalizeCursorDeviceID(deviceID string) (string, error) {
+	deviceID = strings.TrimSpace(deviceID)
+	if deviceID == "" {
+		return "default", nil
+	}
+	if len(deviceID) > 200 {
+		return "", errors.New("device_id is too long")
+	}
+	return deviceID, nil
 }

@@ -85,6 +85,7 @@ Tasks 4.3 and 4.4 are proven by GitHub Actions run `32943879682`, where the Post
 - [ ] 4.10 Cut native chat reads/writes to the new Collaboration API behind an Organization feature flag; verify per-tenant rollback to the old read path remains possible.
 
 Evidence notes (2026-08-26): Task 4.2 has an internal-only `WuKongIMAdapter` with private-host, redirect, tenant, cursor, and endpoint-boundary checks plus an opt-in `TestWuKongIMExternalReadinessGate`. The real-service gate remains pending until `A2A888_WUKONGIM_URL` points to a controlled WuKongIM deployment; ordering, reconnect, offline-sync, failover, backup, and restore evidence must still be collected before checking 4.2.
+Task 4.6 has tenant-bound per-device user cursors and per-Agent cursors with monotonic acknowledgements and sequence replay coverage. Its real PostgreSQL reconnect gate is wired as `TestMessageCursorsResumePerDeviceAndAgent`; the checkbox remains pending until that gate completes on the CI database.
 
 ## 5. Native Web Collaboration and Web Widget
 

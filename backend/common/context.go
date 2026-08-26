@@ -105,6 +105,12 @@ func GetSessionIDFromContext(ctx context.Context) (string, bool) {
 	return sessionID, ok
 }
 
+// SetSessionIDToContext attaches the authenticated device/session identity.
+// User message cursors use it to keep read progress independent per device.
+func SetSessionIDToContext(ctx context.Context, sessionID string) context.Context {
+	return context.WithValue(ctx, SessionContextKey, sessionID)
+}
+
 func GetSourceIPFromContext(ctx context.Context) (string, bool) {
 	ip, ok := ctx.Value(SourceIPContextKey).(string)
 	return ip, ok

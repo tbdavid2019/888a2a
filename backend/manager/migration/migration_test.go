@@ -65,6 +65,28 @@ func TestMessagePlaneIdentityMigrationPresent(t *testing.T) {
 	}
 }
 
+func TestTenantDeviceCursorMigrationPresent(t *testing.T) {
+	latest := latestSQL(t)
+	incrementalBytes, err := os.ReadFile("migration/1.1/0035##device-and-tenant-cursors.sql")
+	if err != nil {
+		t.Fatalf("read tenant cursor migration: %v", err)
+	}
+	incremental := string(incrementalBytes)
+	for _, want := range []string{
+		"device_id TEXT NOT NULL DEFAULT 'default'",
+		"agent_channel_cursor_pkey PRIMARY KEY (organization_id, agent_id, conversation_id)",
+		"user_channel_cursor_pkey PRIMARY KEY (organization_id, principal_id, device_id, conversation_id)",
+		"idx_user_channel_cursor_tenant_device",
+	} {
+		if !strings.Contains(latest, want) {
+			t.Errorf("LATEST.sql missing tenant cursor DDL %q", want)
+		}
+		if !strings.Contains(incremental, want) {
+			t.Errorf("0035 migration missing tenant cursor DDL %q", want)
+		}
+	}
+}
+
 // TestSearchChatHistoryTrgmIndexPresent locks in the pg_trgm GIN index that
 // makes SearchChatHistory's leading-wildcard `content ILIKE '%q%'` an index
 // scan instead of a full table scan. Both the extension and the index must be
