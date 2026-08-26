@@ -40,6 +40,7 @@ This project records changes by calendar date and does not maintain release vers
 - Updated the active Dockerfiles and pi build documentation to use `A2A888_*` variables and `888a2a` runtime targets while retaining explicit legacy aliases.
 - Added the tenant-scoped durable event envelope and PostgreSQL outbox schema with idempotency, claim, acknowledgement, retry, and dead-letter states; real PostgreSQL worker recovery remains an integration gate.
 - Added the tenant-scoped connector inbox schema and idempotent external-event recording API; real webhook adapter fixtures remain an integration gate.
+- Added an idempotent outbox worker loop with claim, handler, acknowledgement, retry, and backoff behavior; multi-worker PostgreSQL crash recovery remains an integration gate.
 - Loaded the persisted default Organization, Agent tenant, workspace, and Machine tenant fields into runtime models before authorization and tenant-aware object-key generation.
 - Added resource-level Organization checks for Agent, Machine, Conversation, File, Command, and Reminder IAM targets.
 - Restricted Organization membership listing to active owners and admins, and rejected unknown active-organization candidates.
