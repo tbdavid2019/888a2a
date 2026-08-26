@@ -183,14 +183,14 @@ func sameBindingCondition(a, b *exprpb.Expr) bool {
 }
 
 // conversationPolicyCacheKey is the policy-cache key for a conversation.
-func conversationPolicyCacheKey(convID uuid.UUID) string {
-	return getPolicyCacheKey(models.Policy_CONVERSATION, conversationPolicyResource(convID), models.Policy_IAM)
+func conversationPolicyCacheKey(ctx context.Context, convID uuid.UUID) string {
+	return getPolicyCacheKey(ctx, models.Policy_CONVERSATION, conversationPolicyResource(convID), models.Policy_IAM)
 }
 
 // invalidateConversationPolicyCache drops the cached conversation policy after
 // a transaction commits.
-func (s *Store) invalidateConversationPolicyCache(convID uuid.UUID) {
-	s.policyCache.Remove(conversationPolicyCacheKey(convID))
+func (s *Store) invalidateConversationPolicyCache(ctx context.Context, convID uuid.UUID) {
+	s.policyCache.Remove(conversationPolicyCacheKey(ctx, convID))
 }
 
 // marshalIamPolicy serializes an IAM policy to protojson bytes.

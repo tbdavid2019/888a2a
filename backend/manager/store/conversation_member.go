@@ -71,7 +71,7 @@ func (s *Store) AddConversationMembers(ctx context.Context, convID uuid.UUID, me
 	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "failed to commit add members transaction")
 	}
-	s.invalidateConversationPolicyCache(convID)
+	s.invalidateConversationPolicyCache(ctx, convID)
 	return nil
 }
 
@@ -109,7 +109,7 @@ func (s *Store) RemoveConversationMember(ctx context.Context, convID uuid.UUID, 
 	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "failed to commit remove member transaction")
 	}
-	s.invalidateConversationPolicyCache(convID)
+	s.invalidateConversationPolicyCache(ctx, convID)
 	return nil
 }
 
@@ -242,7 +242,7 @@ func (s *Store) UpdateConversationMemberRole(ctx context.Context, convID uuid.UU
 	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "failed to commit update member role transaction")
 	}
-	s.invalidateConversationPolicyCache(convID)
+	s.invalidateConversationPolicyCache(ctx, convID)
 	return nil
 }
 
@@ -414,7 +414,7 @@ func (s *Store) TransferChannelOwnership(ctx context.Context, convID uuid.UUID, 
 	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "failed to commit transfer ownership transaction")
 	}
-	s.invalidateConversationPolicyCache(convID)
+	s.invalidateConversationPolicyCache(ctx, convID)
 	return nil
 }
 

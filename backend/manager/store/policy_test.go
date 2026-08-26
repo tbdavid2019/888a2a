@@ -1,6 +1,12 @@
 package store
 
-import "testing"
+import (
+	"context"
+	"testing"
+
+	"github.com/tbdavid2019/888a2a/backend/common"
+	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
+)
 
 // TestEtagMismatch locks in the optimistic-concurrency contract of the
 // SetIamPolicy setters: an empty provided etag skips the check (first write,
@@ -25,5 +31,15 @@ func TestEtagMismatch(t *testing.T) {
 				t.Fatalf("etagMismatch(%q, %q) = %v, want %v", tt.currentEtag, tt.provided, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestPolicyCacheKeyIsTenantScoped(t *testing.T) {
+	ctxA := common.SetOrganizationIDToContext(context.Background(), "org-a")
+	ctxB := common.SetOrganizationIDToContext(context.Background(), "org-b")
+	keyA := getPolicyCacheKey(ctxA, models.Policy_AGENT, "agents/a", models.Policy_IAM)
+	keyB := getPolicyCacheKey(ctxB, models.Policy_AGENT, "agents/a", models.Policy_IAM)
+	if keyA == keyB {
+		t.Fatalf("policy cache keys collide across tenants: %q", keyA)
 	}
 }

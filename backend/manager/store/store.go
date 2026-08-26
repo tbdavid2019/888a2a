@@ -9,6 +9,7 @@ import (
 
 	lru "github.com/hashicorp/golang-lru/v2"
 
+	"github.com/tbdavid2019/888a2a/backend/common"
 	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
@@ -152,6 +153,10 @@ func (s *Store) GetDB() *sql.DB {
 	return s.dbConnManager.GetDB()
 }
 
-func getPolicyCacheKey(resourceType models.Policy_Resource, resource string, policyType models.Policy_Type) string {
-	return fmt.Sprintf("policies/%s/%s/%s", resourceType, resource, policyType)
+func getPolicyCacheKey(ctx context.Context, resourceType models.Policy_Resource, resource string, policyType models.Policy_Type) string {
+	organizationID := "default"
+	if value, ok := common.GetOrganizationIDFromContext(ctx); ok && value != "" {
+		organizationID = value
+	}
+	return TenantCacheKey(organizationID, "policy", fmt.Sprintf("%s/%s/%s", resourceType, resource, policyType))
 }

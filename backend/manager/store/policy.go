@@ -255,7 +255,7 @@ type UpdatePolicyMessage struct {
 // GetPolicyV2 gets a policy.
 func (s *Store) GetPolicyV2(ctx context.Context, find *FindPolicyMessage) (*PolicyMessage, error) {
 	if find.ResourceType != nil && find.Resource != nil && find.Type != nil {
-		if v, ok := s.policyCache.Get(getPolicyCacheKey(*find.ResourceType, *find.Resource, *find.Type)); ok && s.enableCache {
+		if v, ok := s.policyCache.Get(getPolicyCacheKey(ctx, *find.ResourceType, *find.Resource, *find.Type)); ok && s.enableCache {
 			return v, nil
 		}
 	}
@@ -275,7 +275,7 @@ func (s *Store) GetPolicyV2(ctx context.Context, find *FindPolicyMessage) (*Poli
 	if len(policies) == 0 {
 		// Cache the policy for not found as well to reduce the look up latency.
 		if find.ResourceType != nil && find.Resource != nil && find.Type != nil {
-			s.policyCache.Add(getPolicyCacheKey(*find.ResourceType, *find.Resource, *find.Type), nil)
+			s.policyCache.Add(getPolicyCacheKey(ctx, *find.ResourceType, *find.Resource, *find.Type), nil)
 		}
 		return nil, nil
 	}
@@ -288,7 +288,7 @@ func (s *Store) GetPolicyV2(ctx context.Context, find *FindPolicyMessage) (*Poli
 		return nil, err
 	}
 
-	s.policyCache.Add(getPolicyCacheKey(policy.ResourceType, policy.Resource, policy.Type), policy)
+	s.policyCache.Add(getPolicyCacheKey(ctx, policy.ResourceType, policy.Resource, policy.Type), policy)
 
 	return policy, nil
 }
@@ -311,7 +311,7 @@ func (s *Store) ListPoliciesV2(ctx context.Context, find *FindPolicyMessage) ([]
 	}
 
 	for _, policy := range policies {
-		s.policyCache.Add(getPolicyCacheKey(policy.ResourceType, policy.Resource, policy.Type), policy)
+		s.policyCache.Add(getPolicyCacheKey(ctx, policy.ResourceType, policy.Resource, policy.Type), policy)
 	}
 
 	return policies, nil
@@ -334,7 +334,7 @@ func (s *Store) CreatePolicyV2(ctx context.Context, create *PolicyMessage) (*Pol
 		return nil, err
 	}
 
-	s.policyCache.Add(getPolicyCacheKey(policy.ResourceType, policy.Resource, policy.Type), policy)
+	s.policyCache.Add(getPolicyCacheKey(ctx, policy.ResourceType, policy.Resource, policy.Type), policy)
 
 	return policy, nil
 }
@@ -392,7 +392,7 @@ func (s *Store) UpdatePolicyV2(ctx context.Context, patch *UpdatePolicyMessage) 
 		return nil, err
 	}
 
-	s.policyCache.Add(getPolicyCacheKey(policy.ResourceType, policy.Resource, policy.Type), policy)
+	s.policyCache.Add(getPolicyCacheKey(ctx, policy.ResourceType, policy.Resource, policy.Type), policy)
 
 	return policy, nil
 }
@@ -418,7 +418,7 @@ func (s *Store) DeletePolicyV2(ctx context.Context, policy *PolicyMessage) error
 		return err
 	}
 
-	s.policyCache.Remove(getPolicyCacheKey(policy.ResourceType, policy.Resource, policy.Type))
+	s.policyCache.Remove(getPolicyCacheKey(ctx, policy.ResourceType, policy.Resource, policy.Type))
 	return nil
 }
 

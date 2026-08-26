@@ -118,7 +118,7 @@ func (s *Store) GetOrCreateDirectConversation(ctx context.Context, agentID, prin
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	s.invalidateConversationPolicyCache(newConv.ID)
+	s.invalidateConversationPolicyCache(ctx, newConv.ID)
 
 	// Seed the agent's per-channel cursor to the new conversation's version so
 	// it starts caught up and only sees future messages. Seeding only on the
@@ -237,7 +237,7 @@ func (s *Store) GetOrCreateAgentDM(ctx context.Context, agentAID, agentBID int) 
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	s.invalidateConversationPolicyCache(newConv.ID)
+	s.invalidateConversationPolicyCache(ctx, newConv.ID)
 
 	// Seed both agents' cursors to the new conversation's version so they start
 	// caught up and only see future messages. Seeding only on the create path
@@ -347,7 +347,7 @@ func (s *Store) GetOrCreateUserUserDM(ctx context.Context, callerID, peerID int)
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	s.invalidateConversationPolicyCache(newConv.ID)
+	s.invalidateConversationPolicyCache(ctx, newConv.ID)
 
 	// Seed both users' read cursors to the new conversation's version so they
 	// start caught up and only see future messages. Seeding only on the create
@@ -440,7 +440,7 @@ func (s *Store) CreateChannel(ctx context.Context, title string, ownerID int) (*
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	s.invalidateConversationPolicyCache(conv.ID)
+	s.invalidateConversationPolicyCache(ctx, conv.ID)
 
 	return &conv, nil
 }
