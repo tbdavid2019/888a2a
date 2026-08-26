@@ -257,6 +257,7 @@ func (p *PostgresPlane) ReconcileConversation(ctx context.Context, organizationI
 	if err != nil {
 		return report, errors.Wrap(err, "query canonical messages")
 	}
+	canonicalMessages := make([]Message, 0)
 	for messageRows.Next() {
 		var message Message
 		if err := messageRows.Scan(&message.MessageID, &message.ConversationID, &message.ClientMessageNo, &message.MessageSeq, &message.SenderID, &message.Payload); err != nil {
@@ -264,23 +265,7 @@ func (p *PostgresPlane) ReconcileConversation(ctx context.Context, organizationI
 			return report, errors.Wrap(err, "scan canonical message")
 		}
 		message.OrganizationID = organizationID
-		matches, err := projectionMatchesTx(ctx, tx, message)
-		if err != nil {
-			_ = messageRows.Close()
-			return report, err
-		}
-		if matches {
-			continue
-		}
-		if err := projectMessageTx(ctx, tx, message); err != nil {
-			_ = messageRows.Close()
-			return report, errors.Wrap(err, "repair message projection")
-		}
-		if err := recordReconciliationTx(ctx, tx, organizationID, conversationID, "MESSAGE", message.MessageID, "REPAIRED", "missing or divergent message projection"); err != nil {
-			_ = messageRows.Close()
-			return report, err
-		}
-		report.Repaired++
+		canonicalMessages = append(canonicalMessages, message)
 	}
 	if err := messageRows.Err(); err != nil {
 		_ = messageRows.Close()
@@ -288,6 +273,22 @@ func (p *PostgresPlane) ReconcileConversation(ctx context.Context, organizationI
 	}
 	if err := messageRows.Close(); err != nil {
 		return report, errors.Wrap(err, "close canonical messages")
+	}
+	for _, message := range canonicalMessages {
+		matches, err := projectionMatchesTx(ctx, tx, message)
+		if err != nil {
+			return report, err
+		}
+		if matches {
+			continue
+		}
+		if err := projectMessageTx(ctx, tx, message); err != nil {
+			return report, errors.Wrap(err, "repair message projection")
+		}
+		if err := recordReconciliationTx(ctx, tx, organizationID, conversationID, "MESSAGE", message.MessageID, "REPAIRED", "missing or divergent message projection"); err != nil {
+			return report, err
+		}
+		report.Repaired++
 	}
 	if err := tx.Commit(); err != nil {
 		return report, errors.Wrap(err, "commit message reconciliation")
