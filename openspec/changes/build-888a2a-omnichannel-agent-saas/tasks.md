@@ -89,12 +89,13 @@ Task 4.6 has tenant-bound per-device user cursors and per-Agent cursors with mon
 Task 4.5 is proven by GitHub Actions run `32947569098`, where the PostgreSQL MessagePlane dual projection gate passed canonical/projection parity for text, attachments, mentions, thread roots, reactions, tenant-bound projection cursors, and idempotent upgrade backfill.
 Tasks 4.7 and 4.8 are proven by GitHub Actions run `32948484188`, where the moderation/capability contract gate passed bounded author edit/recall windows, moderator-only redaction, legal-hold visibility, audit-safe payload checks, and explicit unsupported states/errors for presence, typing, delivery receipts, and read receipts.
 Task 4.9 has tenant-scoped MessagePlane reconciliation that repairs missing/divergent canonical projections and memberships while quarantining unknown memberships with audit records. Its PostgreSQL reconciliation gate is wired as `TestPostgresPlaneReconcileRepairsDriftAndQuarantinesUnknownMembership` and passed in GitHub Actions run `32949575134`.
+Tasks 5.1 and 5.2 are proven by GitHub Actions run `32951477094`: Native Web sequence-aware merge, reload/backward-pagination/interaction tests, Organization/workspace state refresh, channel/member management, role gates, and mixed roster tests passed with the full frontend suite.
 Task 4.10 has a durable per-Organization LEGACY/DUAL/MESSAGE_PLANE selector, native regular-message read/write adapter, and fail-safe rollback to LEGACY. The PostgreSQL switching and rollback gate passed in GitHub Actions run `32950969518`.
 
 ## 5. Native Web Collaboration and Web Widget
 
-- [ ] 5.1 Update Native Web conversation state for sequence-based append-only events; verify reload, backward pagination, edit, recall and reaction UI tests.
-- [ ] 5.2 Add Organization/workspace/channel/member management views; verify role-based controls and mixed human/Agent roster tests.
+- [x] 5.1 Update Native Web conversation state for sequence-based append-only events; verify reload, backward pagination, edit, recall and reaction UI tests.
+- [x] 5.2 Add Organization/workspace/channel/member management views; verify role-based controls and mixed human/Agent roster tests.
 - [ ] 5.3 Add Agent execution start/steer/cancel/completion events to conversations; verify an authorized human can stop a running response and observe the terminal state.
 - [ ] 5.4 Define Organization-scoped Web Widget configuration, public bootstrap and short-lived visitor session contracts; verify unknown Organization and expired session failures.
 - [ ] 5.5 Implement widget origin allowlist, CSP integration and abuse rate limits; verify unauthorized origins cannot create or resume conversations.
