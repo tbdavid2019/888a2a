@@ -1,6 +1,7 @@
 package migration
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -362,6 +363,85 @@ func TestDefaultOrganizationMigration_ExistingDeployments(t *testing.T) {
 		if !strings.Contains(incremental, stmt) {
 			t.Errorf("0028 migration missing default tenant migration statement: %q", stmt)
 		}
+	}
+}
+
+// TestOrganizationTenancyBackfillsExistingRows executes the real 0028
+// migration against a minimal pre-Organization schema containing existing
+// principals and collaboration rows. It verifies that the migration assigns
+// every row to the default tenant and that the resulting foreign-key and
+// uniqueness constraints are enforced by PostgreSQL, rather than only appearing
+// in the SQL source text.
+func TestOrganizationTenancyBackfillsExistingRows(t *testing.T) {
+	db := integrationDB(t)
+	ctx := context.Background()
+
+	for _, statement := range []string{
+		`CREATE TABLE principal (id INTEGER PRIMARY KEY, type TEXT NOT NULL, name TEXT NOT NULL, email TEXT NOT NULL)`,
+		`CREATE TABLE agent (id INTEGER PRIMARY KEY)`,
+		`CREATE TABLE machine (id INTEGER PRIMARY KEY)`,
+		`CREATE TABLE conversation (id INTEGER PRIMARY KEY)`,
+		`CREATE TABLE mcp_server (id INTEGER PRIMARY KEY)`,
+		`CREATE TABLE file (id INTEGER PRIMARY KEY)`,
+		`CREATE TABLE task (id INTEGER PRIMARY KEY)`,
+		`CREATE TABLE audit_log (id INTEGER PRIMARY KEY)`,
+		`CREATE TABLE api_provider (id INTEGER PRIMARY KEY)`,
+		`CREATE TABLE user_group (id TEXT PRIMARY KEY)`,
+		`CREATE TABLE reminder (id INTEGER PRIMARY KEY)`,
+		`INSERT INTO principal (id, type, name, email) VALUES (101, 'END_USER', 'Existing user', 'existing@example.test')`,
+		`INSERT INTO agent (id) VALUES (201)`,
+		`INSERT INTO machine (id) VALUES (301)`,
+		`INSERT INTO conversation (id) VALUES (401)`,
+	} {
+		if _, err := db.ExecContext(ctx, statement); err != nil {
+			t.Fatalf("setup statement %q: %v", statement, err)
+		}
+	}
+
+	incremental, err := os.ReadFile("migration/1.1/0028##organization-tenancy.sql")
+	if err != nil {
+		t.Fatalf("read organization tenancy migration: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, string(incremental)); err != nil {
+		t.Fatalf("execute organization tenancy migration: %v", err)
+	}
+
+	var membershipCount int
+	if err := db.QueryRowContext(ctx, `
+		SELECT count(*) FROM organization_memberships
+		WHERE organization_id = 'default' AND principal_id = 101 AND role = 'OWNER' AND state = 'ACTIVE'
+	`).Scan(&membershipCount); err != nil {
+		t.Fatalf("query default membership: %v", err)
+	}
+	if membershipCount != 1 {
+		t.Fatalf("default membership count = %d, want 1", membershipCount)
+	}
+
+	for _, check := range []struct {
+		name  string
+		query string
+	}{
+		{"principal", `SELECT default_organization_id FROM principal WHERE id = 101`},
+		{"agent organization", `SELECT organization_id FROM agent WHERE id = 201`},
+		{"agent workspace", `SELECT workspace_id FROM agent WHERE id = 201`},
+		{"machine organization", `SELECT organization_id FROM machine WHERE id = 301`},
+		{"conversation organization", `SELECT organization_id FROM conversation WHERE id = 401`},
+		{"conversation workspace", `SELECT workspace_id FROM conversation WHERE id = 401`},
+	} {
+		var value string
+		if err := db.QueryRowContext(ctx, check.query).Scan(&value); err != nil {
+			t.Fatalf("query %s tenant owner: %v", check.name, err)
+		}
+		if value != "default" {
+			t.Errorf("%s tenant owner = %q, want default", check.name, value)
+		}
+	}
+
+	if _, err := db.ExecContext(ctx, `INSERT INTO agent (id, organization_id) VALUES (202, 'guessed-tenant')`); err == nil {
+		t.Fatal("agent organization foreign key accepted an unknown tenant")
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO workspaces (id, organization_id, name, slug) VALUES ('workspace-2', 'default', 'Duplicate', 'default')`); err == nil {
+		t.Fatal("workspace uniqueness constraint accepted a duplicate tenant slug")
 	}
 }
 

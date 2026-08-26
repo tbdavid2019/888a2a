@@ -38,7 +38,7 @@ Agent Network gate: 12 Agents across two Machines SHALL discover peers, exchange
 ## 2. Organization and Tenant Foundation
 
 - [x] 2.1 Define Organization, workspace, membership and principal resource contracts in Proto; verify `buf format`, `buf lint` and `buf generate` pass.
-- [ ] 2.2 Add Organization, workspace and membership store schema as additive migrations; verify fresh install and upgrade migration tests pass.
+- [x] 2.2 Add Organization, workspace and membership store schema as additive migrations; verify fresh install and upgrade migration tests pass.
 - [ ] 2.3 Create a default Organization migration for existing deployments; verify every existing principal, Agent, Machine and conversation receives a valid tenant owner.
 - [ ] 2.4 Add `organization_id` and applicable `workspace_id` to collaboration resources in bounded migration batches; verify foreign keys, uniqueness and tenant indexes through migration tests.
 - [ ] 2.5 Implement active-Organization selection for authenticated humans; verify one user can switch between two memberships without permission or cache leakage.
@@ -49,7 +49,7 @@ Agent Network gate: 12 Agents across two Machines SHALL discover peers, exchange
 - [ ] 2.10 Add Organization lifecycle enforcement for active, suspended and closed states; verify human, connector, A2A and runtime writes stop consistently when suspended.
 - [x] 2.11 Add Organization switcher and membership administration UI; verify frontend tests cover multi-membership, inaccessible routes and suspended state.
 
-Evidence notes (2026-08-26): 2.1 and 2.11 are proven by `buf format`, `buf lint`, `buf generate`, frontend type-check/lint, and 573 frontend tests. Tasks 2.2-2.4 remain pending because fresh-install and upgrade execution requires the external PostgreSQL migration gate (`A2A888_RUN_MIGRATION_TESTS=1` plus `A2A888_TEST_PG_URL`). Tasks 2.5-2.10 have tenant-scoped implementation and unit/static coverage, but remain pending until the two-organization PostgreSQL/API fixture proves cross-tenant switching, group-effective permission changes, adversarial resource denial, storage/projection isolation, and consistent suspended writes across human, connector, A2A, and runtime paths.
+Evidence notes (2026-08-26): 2.1 and 2.11 are proven by `buf format`, `buf lint`, `buf generate`, frontend type-check/lint, and 573 frontend tests. Task 2.2 is proven by GitHub Actions run `32936154606`, which supplied PostgreSQL 16 with `A2A888_RUN_MIGRATION_TESTS=1` and passed the fresh-install and upgrade migration tests. Tasks 2.3 and 2.4 are pending the new real-PostgreSQL backfill/FK/uniqueness test in the next CI run. Tasks 2.5-2.10 have tenant-scoped implementation and unit/static coverage, but remain pending until the two-organization PostgreSQL/API fixture proves cross-tenant switching, group-effective permission changes, adversarial resource denial, storage/projection isolation, and consistent suspended writes across human, connector, A2A, and runtime paths.
 
 ## 3. Durable Event and Multi-Instance Foundation
 

@@ -10,6 +10,7 @@ This project records changes by calendar date and does not maintain release vers
 ### Added
 
 - Added tenant-scoped membership administration RPCs/UI, delegated requester/executor audit evidence, composite Organization IAM bindings, collaboration projection tenant columns, and cache/S3 isolation guards.
+- Added a real PostgreSQL Organization tenancy migration test covering existing-row default backfill plus tenant foreign-key and workspace uniqueness enforcement.
 - Added Product Identity Inventory document (`docs/product_identity_inventory.md`) mapping all legacy identifiers to approved `888a2a` targets and shell-safe `A2A888_` environment variables.
 - Published draft Section 1 Architecture Decision Records (`docs/decisions/1.1-single-workspace-inventory.md` through `docs/decisions/1.8-saas-vs-byoc-scope.md`). External WuKongIM, connector, approval, and tenant integration evidence remains pending.
 - Added multi-tenant Organization, Workspace, OrganizationMembership, and TenantPrincipal resource contracts in Protobuf (`proto/v1/a2a888/organization.proto`).
