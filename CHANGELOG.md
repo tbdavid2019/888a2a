@@ -10,6 +10,7 @@ This project records changes by calendar date and does not maintain release vers
 ### Added
 
 - Added transactional MessagePlane dual projection rows for text, attachments, mentions, thread roots, reactions, and tenant-bound projection cursors, with a PostgreSQL parity gate.
+- Recorded GitHub Actions evidence for OpenSpec task 4.5 after the PostgreSQL MessagePlane dual projection gate passed.
 - Recorded GitHub Actions evidence for OpenSpec task 4.6 after the PostgreSQL message cursor replay gate passed per-device and per-Agent recovery checks.
 - Added tenant-bound per-device user cursors and Organization-scoped Agent cursors with a PostgreSQL reconnect/replay gate for independent device progress and monotonic acknowledgements.
 - Added the internal WuKongIM MessagePlane adapter with private-network URL validation, redirect blocking, tenant/cursor checks, message send/history/membership mapping, and an opt-in real-service readiness gate.
