@@ -60,6 +60,8 @@ export const createOrganizationSlice: AppSliceCreator<OrganizationSlice> = (
         agents: [],
         chatMessages: {},
         threadByRoot: {},
+        workspaces: [],
+        memberships: [],
       });
     }
   },

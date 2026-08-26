@@ -51,6 +51,8 @@ describe("OrganizationSlice", () => {
       threadByRoot: {
         m1: { messages: [], currentVersion: 1n, loading: false },
       },
+      workspaces: [{ id: "ws-1" }] as never,
+      memberships: [{ principalId: "user-1" }] as never,
     });
 
     // Verify populated state
@@ -64,6 +66,8 @@ describe("OrganizationSlice", () => {
       agents: [],
       chatMessages: {},
       threadByRoot: {},
+      workspaces: [],
+      memberships: [],
     });
 
     expect(useAppStore.getState().currentOrganizationId).toBe("org-2");
@@ -71,5 +75,7 @@ describe("OrganizationSlice", () => {
     expect(useAppStore.getState().agents).toEqual([]);
     expect(useAppStore.getState().chatMessages).toEqual({});
     expect(useAppStore.getState().threadByRoot).toEqual({});
+    expect(useAppStore.getState().workspaces).toEqual([]);
+    expect(useAppStore.getState().memberships).toEqual([]);
   });
 });
