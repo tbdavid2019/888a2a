@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { useAppStore } from "./index";
 import { create } from "@bufbuild/protobuf";
+import { describe, expect, it } from "vitest";
 import {
   OrganizationSchema,
   OrganizationState,
   WorkspaceSchema,
 } from "@/types/proto-es/a2a888/organization_pb";
+import { useAppStore } from "./index";
 
 describe("OrganizationSlice", () => {
   it("initializes with default organization id", () => {

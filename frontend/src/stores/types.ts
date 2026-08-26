@@ -1,5 +1,10 @@
 import type { StateCreator } from "zustand";
 import type {
+  Organization,
+  OrganizationMembership,
+  Workspace,
+} from "@/types/proto-es/a2a888/organization_pb";
+import type {
   LlmAgentConfigSetting,
   PasswordRestrictionSetting,
   S3ConfigSetting,
@@ -7,11 +12,6 @@ import type {
   UserMcpConfigSetting,
   WorkspaceProfileSetting,
 } from "@/types/proto-es/store/setting_pb";
-import type {
-  Organization,
-  OrganizationMembership,
-  Workspace,
-} from "@/types/proto-es/a2a888/organization_pb";
 import type {
   Agent,
   AgentProviderInfo,

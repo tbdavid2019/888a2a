@@ -1,9 +1,9 @@
-import type { AppSliceCreator, OrganizationSlice } from "./types";
 import type {
   Organization,
   OrganizationMembership,
   Workspace,
 } from "@/types/proto-es/a2a888/organization_pb";
+import type { AppSliceCreator, OrganizationSlice } from "./types";
 
 export const createOrganizationSlice: AppSliceCreator<OrganizationSlice> = (
   set
