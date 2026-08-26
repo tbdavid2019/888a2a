@@ -14,6 +14,7 @@ This project records changes by calendar date and does not maintain release vers
 - Added a PostgreSQL-backed shared room notifier with a peer-replica integration gate for cross-Manager conversation wakeups.
 - Added tenant-scoped PostgreSQL nonce replay storage and a shared-consume integration gate for multi-Manager heartbeat replay protection.
 - Recorded CI evidence for completed OpenSpec tasks 3.5 and 3.6, including cross-replica room notifications and shared nonce replay rejection.
+- Added a dedicated tenant queue fairness CI gate and recorded OpenSpec task 3.8 evidence for bounded per-Organization outbox admission.
 - Recorded CI evidence for completed OpenSpec task 3.4, including PostgreSQL durable assignment replay and ACK verification.
 - Added durable Machine assignment delivery over MachineChannel, including full-log replay after process restart, ordered delta replay after reconnect, idempotent reducer application, and cumulative ACK handling.
 - Added MachineChannel durable assignment replay/ACK messages and Manager-side assignment outbox delivery with per-Organization queue and concurrency limits.

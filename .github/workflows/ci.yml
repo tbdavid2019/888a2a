@@ -79,6 +79,9 @@ jobs:
           A2A888_RUN_MIGRATION_TESTS: "1"
           A2A888_TEST_PG_URL: postgresql://ci_user:ci_password@127.0.0.1:5432/postgres?sslmode=disable
 
+      - name: Verify tenant queue fairness gate
+        run: go test -v ./backend/manager/store -run TestOutboxWorkerUsesFairTenantQueue -count=1
+
       - name: Build
         run: go build -ldflags "-w -s" -p=16 -o ./build/888a2a ./backend/manager/bin/server/main.go
 
