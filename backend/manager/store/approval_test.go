@@ -62,3 +62,14 @@ func TestApprovalStoreValidatesRequestBinding(t *testing.T) {
 		t.Fatal("cross-tenant action must be rejected")
 	}
 }
+
+func TestNonNilStringsProtectsPostgresArrayColumns(t *testing.T) {
+	values := nonNilStrings(nil)
+	if values == nil || len(values) != 0 {
+		t.Fatalf("nil strings must become an empty slice, got %#v", values)
+	}
+	original := []string{"owner"}
+	if got := nonNilStrings(original); len(got) != 1 || got[0] != "owner" {
+		t.Fatalf("non-empty strings changed: %#v", got)
+	}
+}

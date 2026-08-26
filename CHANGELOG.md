@@ -85,6 +85,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Fixed
 
+- Fixed approval policy persistence so omitted approver and escalation lists are stored as empty PostgreSQL arrays instead of NULL.
 - Fixed native MessagePlane history error handling so CI lint and runtime failures are both surfaced instead of leaving an ineffectual error assignment.
 - Fixed MessagePlane reconciliation to close canonical message result rows before querying projections in the same PostgreSQL transaction, preventing pgx re-entrant row errors.
 - Fixed fresh-install migration ordering so the MessagePlane dual projection foreign key is created only after the canonical message table exists.

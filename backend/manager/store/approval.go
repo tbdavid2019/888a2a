@@ -89,11 +89,24 @@ func (s *ApprovalStore) CreatePolicy(ctx context.Context, policy *a2a888.Approva
 	if err != nil {
 		return errors.Wrap(err, "create approval policy")
 	}
-	_, err = s.db.ExecContext(ctx, `INSERT INTO a2a888_approval_policy_version (organization_id, policy_name, version, workspace_id, resource_pattern, agent_id, skill, action_type, destination_pattern, requester_class, risk_level, approver_principal_ids, approver_group_ids, approver_roles, required_approvals, timeout_seconds, on_timeout, escalation_principal_ids, escalation_group_ids, escalation_roles, prohibit_requester_approval, prohibit_agent_owner_sole_approval) VALUES ($1,$2,$3,NULLIF($4,''),$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`, policy.OrganizationId, policy.Name, policy.Version, policy.WorkspaceId, policy.ResourcePattern, policy.AgentId, policy.Skill, policy.ActionType, policy.DestinationPattern, policy.RequesterClass, int32(policy.RiskLevel), pq.Array(policy.ApproverPrincipalIds), pq.Array(policy.ApproverGroupIds), pq.Array(policy.ApproverRoles), policy.RequiredApprovals, policy.TimeoutSeconds, onTimeout, pq.Array(policy.EscalationPrincipalIds), pq.Array(policy.EscalationGroupIds), pq.Array(policy.EscalationRoles), policy.ProhibitRequesterApproval, policy.ProhibitAgentOwnerSoleApproval)
+	approverPrincipalIDs := nonNilStrings(policy.ApproverPrincipalIds)
+	approverGroupIDs := nonNilStrings(policy.ApproverGroupIds)
+	approverRoles := nonNilStrings(policy.ApproverRoles)
+	escalationPrincipalIDs := nonNilStrings(policy.EscalationPrincipalIds)
+	escalationGroupIDs := nonNilStrings(policy.EscalationGroupIds)
+	escalationRoles := nonNilStrings(policy.EscalationRoles)
+	_, err = s.db.ExecContext(ctx, `INSERT INTO a2a888_approval_policy_version (organization_id, policy_name, version, workspace_id, resource_pattern, agent_id, skill, action_type, destination_pattern, requester_class, risk_level, approver_principal_ids, approver_group_ids, approver_roles, required_approvals, timeout_seconds, on_timeout, escalation_principal_ids, escalation_group_ids, escalation_roles, prohibit_requester_approval, prohibit_agent_owner_sole_approval) VALUES ($1,$2,$3,NULLIF($4,''),$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`, policy.OrganizationId, policy.Name, policy.Version, policy.WorkspaceId, policy.ResourcePattern, policy.AgentId, policy.Skill, policy.ActionType, policy.DestinationPattern, policy.RequesterClass, int32(policy.RiskLevel), pq.Array(approverPrincipalIDs), pq.Array(approverGroupIDs), pq.Array(approverRoles), policy.RequiredApprovals, policy.TimeoutSeconds, onTimeout, pq.Array(escalationPrincipalIDs), pq.Array(escalationGroupIDs), pq.Array(escalationRoles), policy.ProhibitRequesterApproval, policy.ProhibitAgentOwnerSoleApproval)
 	if err != nil {
 		return errors.Wrap(err, "create approval policy version")
 	}
 	return nil
+}
+
+func nonNilStrings(values []string) []string {
+	if values == nil {
+		return []string{}
+	}
+	return values
 }
 
 func (s *ApprovalStore) CreateRequest(ctx context.Context, request *a2a888.ApprovalRequest) error {
