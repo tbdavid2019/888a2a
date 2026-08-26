@@ -147,6 +147,9 @@ func (s *Store) Close() error {
 	// Stop the activity workers and drain their queue before closing the
 	// database, so an in-flight activity write cannot use a closed *sql.DB.
 	s.stopActivityWorkers()
+	if closer, ok := s.roomNotifier.(interface{ Close() error }); ok {
+		_ = closer.Close()
+	}
 	return s.dbConnManager.Close()
 }
 

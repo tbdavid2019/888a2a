@@ -48,7 +48,10 @@ func configureV1Routers(
 	// command service (which subscribes waiters). Single-process only; a
 	// multi-instance deployment needs a shared notifier behind the same
 	// interface.
-	hub := roomhub.New()
+	hub, err := roomhub.NewPostgres(ctx, profile.PgURL)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to configure shared room notifier")
+	}
 	stores.SetRoomNotifier(hub)
 
 	iamManager := iam.NewManager(stores)

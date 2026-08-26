@@ -1,6 +1,8 @@
 package roomhub
 
 import (
+	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -98,4 +100,26 @@ func TestUnsubscribeRemovesEmptyConversationEntry(t *testing.T) {
 func TestNotifyWithoutWaitersIsNoOp(_ *testing.T) {
 	h := New()
 	h.NotifyConversation(uuid.New())
+}
+
+func TestPostgresHubWakesPeerReplica(t *testing.T) {
+	if os.Getenv("A2A888_RUN_MIGRATION_TESTS") != "1" || os.Getenv("A2A888_TEST_PG_URL") == "" {
+		t.Skip("set A2A888_RUN_MIGRATION_TESTS=1 and A2A888_TEST_PG_URL to run PostgreSQL room notifier integration tests")
+	}
+	first, err := NewPostgres(context.Background(), os.Getenv("A2A888_TEST_PG_URL"))
+	require.NoError(t, err)
+	defer first.Close()
+	second, err := NewPostgres(context.Background(), os.Getenv("A2A888_TEST_PG_URL"))
+	require.NoError(t, err)
+	defer second.Close()
+
+	conversationID := uuid.New()
+	waiter := second.Subscribe(conversationID)
+	defer second.Unsubscribe(conversationID, waiter)
+	first.NotifyConversation(conversationID)
+	select {
+	case <-waiter:
+	case <-time.After(3 * time.Second):
+		t.Fatal("peer room hub was not woken by PostgreSQL notification")
+	}
 }

@@ -19,7 +19,6 @@ import (
 	"github.com/tbdavid2019/888a2a/backend/generated-go/v1/v1connect"
 	"github.com/tbdavid2019/888a2a/backend/manager/component/dispatcher"
 	"github.com/tbdavid2019/888a2a/backend/manager/component/iam"
-	"github.com/tbdavid2019/888a2a/backend/manager/component/roomhub"
 	"github.com/tbdavid2019/888a2a/backend/manager/component/s3client"
 	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
@@ -30,10 +29,18 @@ type CommandService struct {
 	dispatcher      *dispatcher.Dispatcher
 	s3clientManager *s3client.Client
 	iam             *iam.Manager
-	roomhub         *roomhub.Hub
+	roomhub         RoomHub
 }
 
-func NewCommandService(s *store.Store, d *dispatcher.Dispatcher, s3clientManager *s3client.Client, iamManager *iam.Manager, hub *roomhub.Hub) *CommandService {
+// RoomHub is the wait/notify boundary used by long-polling conversation
+// readers. Implementations may be local or backed by a shared notifier.
+type RoomHub interface {
+	Subscribe(uuid.UUID) chan struct{}
+	Unsubscribe(uuid.UUID, chan struct{})
+	NotifyConversation(uuid.UUID)
+}
+
+func NewCommandService(s *store.Store, d *dispatcher.Dispatcher, s3clientManager *s3client.Client, iamManager *iam.Manager, hub RoomHub) *CommandService {
 	return &CommandService{store: s, dispatcher: d, s3clientManager: s3clientManager, iam: iamManager, roomhub: hub}
 }
 
