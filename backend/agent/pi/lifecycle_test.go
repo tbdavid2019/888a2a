@@ -273,6 +273,17 @@ func TestPiSession_PrimedResetOnExit_ColdRestartSendsInitPrompt(t *testing.T) {
 		"turn 2 must also carry the batch alongside the init prompt")
 }
 
+func TestMarkPrimedDoesNotReviveExitedSession(t *testing.T) {
+	sess := &Session{}
+	sess.primed.Store(false)
+
+	// MarkPrimed can run just after the process reaper resets started. It must
+	// not make an exited session look warm again.
+	sess.MarkPrimed()
+
+	require.False(t, sess.IsWarm(), "MarkPrimed must not revive an exited session")
+}
+
 // waitForEviction polls until the session's subprocess is no longer alive (idle
 // eviction reaped it), failing the test on timeout. The idle timer is armed by
 // endTurn when the turn exits, so this is called after a turn completes.

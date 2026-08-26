@@ -703,8 +703,16 @@ func (s *Session) IsWarm() bool {
 }
 
 // MarkPrimed records that a cold init prompt has been sent on this process, so
-// subsequent turns are warm (init prompt already in the session history).
-func (s *Session) MarkPrimed() { s.primed.Store(true) }
+// subsequent turns are warm (init prompt already in the session history). The
+// alive check is serialized with waitPump: a prompt response can race process
+// exit, and the executor must not re-mark an already reaped process as warm.
+func (s *Session) MarkPrimed() {
+	s.startMu.Lock()
+	defer s.startMu.Unlock()
+	if s.started {
+		s.primed.Store(true)
+	}
+}
 
 // SessionFile returns the pi session .jsonl path captured at start, for
 // attribution in the turn result and FinalSummary.

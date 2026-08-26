@@ -40,6 +40,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Fixed
 
+- Fixed a Pi session lifecycle race where a prompt response arriving during process exit could re-mark a reaped session as warm; added regression coverage for cold restart state.
 - Fixed production tenant-header authorization by exposing organization membership lookup on the real Store implementation, and removed legacy procedure literals from auth tests so the naming gate remains green.
 - Added bounded fair tenant queueing and wired per-Organization admission limits into outbox workers.
 - Made legacy machine state migration copy an existing legacy home into `.888a2a` atomically before startup continues.
