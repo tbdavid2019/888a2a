@@ -109,6 +109,11 @@ func TestMessagePlaneDualProjectionMigrationPresent(t *testing.T) {
 			t.Errorf("0036 migration missing MessagePlane dual projection DDL %q", want)
 		}
 	}
+	messageTable := strings.Index(latest, "CREATE TABLE IF NOT EXISTS a2a888_message (")
+	projectionTable := strings.Index(latest, "CREATE TABLE IF NOT EXISTS a2a888_message_projection (")
+	if messageTable < 0 || projectionTable < 0 || messageTable > projectionTable {
+		t.Fatal("LATEST.sql must create a2a888_message before its dual projection foreign key")
+	}
 }
 
 // TestSearchChatHistoryTrgmIndexPresent locks in the pg_trgm GIN index that

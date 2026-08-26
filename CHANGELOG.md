@@ -64,6 +64,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Fixed
 
+- Fixed fresh-install migration ordering so the MessagePlane dual projection foreign key is created only after the canonical message table exists.
 - Corrected the PostgreSQL message cursor integration fixture to acknowledge the first persisted room sequence instead of assuming conversations start at sequence zero.
 - Fixed new conversation IAM policy writes so the policy transaction carries the active Organization and satisfies tenant foreign-key isolation.
 - Fixed PostgreSQL type inference for live Organization group permission checks so workspace-scoped grants resolve correctly on PostgreSQL 16.
