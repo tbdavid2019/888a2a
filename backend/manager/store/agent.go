@@ -74,6 +74,10 @@ type AgentMessage struct {
 	// via a LEFT JOIN on read so converters can emit the machines/{machine} name
 	// without an N+1 lookup. Empty for unbound/legacy agents.
 	MachineResourceID string
+	// OrganizationID is the tenant boundary for the agent.
+	OrganizationID string
+	// WorkspaceID is the collaborative space boundary for the agent.
+	WorkspaceID string
 }
 
 // GetResourceID returns the agent's resource name, used to key context-derived
@@ -229,6 +233,8 @@ func listAgentImpl(ctx context.Context, txn *sql.Tx, find *FindAgentMessage) ([]
 		agent.can_manage_channel_members,
 		agent.enabled,
 		agent.avatar_s3_key,
+		agent.organization_id,
+		agent.workspace_id,
 		agent.machine_id,
 		machine.resource_id
 	FROM agent
@@ -253,6 +259,7 @@ func listAgentImpl(ctx context.Context, txn *sql.Tx, find *FindAgentMessage) ([]
 		var infoBytes []byte
 		var statusBytes []byte
 		var lastTokenRotatedAt sql.NullTime
+		var workspaceID sql.NullString
 		var machineID sql.NullInt64
 		var machineResourceID sql.NullString
 		if err := rows.Scan(
@@ -273,6 +280,8 @@ func listAgentImpl(ctx context.Context, txn *sql.Tx, find *FindAgentMessage) ([]
 			&agentMessage.CanManageChannelMembers,
 			&agentMessage.Enabled,
 			&agentMessage.AvatarS3Key,
+			&agentMessage.OrganizationID,
+			&workspaceID,
 			&machineID,
 			&machineResourceID,
 		); err != nil {
@@ -283,6 +292,9 @@ func listAgentImpl(ctx context.Context, txn *sql.Tx, find *FindAgentMessage) ([]
 		}
 		if machineID.Valid {
 			agentMessage.MachineID = int(machineID.Int64)
+		}
+		if workspaceID.Valid {
+			agentMessage.WorkspaceID = workspaceID.String
 		}
 		if machineResourceID.Valid {
 			agentMessage.MachineResourceID = machineResourceID.String

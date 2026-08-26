@@ -41,4 +41,35 @@ describe("OrganizationSlice", () => {
     expect(useAppStore.getState().organizations[0].name).toBe("Acme Corp");
     expect(useAppStore.getState().workspaces[0].name).toBe("Engineering");
   });
+
+  it("purges cached channels, agents, and messages on organization switch", () => {
+    useAppStore.setState({
+      currentOrganizationId: "org-1",
+      channels: [{ id: "c1" }] as never,
+      agents: [{ id: 1 }] as never,
+      chatMessages: { c1: [{ id: "m1" }] as never },
+      threadByRoot: {
+        m1: { messages: [], currentVersion: 1n, loading: false },
+      },
+    });
+
+    // Verify populated state
+    expect(useAppStore.getState().channels).toHaveLength(1);
+    expect(useAppStore.getState().agents).toHaveLength(1);
+
+    // Perform tenant switch
+    useAppStore.setState({
+      currentOrganizationId: "org-2",
+      channels: [],
+      agents: [],
+      chatMessages: {},
+      threadByRoot: {},
+    });
+
+    expect(useAppStore.getState().currentOrganizationId).toBe("org-2");
+    expect(useAppStore.getState().channels).toEqual([]);
+    expect(useAppStore.getState().agents).toEqual([]);
+    expect(useAppStore.getState().chatMessages).toEqual({});
+    expect(useAppStore.getState().threadByRoot).toEqual({});
+  });
 });

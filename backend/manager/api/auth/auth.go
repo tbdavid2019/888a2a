@@ -197,13 +197,15 @@ func (in *APIAuthInterceptor) injectAuthResult(
 	if result.agent != nil {
 		ctx = context.WithValue(ctx, common.AgentContextKey, result.agent)
 	}
+	var declared *store.AgentMessage
 	if result.machine != nil {
 		ctx = context.WithValue(ctx, common.MachineContextKey, result.machine)
 		// A machine may act on behalf of an agent declared via the
 		// X-Laelia-Agent header; resolve + ownership-check it here so
 		// existing agent-callable handlers see the agent via
 		// GetAgentFromContext unchanged.
-		if declared, derr := in.resolveDeclaredAgent(ctx, result.machine, header); derr != nil {
+		var derr error
+		if declared, derr = in.resolveDeclaredAgent(ctx, result.machine, header); derr != nil {
 			return nil, derr
 		} else if declared != nil {
 			ctx = context.WithValue(ctx, common.AgentContextKey, declared)
@@ -212,6 +214,26 @@ func (in *APIAuthInterceptor) injectAuthResult(
 	if result.accessTokenExpiresAt > 0 {
 		ctx = context.WithValue(ctx, common.AccessTokenExpiresAtContextKey, result.accessTokenExpiresAt)
 	}
+
+	// Resolve and inject active organization/tenant ID
+	orgID := header.Get("X-Organization-ID")
+	if orgID == "" {
+		orgID = header.Get("X-Tenant-ID")
+	}
+	if orgID == "" {
+		if result.user != nil && result.user.DefaultOrganizationID != "" {
+			orgID = result.user.DefaultOrganizationID
+		} else if declared != nil && declared.OrganizationID != "" {
+			orgID = declared.OrganizationID
+		} else if result.agent != nil && result.agent.OrganizationID != "" {
+			orgID = result.agent.OrganizationID
+		} else if result.machine != nil && result.machine.OrganizationID != "" {
+			orgID = result.machine.OrganizationID
+		} else {
+			orgID = "default"
+		}
+	}
+	ctx = common.SetOrganizationIDToContext(ctx, orgID)
 	return ctx, nil
 }
 

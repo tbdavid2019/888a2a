@@ -42,3 +42,24 @@ func TestBuild_PassesContext(_ *testing.T) {
 	// surface the cancelled context synchronously. The guard is the signature.
 	_ = err
 }
+
+func TestTenantObjectKey_PrefixIsolation(t *testing.T) {
+	cases := []struct {
+		orgID    string
+		rawKey   string
+		expected string
+	}{
+		{"org-1", "uploads/avatar.png", "org-1/uploads/avatar.png"},
+		{"org-1", "/uploads/avatar.png", "org-1/uploads/avatar.png"},
+		{"org-1", "org-1/uploads/avatar.png", "org-1/uploads/avatar.png"},
+		{"", "files/report.pdf", "default/files/report.pdf"},
+		{"org-2", "files/report.pdf", "org-2/files/report.pdf"},
+	}
+
+	for _, tc := range cases {
+		got := TenantObjectKey(tc.orgID, tc.rawKey)
+		if got != tc.expected {
+			t.Errorf("TenantObjectKey(%q, %q) = %q; want %q", tc.orgID, tc.rawKey, got, tc.expected)
+		}
+	}
+}

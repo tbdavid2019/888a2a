@@ -78,9 +78,14 @@ func (s *UserService) UploadAvatar(ctx context.Context, req *connect.Request[v1p
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
+	orgID, _ := common.GetOrganizationIDFromContext(ctx)
+	if orgID == "" && user.DefaultOrganizationID != "" {
+		orgID = user.DefaultOrganizationID
+	}
 	hash := sha256.Sum256(req.Msg.Data)
 	contentHash := hex.EncodeToString(hash[:])
-	newKey := avatarS3KeyPrefix + common.FormatUserHandle(user.Handle) + "/" + contentHash + "." + ext
+	rawKey := avatarS3KeyPrefix + common.FormatUserHandle(user.Handle) + "/" + contentHash + "." + ext
+	newKey := s3client.TenantObjectKey(orgID, rawKey)
 
 	if _, err := s3Cli.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:        aws.String(cfg.Bucket),

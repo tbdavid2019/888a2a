@@ -13,6 +13,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { OrgSwitcher } from "@/components/organization/org-switcher";
 import { RouterLink } from "@/components/router-link";
 import { getLayerRoot, LAYER_SURFACE_CLASS } from "@/components/ui/layer";
 import { UserMenu } from "@/components/user-menu";
@@ -448,6 +449,11 @@ export function DesktopSidebar({
           <Menu className="size-4" />
         </button>
       </div>
+      {!collapsed && (
+        <div className="border-b border-control-border px-3 py-2">
+          <OrgSwitcher className="w-full" />
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto py-2">
         <SidebarNav collapsed={collapsed} />
       </div>
@@ -503,6 +509,9 @@ export function MobileSidebar({
             <Menu className="size-4" />
           </button>
           <span className="text-sm font-semibold text-main">Laelia AI</span>
+        </div>
+        <div className="border-b border-control-border px-3 py-2">
+          <OrgSwitcher className="w-full" />
         </div>
         <div className="flex-1 overflow-y-auto py-2">
           <SidebarNav collapsed={false} />

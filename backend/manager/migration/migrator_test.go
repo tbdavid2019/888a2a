@@ -510,6 +510,53 @@ func TestMigrateSchema_MachineAssignmentUpgrade(t *testing.T) {
 	assertHistoryVersions(t, db, "1.1.26", "1.1.27")
 }
 
+func TestMigrateSchema_OrganizationTenancyUpgrade(t *testing.T) {
+	db := integrationDB(t)
+	ctx := context.Background()
+
+	if err := MigrateSchema(ctx, db); err != nil {
+		t.Fatalf("MigrateSchema (fresh): %v", err)
+	}
+	assertHistoryVersions(t, db, "1.1.28")
+
+	for _, table := range []string{
+		"organization_memberships",
+		"workspaces",
+		"organizations",
+	} {
+		if _, err := db.ExecContext(ctx, "DROP TABLE IF EXISTS "+table+" CASCADE"); err != nil {
+			t.Fatalf("drop %s: %v", table, err)
+		}
+	}
+	if _, err := db.ExecContext(ctx,
+		"UPDATE schema_migration_history SET version = $1", "1.1.27"); err != nil {
+		t.Fatalf("rewind schema history: %v", err)
+	}
+
+	incrementalPath := "migration/1.1/0028##organization-tenancy.sql"
+	incremental, err := fs.ReadFile(migrationFS, incrementalPath)
+	if err != nil {
+		t.Fatalf("read Organization Tenancy incremental: %v", err)
+	}
+	upgradeFS := fstest.MapFS{
+		latestSchemaFileName: {Data: []byte("-- existing schema")},
+		incrementalPath:      {Data: incremental},
+	}
+	if err := migrateSchemaFS(ctx, db, upgradeFS); err != nil {
+		t.Fatalf("MigrateSchema (Organization Tenancy upgrade): %v", err)
+	}
+	for _, table := range []string{
+		"organizations",
+		"workspaces",
+		"organization_memberships",
+	} {
+		if !tableExistsQ(t, db, table) {
+			t.Fatalf("Organization Tenancy upgrade did not recreate %s", table)
+		}
+	}
+	assertHistoryVersions(t, db, "1.1.27", "1.1.28")
+}
+
 // --- helpers ---
 
 func tableExistsQ(t *testing.T, db *sql.DB, table string) bool {

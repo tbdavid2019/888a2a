@@ -14,6 +14,7 @@ import { ApiProviderService } from "@/types/proto-es/v1/api_provider_service_pb"
 import { McpServerService } from "@/types/proto-es/v1/mcp_pb";
 import { AuditLogService } from "@/types/proto-es/v1/audit_log_service_pb";
 import { NotificationService } from "@/types/proto-es/v1/notification_pb";
+import { OrganizationService } from "@/types/proto-es/a2a888/organization_pb";
 import { IdentityProviderService } from "@/types/proto-es/v1/idp_service_pb";
 import { createAuthInterceptor } from "./auth-interceptor";
 
@@ -95,5 +96,10 @@ export const notificationServiceClient = createClient(
 
 export const identityProviderServiceClient = createClient(
   IdentityProviderService,
+  transport
+);
+
+export const organizationServiceClient = createClient(
+  OrganizationService,
   transport
 );

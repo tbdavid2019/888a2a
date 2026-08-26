@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/Ranxy/laelia/backend/common"
 	v1pb "github.com/Ranxy/laelia/backend/generated-go/v1"
 	"github.com/Ranxy/laelia/backend/manager/component/s3client"
 	"github.com/Ranxy/laelia/backend/manager/store"
@@ -96,11 +97,15 @@ func (s *CommandService) UploadFileStream(ctx context.Context, in *UploadFileStr
 		uploaderPrincipalID = in.User.ID
 	}
 
+	orgID, _ := common.GetOrganizationIDFromContext(ctx)
+	fileID := uuid.New()
 	fileRow := &store.File{
+		ID:                  fileID,
 		UploaderPrincipalID: uploaderPrincipalID,
 		OriginalName:        in.OriginalName,
 		MimeType:            in.MimeType,
 		SizeBytes:           in.SizeBytes,
+		S3Key:               s3client.TenantObjectKey(orgID, "files/"+fileID.String()+"/"+in.OriginalName),
 	}
 	if in.Conversation != "" {
 		convID, err := parseConversationID(in.Conversation)

@@ -826,6 +826,8 @@ export interface OrganizationSlice {
   setOrganizations: (orgs: Organization[]) => void;
   setWorkspaces: (workspaces: Workspace[]) => void;
   setMemberships: (memberships: OrganizationMembership[]) => void;
+  fetchOrganizations: () => Promise<void>;
+  switchOrganization: (orgId: string) => Promise<void>;
 }
 
 export type AppStoreState = AuthSlice &

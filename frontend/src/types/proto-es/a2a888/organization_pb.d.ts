@@ -2,7 +2,7 @@
 // @generated from file a2a888/organization.proto (package a2a888.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 
@@ -214,6 +214,177 @@ export declare type TenantPrincipal = Message<"a2a888.v1.TenantPrincipal"> & {
 export declare const TenantPrincipalSchema: GenMessage<TenantPrincipal>;
 
 /**
+ * @generated from message a2a888.v1.ListOrganizationsRequest
+ */
+export declare type ListOrganizationsRequest = Message<"a2a888.v1.ListOrganizationsRequest"> & {
+};
+
+/**
+ * Describes the message a2a888.v1.ListOrganizationsRequest.
+ * Use `create(ListOrganizationsRequestSchema)` to create a new message.
+ */
+export declare const ListOrganizationsRequestSchema: GenMessage<ListOrganizationsRequest>;
+
+/**
+ * @generated from message a2a888.v1.ListOrganizationsResponse
+ */
+export declare type ListOrganizationsResponse = Message<"a2a888.v1.ListOrganizationsResponse"> & {
+  /**
+   * @generated from field: repeated a2a888.v1.Organization organizations = 1;
+   */
+  organizations: Organization[];
+
+  /**
+   * @generated from field: string active_organization_id = 2;
+   */
+  activeOrganizationId: string;
+};
+
+/**
+ * Describes the message a2a888.v1.ListOrganizationsResponse.
+ * Use `create(ListOrganizationsResponseSchema)` to create a new message.
+ */
+export declare const ListOrganizationsResponseSchema: GenMessage<ListOrganizationsResponse>;
+
+/**
+ * @generated from message a2a888.v1.GetOrganizationRequest
+ */
+export declare type GetOrganizationRequest = Message<"a2a888.v1.GetOrganizationRequest"> & {
+  /**
+   * @generated from field: string organization_id = 1;
+   */
+  organizationId: string;
+};
+
+/**
+ * Describes the message a2a888.v1.GetOrganizationRequest.
+ * Use `create(GetOrganizationRequestSchema)` to create a new message.
+ */
+export declare const GetOrganizationRequestSchema: GenMessage<GetOrganizationRequest>;
+
+/**
+ * @generated from message a2a888.v1.GetOrganizationResponse
+ */
+export declare type GetOrganizationResponse = Message<"a2a888.v1.GetOrganizationResponse"> & {
+  /**
+   * @generated from field: a2a888.v1.Organization organization = 1;
+   */
+  organization?: Organization | undefined;
+
+  /**
+   * @generated from field: a2a888.v1.OrganizationMembership current_membership = 2;
+   */
+  currentMembership?: OrganizationMembership | undefined;
+};
+
+/**
+ * Describes the message a2a888.v1.GetOrganizationResponse.
+ * Use `create(GetOrganizationResponseSchema)` to create a new message.
+ */
+export declare const GetOrganizationResponseSchema: GenMessage<GetOrganizationResponse>;
+
+/**
+ * @generated from message a2a888.v1.SwitchOrganizationRequest
+ */
+export declare type SwitchOrganizationRequest = Message<"a2a888.v1.SwitchOrganizationRequest"> & {
+  /**
+   * @generated from field: string organization_id = 1;
+   */
+  organizationId: string;
+};
+
+/**
+ * Describes the message a2a888.v1.SwitchOrganizationRequest.
+ * Use `create(SwitchOrganizationRequestSchema)` to create a new message.
+ */
+export declare const SwitchOrganizationRequestSchema: GenMessage<SwitchOrganizationRequest>;
+
+/**
+ * @generated from message a2a888.v1.SwitchOrganizationResponse
+ */
+export declare type SwitchOrganizationResponse = Message<"a2a888.v1.SwitchOrganizationResponse"> & {
+  /**
+   * @generated from field: a2a888.v1.Organization organization = 1;
+   */
+  organization?: Organization | undefined;
+
+  /**
+   * @generated from field: a2a888.v1.OrganizationMembership membership = 2;
+   */
+  membership?: OrganizationMembership | undefined;
+};
+
+/**
+ * Describes the message a2a888.v1.SwitchOrganizationResponse.
+ * Use `create(SwitchOrganizationResponseSchema)` to create a new message.
+ */
+export declare const SwitchOrganizationResponseSchema: GenMessage<SwitchOrganizationResponse>;
+
+/**
+ * @generated from message a2a888.v1.ListWorkspacesRequest
+ */
+export declare type ListWorkspacesRequest = Message<"a2a888.v1.ListWorkspacesRequest"> & {
+  /**
+   * @generated from field: string organization_id = 1;
+   */
+  organizationId: string;
+};
+
+/**
+ * Describes the message a2a888.v1.ListWorkspacesRequest.
+ * Use `create(ListWorkspacesRequestSchema)` to create a new message.
+ */
+export declare const ListWorkspacesRequestSchema: GenMessage<ListWorkspacesRequest>;
+
+/**
+ * @generated from message a2a888.v1.ListWorkspacesResponse
+ */
+export declare type ListWorkspacesResponse = Message<"a2a888.v1.ListWorkspacesResponse"> & {
+  /**
+   * @generated from field: repeated a2a888.v1.Workspace workspaces = 1;
+   */
+  workspaces: Workspace[];
+};
+
+/**
+ * Describes the message a2a888.v1.ListWorkspacesResponse.
+ * Use `create(ListWorkspacesResponseSchema)` to create a new message.
+ */
+export declare const ListWorkspacesResponseSchema: GenMessage<ListWorkspacesResponse>;
+
+/**
+ * @generated from message a2a888.v1.ListMembershipsRequest
+ */
+export declare type ListMembershipsRequest = Message<"a2a888.v1.ListMembershipsRequest"> & {
+  /**
+   * @generated from field: string organization_id = 1;
+   */
+  organizationId: string;
+};
+
+/**
+ * Describes the message a2a888.v1.ListMembershipsRequest.
+ * Use `create(ListMembershipsRequestSchema)` to create a new message.
+ */
+export declare const ListMembershipsRequestSchema: GenMessage<ListMembershipsRequest>;
+
+/**
+ * @generated from message a2a888.v1.ListMembershipsResponse
+ */
+export declare type ListMembershipsResponse = Message<"a2a888.v1.ListMembershipsResponse"> & {
+  /**
+   * @generated from field: repeated a2a888.v1.OrganizationMembership memberships = 1;
+   */
+  memberships: OrganizationMembership[];
+};
+
+/**
+ * Describes the message a2a888.v1.ListMembershipsResponse.
+ * Use `create(ListMembershipsResponseSchema)` to create a new message.
+ */
+export declare const ListMembershipsResponseSchema: GenMessage<ListMembershipsResponse>;
+
+/**
  * OrganizationState represents the operational lifecycle state of an Organization.
  *
  * @generated from enum a2a888.v1.OrganizationState
@@ -350,4 +521,50 @@ export enum TenantPrincipalType {
  * Describes the enum a2a888.v1.TenantPrincipalType.
  */
 export declare const TenantPrincipalTypeSchema: GenEnum<TenantPrincipalType>;
+
+/**
+ * @generated from service a2a888.v1.OrganizationService
+ */
+export declare const OrganizationService: GenService<{
+  /**
+   * @generated from rpc a2a888.v1.OrganizationService.ListOrganizations
+   */
+  listOrganizations: {
+    methodKind: "unary";
+    input: typeof ListOrganizationsRequestSchema;
+    output: typeof ListOrganizationsResponseSchema;
+  },
+  /**
+   * @generated from rpc a2a888.v1.OrganizationService.GetOrganization
+   */
+  getOrganization: {
+    methodKind: "unary";
+    input: typeof GetOrganizationRequestSchema;
+    output: typeof GetOrganizationResponseSchema;
+  },
+  /**
+   * @generated from rpc a2a888.v1.OrganizationService.SwitchOrganization
+   */
+  switchOrganization: {
+    methodKind: "unary";
+    input: typeof SwitchOrganizationRequestSchema;
+    output: typeof SwitchOrganizationResponseSchema;
+  },
+  /**
+   * @generated from rpc a2a888.v1.OrganizationService.ListWorkspaces
+   */
+  listWorkspaces: {
+    methodKind: "unary";
+    input: typeof ListWorkspacesRequestSchema;
+    output: typeof ListWorkspacesResponseSchema;
+  },
+  /**
+   * @generated from rpc a2a888.v1.OrganizationService.ListMemberships
+   */
+  listMemberships: {
+    methodKind: "unary";
+    input: typeof ListMembershipsRequestSchema;
+    output: typeof ListMembershipsResponseSchema;
+  },
+}>;
 

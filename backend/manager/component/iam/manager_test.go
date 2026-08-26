@@ -6,6 +6,7 @@ import (
 
 	"github.com/Ranxy/laelia/backend/common"
 	"github.com/Ranxy/laelia/backend/common/permission"
+	models "github.com/Ranxy/laelia/backend/generated-go/store"
 	"github.com/Ranxy/laelia/backend/manager/store"
 )
 
@@ -174,5 +175,18 @@ func TestCheckTenantPermission_EmptyInputs(t *testing.T) {
 	allowed, err = m.CheckOrganizationActive(ctx, "")
 	if err != nil || allowed {
 		t.Errorf("CheckOrganizationActive with empty orgID = (%v, %v); want (false, nil)", allowed, err)
+	}
+}
+
+func TestCheckResourceTenantRejectsMalformedResourceWithoutStore(t *testing.T) {
+	m := newManagerWithoutStore()
+	ctx := common.SetOrganizationIDToContext(context.Background(), "org-1")
+
+	allowed, err := m.checkResourceTenant(ctx, &ResourceRef{
+		ResourceType: models.Policy_AGENT,
+		Name:         "not-an-agent-resource",
+	})
+	if err != nil || allowed {
+		t.Fatalf("malformed resource tenant check = (%v, %v), want (false, nil)", allowed, err)
 	}
 }

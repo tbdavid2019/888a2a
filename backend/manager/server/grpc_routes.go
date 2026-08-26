@@ -13,6 +13,7 @@ import (
 	"github.com/Ranxy/laelia/backend/common"
 	"github.com/Ranxy/laelia/backend/common/log"
 	"github.com/Ranxy/laelia/backend/common/stacktrace"
+	a2a888connect "github.com/Ranxy/laelia/backend/generated-go/a2a888/a2a888connect"
 	"github.com/Ranxy/laelia/backend/generated-go/v1/v1connect"
 	"github.com/Ranxy/laelia/backend/manager/api/auth"
 	apiv1 "github.com/Ranxy/laelia/backend/manager/api/v1"
@@ -76,6 +77,7 @@ func configureV1Routers(
 	mcpGatewayService := apiv1.NewMcpGatewayService(stores, iamManager)
 	auditLogService := apiv1.NewAuditLogService(stores)
 	identityProviderService := apiv1.NewIdentityProviderService(stores)
+	organizationService := apiv1.NewOrganizationService(stores, iamManager)
 
 	// Web Push: load the auto-generated VAPID keypair from the setting table
 	// (initializeSetting guarantees a row exists by this point) and build the
@@ -173,6 +175,8 @@ func configureV1Routers(
 	connectHandlers[notificationPath] = notificationHandler
 	identityProviderPath, identityProviderHandler := v1connect.NewIdentityProviderServiceHandler(identityProviderService, handlerOpts)
 	connectHandlers[identityProviderPath] = identityProviderHandler
+	organizationPath, organizationHandler := a2a888connect.NewOrganizationServiceHandler(organizationService, handlerOpts)
+	connectHandlers[organizationPath] = organizationHandler
 
 	// gRPC reflection is a dev-only convenience: it lets unauthenticated
 	// callers enumerate every RPC, message shape, and permission annotation,

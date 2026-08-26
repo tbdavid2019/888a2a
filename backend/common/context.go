@@ -20,6 +20,7 @@ const (
 	SessionContextKey
 	SourceIPContextKey
 	AccessTokenExpiresAtContextKey
+	OrganizationContextKey
 )
 
 type AuthMethod int
@@ -100,4 +101,13 @@ func GetSourceIPFromContext(ctx context.Context) (string, bool) {
 func GetAccessTokenExpiresAtFromContext(ctx context.Context) (int64, bool) {
 	exp, ok := ctx.Value(AccessTokenExpiresAtContextKey).(int64)
 	return exp, ok
+}
+
+func GetOrganizationIDFromContext(ctx context.Context) (string, bool) {
+	orgID, ok := ctx.Value(OrganizationContextKey).(string)
+	return orgID, ok
+}
+
+func SetOrganizationIDToContext(ctx context.Context, orgID string) context.Context {
+	return context.WithValue(ctx, OrganizationContextKey, orgID)
 }

@@ -160,3 +160,15 @@ func boolStr(b bool) string {
 	}
 	return "0"
 }
+
+// TenantObjectKey prefixes an S3 object key with the organization ID ensuring tenant-isolated storage buckets.
+func TenantObjectKey(orgID string, rawKey string) string {
+	if orgID == "" {
+		orgID = "default"
+	}
+	rawKey = strings.TrimPrefix(rawKey, "/")
+	if strings.HasPrefix(rawKey, orgID+"/") {
+		return rawKey
+	}
+	return orgID + "/" + rawKey
+}

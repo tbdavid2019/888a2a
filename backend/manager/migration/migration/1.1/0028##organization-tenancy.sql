@@ -66,15 +66,35 @@ ON CONFLICT (organization_id, principal_id) DO NOTHING;
 ALTER TABLE principal ADD COLUMN IF NOT EXISTS default_organization_id TEXT DEFAULT 'default' REFERENCES organizations(id);
 
 ALTER TABLE agent ADD COLUMN IF NOT EXISTS organization_id TEXT NOT NULL DEFAULT 'default' REFERENCES organizations(id);
-ALTER TABLE agent ADD COLUMN IF NOT EXISTS workspace_id TEXT DEFAULT 'default';
+ALTER TABLE agent ADD COLUMN IF NOT EXISTS workspace_id TEXT DEFAULT 'default' REFERENCES workspaces(id);
 CREATE INDEX IF NOT EXISTS idx_agent_organization ON agent(organization_id);
+CREATE INDEX IF NOT EXISTS idx_agent_workspace ON agent(workspace_id);
 
 ALTER TABLE machine ADD COLUMN IF NOT EXISTS organization_id TEXT NOT NULL DEFAULT 'default' REFERENCES organizations(id);
 CREATE INDEX IF NOT EXISTS idx_machine_organization ON machine(organization_id);
 
 ALTER TABLE conversation ADD COLUMN IF NOT EXISTS organization_id TEXT NOT NULL DEFAULT 'default' REFERENCES organizations(id);
-ALTER TABLE conversation ADD COLUMN IF NOT EXISTS workspace_id TEXT DEFAULT 'default';
+ALTER TABLE conversation ADD COLUMN IF NOT EXISTS workspace_id TEXT DEFAULT 'default' REFERENCES workspaces(id);
 CREATE INDEX IF NOT EXISTS idx_conversation_organization ON conversation(organization_id);
+CREATE INDEX IF NOT EXISTS idx_conversation_workspace ON conversation(workspace_id);
 
 ALTER TABLE mcp_server ADD COLUMN IF NOT EXISTS organization_id TEXT NOT NULL DEFAULT 'default' REFERENCES organizations(id);
 CREATE INDEX IF NOT EXISTS idx_mcp_server_organization ON mcp_server(organization_id);
+
+ALTER TABLE file ADD COLUMN IF NOT EXISTS organization_id TEXT NOT NULL DEFAULT 'default' REFERENCES organizations(id);
+CREATE INDEX IF NOT EXISTS idx_file_organization ON file(organization_id);
+
+ALTER TABLE task ADD COLUMN IF NOT EXISTS organization_id TEXT NOT NULL DEFAULT 'default' REFERENCES organizations(id);
+CREATE INDEX IF NOT EXISTS idx_task_organization ON task(organization_id);
+
+ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS organization_id TEXT NOT NULL DEFAULT 'default' REFERENCES organizations(id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_organization ON audit_log(organization_id);
+
+ALTER TABLE api_provider ADD COLUMN IF NOT EXISTS organization_id TEXT NOT NULL DEFAULT 'default' REFERENCES organizations(id);
+CREATE INDEX IF NOT EXISTS idx_api_provider_organization ON api_provider(organization_id);
+
+ALTER TABLE user_group ADD COLUMN IF NOT EXISTS organization_id TEXT NOT NULL DEFAULT 'default' REFERENCES organizations(id);
+CREATE INDEX IF NOT EXISTS idx_user_group_organization ON user_group(organization_id);
+
+ALTER TABLE reminder ADD COLUMN IF NOT EXISTS organization_id TEXT NOT NULL DEFAULT 'default' REFERENCES organizations(id);
+CREATE INDEX IF NOT EXISTS idx_reminder_organization ON reminder(organization_id);

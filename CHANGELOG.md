@@ -2,22 +2,34 @@
 
 All notable changes to 888a2a are documented in this file.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and the project uses [Semantic Versioning](https://semver.org/) for releases.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+This project records changes by calendar date and does not maintain release versions.
 
 ## [2026-08-26]
 
 ### Added
 
 - Added multi-tenant Organization, Workspace, OrganizationMembership, and TenantPrincipal resource contracts in Protobuf (`proto/v1/a2a888/organization.proto`).
-- Added database migration `0028##organization-tenancy.sql` creating `organizations`, `workspaces`, `organization_memberships` tables and seeding default organization boundaries across existing principals, agents, machines, and conversations.
+- Added `OrganizationService` Connect RPC service and handler (`backend/manager/api/v1/organization_service.go`) supporting `ListOrganizations`, `GetOrganization` (with indistinguishable denial against tenant probing), `SwitchOrganization`, `ListWorkspaces`, and `ListMemberships`.
+- Added request header tenant resolution (`X-Organization-ID`, `X-Tenant-ID`) in auth interceptor (`backend/manager/api/auth/auth.go`), injecting active tenant context to all downstream RPCs.
+- Enforced strict Agent tenant isolation and active owner verification in IAM evaluator (`backend/manager/component/iam/manager.go`).
+- Wired `TenantObjectKey` S3 prefix isolation to production upload handlers (`channel_file_service.go`, `user_avatar_service.go`, `agent_avatar_service.go`).
+- Added database migration `0028##organization-tenancy.sql` and `LATEST.sql` creating `organizations`, `workspaces`, `organization_memberships` tables, and adding foreign key indexes and `organization_id` columns across `file`, `task`, `audit_log`, `api_provider`, `user_group`, and `reminder`.
 - Added Go `OrganizationStore` (`backend/manager/store/organization.go`) providing transactional organization CRUD, slug lookup, workspace management, membership queries, and comprehensive unit tests.
-- Added tenant-aware IAM permission evaluator (`CheckTenantPermission`, `CheckOrganizationActive`) in `backend/manager/component/iam/manager.go` enforcing lifecycle states and role boundaries.
+- Added tenant-aware IAM permission evaluator (`CheckTenantPermission`, `CheckOrganizationActive`) in `backend/manager/component/iam/manager.go` enforcing lifecycle states and role boundaries (strictly rejecting `INVITED` and `SUSPENDED` memberships).
+- Added frontend `OrgSwitcher` component mounted into `DesktopSidebar` and `MobileSidebar` navigation (`frontend/src/components/sidebar.tsx`) with active tenant switching, suspended banner, and cache clearing on tenant switch.
 - Added frontend `OrganizationSlice` (`frontend/src/stores/organization.ts`) with active organization selection, membership state tracking, and unit tests.
 
 ### Changed
 
 - Synchronized OpenSpec main specifications (`a2a-agent-network`, `agent-network-safety`, `agent-runtime-foundation`, `product-identity-migration`) and archived completed change `build-888a2a-agent-network-foundation`.
+
+### Fixed
+
+- Loaded the persisted default Organization, Agent tenant, workspace, and Machine tenant fields into runtime models before authorization and tenant-aware object-key generation.
+- Added resource-level Organization checks for Agent, Machine, Conversation, File, Command, and Reminder IAM targets.
+- Restricted Organization membership listing to active owners and admins, and rejected unknown active-organization candidates.
+- Revalidated Organization task progress so only evidence-backed work remains checked in OpenSpec.
 
 ### Removed
 

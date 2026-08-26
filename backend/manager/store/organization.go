@@ -369,10 +369,26 @@ func (s *OrganizationStore) SetDefaultOrganizationForPrincipal(ctx context.Conte
 		UPDATE principal
 		SET default_organization_id = $1
 		WHERE id = $2
+		  AND EXISTS (
+			SELECT 1
+			FROM organization_memberships m
+			JOIN organizations o ON o.id = m.organization_id
+			WHERE m.organization_id = $1
+			  AND m.principal_id = $2
+			  AND m.state = 'ACTIVE'
+			  AND o.state <> 'CLOSED'
+		  )
 	`
-	_, err := s.db.ExecContext(ctx, query, orgID, principalID)
+	result, err := s.db.ExecContext(ctx, query, orgID, principalID)
 	if err != nil {
 		return errors.Wrap(err, "failed to set default organization for principal")
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "failed to get affected principal rows")
+	}
+	if rows == 0 {
+		return ErrMembershipNotFound
 	}
 	return nil
 }
@@ -416,6 +432,48 @@ func (s *OrganizationStore) ListOrganizationsForPrincipal(ctx context.Context, p
 		})
 	}
 	return orgs, rows.Err()
+}
+
+// ListMemberships retrieves all memberships belonging to an organization.
+func (s *OrganizationStore) ListMemberships(ctx context.Context, orgID string) ([]*a2a888.OrganizationMembership, error) {
+	if orgID == "" {
+		return nil, errors.New("organization id is required")
+	}
+
+	query := `
+		SELECT organization_id, principal_id, role, state, workspace_ids, created_at, updated_at
+		FROM organization_memberships
+		WHERE organization_id = $1
+		ORDER BY created_at ASC
+	`
+	rows, err := s.db.QueryContext(ctx, query, orgID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query memberships")
+	}
+	defer rows.Close()
+
+	var memberships []*a2a888.OrganizationMembership
+	for rows.Next() {
+		var (
+			resOrgID, resRole, resState string
+			resPrincipalID              int
+			resWorkspaceIDs             []string
+			resCreatedAt, resUpdatedAt  time.Time
+		)
+		if err := rows.Scan(&resOrgID, &resPrincipalID, &resRole, &resState, pq.Array(&resWorkspaceIDs), &resCreatedAt, &resUpdatedAt); err != nil {
+			return nil, errors.Wrap(err, "failed to scan membership")
+		}
+		memberships = append(memberships, &a2a888.OrganizationMembership{
+			OrganizationId: resOrgID,
+			PrincipalId:    fmt.Sprintf("%d", resPrincipalID),
+			Role:           parseOrgRole(resRole),
+			State:          parseMembershipState(resState),
+			WorkspaceIds:   resWorkspaceIDs,
+			CreatedAt:      timestamppb.New(resCreatedAt),
+			UpdatedAt:      timestamppb.New(resUpdatedAt),
+		})
+	}
+	return memberships, rows.Err()
 }
 
 func parseOrgState(s string) a2a888.OrganizationState {

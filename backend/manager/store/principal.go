@@ -97,6 +97,8 @@ type UserMessage struct {
 	// SSO login vouches for the address. Nil means the account cannot sign in
 	// with a password yet.
 	EmailVerifiedAt *time.Time
+	// DefaultOrganizationID records the active or default organization for the user.
+	DefaultOrganizationID string
 }
 
 // GetResourceID returns the stable per-user resource name used to key
@@ -408,7 +410,8 @@ func buildListUsersQuery(find *FindUserMessage) (string, []any) {
 		principal.description,
 		principal.avatar_s3_key,
 		principal.chat_preferences,
-		principal.email_verified_at
+		principal.email_verified_at,
+		principal.default_organization_id
 	FROM principal
 	INNER JOIN user_groups ON principal.id = user_groups.user_id
 	` + join + ` WHERE ` + strings.Join(where, " AND ") + ` ORDER BY type DESC, created_at ASC`
@@ -438,6 +441,7 @@ func listUserImpl(ctx context.Context, txn *sql.Tx, find *FindUserMessage) ([]*U
 		var typeString string
 		var groups pq.StringArray
 		var emailVerifiedAt sql.NullTime
+		var defaultOrganizationID sql.NullString
 		if err := rows.Scan(
 			&userMessage.ID,
 			&userMessage.MemberDeleted,
@@ -454,11 +458,15 @@ func listUserImpl(ctx context.Context, txn *sql.Tx, find *FindUserMessage) ([]*U
 			&userMessage.AvatarS3Key,
 			&chatPrefBytes,
 			&emailVerifiedAt,
+			&defaultOrganizationID,
 		); err != nil {
 			return nil, err
 		}
 		if emailVerifiedAt.Valid {
 			userMessage.EmailVerifiedAt = &emailVerifiedAt.Time
+		}
+		if defaultOrganizationID.Valid {
+			userMessage.DefaultOrganizationID = defaultOrganizationID.String
 		}
 		userMessage.Groups = []string(groups)
 		if typeValue, ok := models.PrincipalType_value[typeString]; ok {

@@ -64,9 +64,14 @@ func (s *AgentService) UploadAgentAvatar(ctx context.Context, req *connect.Reque
 		return nil, connect.NewError(connect.CodeNotFound, errors.Errorf("agent %s not found", resourceID))
 	}
 
+	orgID, _ := common.GetOrganizationIDFromContext(ctx)
+	if orgID == "" && agent.OrganizationID != "" {
+		orgID = agent.OrganizationID
+	}
 	hash := sha256.Sum256(req.Msg.Data)
 	contentHash := hex.EncodeToString(hash[:])
-	newKey := agentAvatarS3KeyPrefix + resourceID + "/" + contentHash + "." + ext
+	rawKey := agentAvatarS3KeyPrefix + resourceID + "/" + contentHash + "." + ext
+	newKey := s3client.TenantObjectKey(orgID, rawKey)
 
 	if _, err := s3Cli.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:        aws.String(cfg.Bucket),

@@ -282,3 +282,51 @@ func TestA2AWorkPersistencePresent(t *testing.T) {
 		t.Fatal("LATEST.sql A2A work DDL is out of sync with the incremental migration")
 	}
 }
+
+// TestOrganizationTenancySchemaPresent verifies the multi-tenant schema in both
+// LATEST.sql (fresh installs) and 0028##organization-tenancy.sql (upgrades).
+func TestOrganizationTenancySchemaPresent(t *testing.T) {
+	latest := latestSQL(t)
+	incBytes, err := os.ReadFile("migration/1.1/0028##organization-tenancy.sql")
+	if err != nil {
+		t.Fatalf("read 0028##organization-tenancy.sql: %v", err)
+	}
+	incremental := string(incBytes)
+
+	for _, want := range []string{
+		"CREATE TABLE IF NOT EXISTS organizations",
+		"CREATE TABLE IF NOT EXISTS workspaces",
+		"CREATE TABLE IF NOT EXISTS organization_memberships",
+		"idx_organizations_slug",
+		"idx_workspaces_organization",
+		"idx_org_memberships_principal",
+		"organizations_state_check CHECK (state IN ('ACTIVE', 'SUSPENDED', 'CLOSED'))",
+		"org_memberships_role_check CHECK (role IN ('OWNER', 'ADMIN', 'MEMBER', 'GUEST'))",
+		"org_memberships_state_check CHECK (state IN ('ACTIVE', 'SUSPENDED', 'INVITED'))",
+		"idx_agent_organization",
+		"idx_agent_workspace",
+		"idx_machine_organization",
+		"idx_conversation_organization",
+		"idx_conversation_workspace",
+		"idx_mcp_server_organization",
+		"idx_file_organization",
+		"idx_task_organization",
+		"idx_audit_log_organization",
+		"idx_api_provider_organization",
+		"idx_user_group_organization",
+		"idx_reminder_organization",
+		"REFERENCES organizations(id)",
+		"REFERENCES workspaces(id)",
+	} {
+		if !strings.Contains(latest, want) {
+			t.Errorf("LATEST.sql missing Organization tenancy contract %q", want)
+		}
+		if !strings.Contains(incremental, want) {
+			t.Errorf("incremental migration missing Organization tenancy contract %q", want)
+		}
+	}
+
+	if strings.Contains(incremental, "DROP TABLE") || strings.Contains(incremental, "TRUNCATE") {
+		t.Fatal("Organization tenancy upgrade migration must be additive")
+	}
+}

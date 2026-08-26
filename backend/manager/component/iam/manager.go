@@ -11,6 +11,7 @@ package iam
 
 import (
 	"context"
+	"database/sql"
 	"log/slog"
 	"slices"
 	"strings"
@@ -62,16 +63,73 @@ func NewManager(stores *store.Store) *Manager {
 //
 // When resource is non-nil (Phase 2), the caller's permissions from that
 // resource's IAM policy are consulted as well.
-//
-//nolint:revive // agent is consulted by per-resource binding checks in Phase 2.
 func (m *Manager) CheckPermission(ctx context.Context, perm permission.Permission, user *store.UserMessage, agent *store.AgentMessage, resource *ResourceRef) (bool, error) {
+	// If store is available, evaluate tenant-scoped access first
+	if m != nil && m.store != nil {
+		orgID, ok := common.GetOrganizationIDFromContext(ctx)
+		if !ok || orgID == "" {
+			if user != nil && user.DefaultOrganizationID != "" {
+				orgID = user.DefaultOrganizationID
+			} else {
+				orgID = "default"
+			}
+		}
+
+		// 1. Organization lifecycle check
+		active, err := m.CheckOrganizationActive(ctx, orgID)
+		if err != nil {
+			return false, err
+		}
+		if !active {
+			return false, nil
+		}
+
+		// 2. Membership status check for human users
+		if user != nil {
+			tenantAllowed, err := m.CheckTenantPermission(ctx, orgID, perm, user.ID)
+			if err != nil {
+				return false, err
+			}
+			if !tenantAllowed {
+				return false, nil
+			}
+		}
+
+		// 3. Tenant boundary check for agents
+		if agent != nil {
+			if agent.Deleted || !agent.Enabled {
+				return false, nil
+			}
+			if agent.OrganizationID != "" && agent.OrganizationID != orgID {
+				return false, nil
+			}
+			if agent.OwnerID > 0 {
+				orgStore := store.NewOrganizationStore(m.store.GetDB())
+				ownerMembership, err := orgStore.GetMembership(ctx, orgID, agent.OwnerID)
+				if err != nil || ownerMembership.State != a2a888.MembershipState_MEMBERSHIP_STATE_ACTIVE {
+					return false, nil
+				}
+			}
+		}
+
+		if resource != nil {
+			resourceAllowed, err := m.checkResourceTenant(ctx, resource)
+			if err != nil {
+				return false, err
+			}
+			if !resourceAllowed {
+				return false, nil
+			}
+		}
+	}
+
 	// Baseline: every authenticated principal gets roles/workspaceMember (the
 	// implicit allUsers->workspaceMember binding of the single-workspace model).
 	if store.GetPredefinedRole(store.WorkspaceMemberRole).Permissions[perm] {
 		return true, nil
 	}
 
-	if user != nil {
+	if user != nil && m.store != nil {
 		workspacePolicy, err := m.store.GetWorkspaceIamPolicy(ctx)
 		if err != nil {
 			return false, err
@@ -139,6 +197,79 @@ func (m *Manager) checkResourcePermission(ctx context.Context, perm permission.P
 	default:
 		return false, nil
 	}
+}
+
+// checkResourceTenant prevents a caller from using a resource IAM policy in a
+// different organization. IAM policy names are globally shaped, but the
+// backing resources are tenant-owned and must be checked before policy lookup.
+func (m *Manager) checkResourceTenant(ctx context.Context, resource *ResourceRef) (bool, error) {
+	if m == nil || m.store == nil || resource == nil {
+		return false, nil
+	}
+	orgID, ok := common.GetOrganizationIDFromContext(ctx)
+	if !ok || orgID == "" {
+		return false, nil
+	}
+
+	var query string
+	var arg any
+	switch resource.ResourceType {
+	case models.Policy_AGENT:
+		resourceID, err := common.GetAgentResourceID(resource.Name)
+		if err != nil {
+			return false, nil
+		}
+		query, arg = "SELECT organization_id FROM agent WHERE resource_id = $1", resourceID
+	case models.Policy_MACHINE:
+		resourceID, err := common.GetMachineResourceID(resource.Name)
+		if err != nil {
+			return false, nil
+		}
+		query, arg = "SELECT organization_id FROM machine WHERE resource_id = $1", resourceID
+	case models.Policy_CONVERSATION:
+		conversationID, err := common.GetConversationResourceID(resource.Name)
+		if err != nil {
+			return false, nil
+		}
+		id, err := uuid.Parse(conversationID)
+		if err != nil {
+			return false, nil
+		}
+		query, arg = "SELECT organization_id FROM conversation WHERE id = $1", id
+	case models.Policy_FILE:
+		fileID := strings.TrimPrefix(resource.Name, "files/")
+		id, err := uuid.Parse(fileID)
+		if err != nil {
+			return false, nil
+		}
+		query, arg = "SELECT organization_id FROM file WHERE id = $1", id
+	case models.Policy_COMMAND:
+		parts := strings.Split(resource.Name, "/")
+		if len(parts) < 4 || parts[0] != "agents" || parts[2] != "commands" {
+			return false, nil
+		}
+		query, arg = "SELECT organization_id FROM agent WHERE resource_id = $1", parts[1]
+	case models.Policy_REMINDER:
+		reminderID := strings.TrimPrefix(resource.Name, "reminders/")
+		id, err := uuid.Parse(reminderID)
+		if err != nil {
+			return false, nil
+		}
+		query, arg = "SELECT organization_id FROM reminder WHERE message_id = $1", id
+	default:
+		// The remaining policy types do not expose tenant-owned objects here.
+		return true, nil
+	}
+
+	var resourceOrg string
+	err := m.store.GetDB().QueryRowContext(ctx, query, arg).Scan(&resourceOrg)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, errors.Wrap(err, "failed to resolve resource organization")
+	}
+	return resourceOrg == orgID, nil
 }
 
 // checkConversationPermission authorizes a conversation-scoped permission via
@@ -432,7 +563,7 @@ func (m *Manager) CheckTenantPermission(ctx context.Context, orgID string, perm 
 		}
 		return false, err
 	}
-	if membership.State == a2a888.MembershipState_MEMBERSHIP_STATE_SUSPENDED {
+	if membership.State != a2a888.MembershipState_MEMBERSHIP_STATE_ACTIVE {
 		return false, nil
 	}
 

@@ -1,7 +1,13 @@
+import { create } from "@bufbuild/protobuf";
+import { organizationServiceClient } from "@/connect";
 import type {
   Organization,
   OrganizationMembership,
   Workspace,
+} from "@/types/proto-es/a2a888/organization_pb";
+import {
+  ListOrganizationsRequestSchema,
+  SwitchOrganizationRequestSchema,
 } from "@/types/proto-es/a2a888/organization_pb";
 import type { AppSliceCreator, OrganizationSlice } from "./types";
 
@@ -27,5 +33,34 @@ export const createOrganizationSlice: AppSliceCreator<OrganizationSlice> = (
 
   setMemberships: (memberships: OrganizationMembership[]) => {
     set({ memberships });
+  },
+
+  fetchOrganizations: async () => {
+    try {
+      const res = await organizationServiceClient.listOrganizations(
+        create(ListOrganizationsRequestSchema, {})
+      );
+      set({
+        organizations: res.organizations,
+        currentOrganizationId: res.activeOrganizationId || "default",
+      });
+    } catch {
+      // Graceful fallback for non-auth or single-tenant mode
+    }
+  },
+
+  switchOrganization: async (orgId: string) => {
+    const res = await organizationServiceClient.switchOrganization(
+      create(SwitchOrganizationRequestSchema, { organizationId: orgId })
+    );
+    if (res.organization) {
+      set({
+        currentOrganizationId: orgId,
+        channels: [],
+        agents: [],
+        chatMessages: {},
+        threadByRoot: {},
+      });
+    }
   },
 });

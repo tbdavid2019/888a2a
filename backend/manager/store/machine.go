@@ -34,6 +34,8 @@ type MachineMessage struct {
 	// AvatarS3Key is the S3 object key of the machine's uploaded avatar image,
 	// empty when the machine has not uploaded one.
 	AvatarS3Key string
+	// OrganizationID is the tenant boundary for the machine.
+	OrganizationID string
 }
 
 // GetResourceID returns the machine's resource name, used to key context-derived
@@ -174,7 +176,8 @@ func listMachineImpl(ctx context.Context, txn *sql.Tx, find *FindMachineMessage)
 			machine.status,
 			machine.last_token_rotated_at,
 			machine.created_by,
-			machine.avatar_s3_key
+			machine.avatar_s3_key,
+			machine.organization_id
 		FROM machine
 		WHERE ` + strings.Join(where, " AND ") + ` ORDER BY machine.created_at ASC`
 
@@ -208,6 +211,7 @@ func listMachineImpl(ctx context.Context, txn *sql.Tx, find *FindMachineMessage)
 			&lastTokenRotatedAt,
 			&machineMessage.CreatedBy,
 			&machineMessage.AvatarS3Key,
+			&machineMessage.OrganizationID,
 		); err != nil {
 			return nil, err
 		}

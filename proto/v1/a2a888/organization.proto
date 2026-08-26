@@ -85,3 +85,52 @@ message TenantPrincipal {
   bool is_suspended = 8;
   string current_workspace_id = 9;
 }
+
+service OrganizationService {
+  rpc ListOrganizations(ListOrganizationsRequest) returns (ListOrganizationsResponse);
+  rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse);
+  rpc SwitchOrganization(SwitchOrganizationRequest) returns (SwitchOrganizationResponse);
+  rpc ListWorkspaces(ListWorkspacesRequest) returns (ListWorkspacesResponse);
+  rpc ListMemberships(ListMembershipsRequest) returns (ListMembershipsResponse);
+}
+
+message ListOrganizationsRequest {}
+
+message ListOrganizationsResponse {
+  repeated Organization organizations = 1;
+  string active_organization_id = 2;
+}
+
+message GetOrganizationRequest {
+  string organization_id = 1;
+}
+
+message GetOrganizationResponse {
+  Organization organization = 1;
+  OrganizationMembership current_membership = 2;
+}
+
+message SwitchOrganizationRequest {
+  string organization_id = 1;
+}
+
+message SwitchOrganizationResponse {
+  Organization organization = 1;
+  OrganizationMembership membership = 2;
+}
+
+message ListWorkspacesRequest {
+  string organization_id = 1;
+}
+
+message ListWorkspacesResponse {
+  repeated Workspace workspaces = 1;
+}
+
+message ListMembershipsRequest {
+  string organization_id = 1;
+}
+
+message ListMembershipsResponse {
+  repeated OrganizationMembership memberships = 1;
+}
