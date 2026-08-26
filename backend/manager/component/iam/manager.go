@@ -607,8 +607,8 @@ func (m *Manager) CheckTenantPermission(ctx context.Context, orgID string, perm 
 		FROM organization_group_bindings b
 		JOIN user_group g ON g.id = b.group_id AND g.organization_id = b.organization_id
 		WHERE b.organization_id = $1
-		  AND (b.workspace_id IS NULL OR b.workspace_id = $2)
-		  AND g.payload->'members' @> jsonb_build_array(jsonb_build_object('member', $3))
+		  AND (b.workspace_id IS NULL OR b.workspace_id = $2::text)
+		  AND g.payload->'members' @> jsonb_build_array(jsonb_build_object('member', $3::text))
 	`, orgID, workspaceID, common.FormatUserHandle(handle))
 	if err != nil {
 		return false, errors.Wrap(err, "resolve organization group bindings")

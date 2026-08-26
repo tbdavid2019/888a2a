@@ -54,6 +54,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Fixed
 
+- Fixed PostgreSQL type inference for live Organization group permission checks so workspace-scoped grants resolve correctly on PostgreSQL 16.
 - Fixed a Pi session lifecycle race where a prompt response arriving during process exit could re-mark a reaped session as warm; added regression coverage for cold restart state.
 - Fixed production tenant-header authorization by exposing organization membership lookup on the real Store implementation, and removed legacy procedure literals from auth tests so the naming gate remains green.
 - Added bounded fair tenant queueing and wired per-Organization admission limits into outbox workers.
