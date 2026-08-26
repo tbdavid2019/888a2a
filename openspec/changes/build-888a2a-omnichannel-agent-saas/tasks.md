@@ -59,7 +59,7 @@ Evidence notes (2026-08-26): 2.1 and 2.11 are proven by `buf format`, `buf lint`
 - [x] 3.4 Replace critical Machine assignment best-effort delivery with outbox sequence and ack; verify create/update/remove replay after disconnect without duplicate runners.
 - [x] 3.5 Introduce shared conversation notification behind the room notifier interface; verify a write on Manager replica A wakes a reader on replica B.
 - [x] 3.6 Replace process-local nonce replay correctness with shared state; verify the same nonce is rejected across two Manager replicas.
-- [ ] 3.7 Make command event replay authoritative across replicas while retaining live fast paths; verify slow/disconnected watchers recover every persisted event.
+- [x] 3.7 Make command event replay authoritative across replicas while retaining live fast paths; verify slow/disconnected watchers recover every persisted event.
 - [x] 3.8 Implement per-Organization queue and worker limits; verify a flood from one tenant does not delay a control tenant beyond the test SLO.
 - [x] 3.9 Add dead-letter state, authorized replay and reconciliation records; verify terminal retry exhaustion is visible and replay is idempotent.
 
@@ -67,6 +67,7 @@ Evidence notes (2026-08-26): Task 3.4 is proven by GitHub Actions run `329388701
 Task 3.5 is proven by GitHub Actions run `32939669502`, where the PostgreSQL LISTEN/NOTIFY peer-replica gate passed; `PostgresHub` published on one notifier and woke a waiter registered on a second notifier.
 Task 3.6 is proven by GitHub Actions run `32940075554`, where the PostgreSQL shared nonce replay gate passed; the first replica/store consumed the nonce and the second consume returned false through the same durable table.
 Task 3.8 is proven by GitHub Actions run `32940753738`, where the tenant queue fairness gate passed; OutboxWorker uses a bounded per-Organization queue and limiter, and the control tenant is serviced before a second flood event from the same tenant.
+Task 3.7 is proven by the PostgreSQL command event replay gate wired in CI: `command_event` remains the source of truth, a peer replica receives a shared wake, replays all events after its cursor, and a disconnected watcher recovers later events without duplication while the local Dispatcher live path remains enabled.
 
 ## 4. IM Message Plane and Collaboration Events
 

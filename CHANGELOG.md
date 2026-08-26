@@ -9,6 +9,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Added
 
+- Added a shared PostgreSQL command-event wake hub and replay integration gate; slow or disconnected watchers recover every durable event by sequence while local Dispatcher delivery remains low-latency.
 - Added one PostgreSQL/API Organization tenancy isolation gate covering two-tenant human switching and cache invalidation, service-account audit requester/executor evidence, live group permission changes, indistinguishable cross-tenant denial, tenant key isolation, and suspended/closed write rejection across conversation, connector, A2A, and runtime session paths.
 - Added a gated PostgreSQL assignment integration test covering create/update/remove outbox intents, ordered replay, idempotent re-submit, cumulative ACK, and post-ACK empty replay.
 - Added a dedicated verbose GitHub Actions assignment replay gate so durable Machine delivery evidence is visible in CI logs.
@@ -40,6 +41,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Changed
 
+- Changed command-event watchers to subscribe to shared replica wakeups and replay persisted rows after the last sequence cursor, closing local live-buffer drop and cross-Manager delivery gaps.
 - Routed Organization switching through a Store wrapper that invalidates the authenticated user cache after the persisted default tenant changes.
 - Added active-Organization guards to A2A work/context creation and Agent session creation so suspended or closed tenants cannot create durable work or runtime sessions.
 - Changed command-event watchers to re-read persisted events after subscribing and deduplicate by sequence, closing the historical/live race during reconnect.

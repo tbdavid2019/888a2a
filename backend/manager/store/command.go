@@ -447,6 +447,9 @@ func (s *Store) AppendCommandEvent(ctx context.Context, event *CommandEventMessa
 	if err != nil {
 		return errors.Wrapf(err, "failed to append command event")
 	}
+	if s.commandEventNotifier != nil {
+		s.commandEventNotifier.NotifyCommand(event.CommandID)
+	}
 	return nil
 }
 

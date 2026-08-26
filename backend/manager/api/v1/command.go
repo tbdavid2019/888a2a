@@ -30,6 +30,7 @@ type CommandService struct {
 	s3clientManager *s3client.Client
 	iam             *iam.Manager
 	roomhub         RoomHub
+	commandEventHub CommandEventHub
 }
 
 // RoomHub is the wait/notify boundary used by long-polling conversation
@@ -40,8 +41,21 @@ type RoomHub interface {
 	NotifyConversation(uuid.UUID)
 }
 
+// CommandEventHub is a wake-up boundary for durable command-event replay.
+// Implementations notify locally and across Manager replicas; event rows are
+// always read from PostgreSQL using the watcher's sequence cursor.
+type CommandEventHub interface {
+	Subscribe(commandID uuid.UUID) chan struct{}
+	Unsubscribe(commandID uuid.UUID, ch chan struct{})
+}
+
 func NewCommandService(s *store.Store, d *dispatcher.Dispatcher, s3clientManager *s3client.Client, iamManager *iam.Manager, hub RoomHub) *CommandService {
 	return &CommandService{store: s, dispatcher: d, s3clientManager: s3clientManager, iam: iamManager, roomhub: hub}
+}
+
+// SetCommandEventHub injects the shared durable command-event wake-up source.
+func (s *CommandService) SetCommandEventHub(hub CommandEventHub) {
+	s.commandEventHub = hub
 }
 
 func (s *CommandService) ListCommands(ctx context.Context, req *connect.Request[v1pb.ListCommandsRequest]) (*connect.Response[v1pb.ListCommandsResponse], error) {
@@ -244,6 +258,11 @@ func (s *CommandService) WatchCommandEvents(ctx context.Context, req *connect.Re
 		return connect.NewError(connect.CodeInternal, errors.Wrapf(err, "failed to subscribe command events"))
 	}
 	defer s.dispatcher.UnsubscribeEvents(cmd.ID.String(), ch)
+	var wake chan struct{}
+	if s.commandEventHub != nil {
+		wake = s.commandEventHub.Subscribe(cmd.ID)
+		defer s.commandEventHub.Unsubscribe(cmd.ID, wake)
+	}
 
 	// The event may have been persisted and broadcast between the historical
 	// query and subscription. Re-read after subscribing to close that race;
@@ -275,6 +294,20 @@ func (s *CommandService) WatchCommandEvents(ctx context.Context, req *connect.Re
 			lastSeqNo = event.SeqNo
 			if err := stream.Send(event); err != nil {
 				return err
+			}
+		case <-wake:
+			catchUp, err := s.store.GetCommandEvents(ctx, cmd.ID, lastSeqNo)
+			if err != nil {
+				return connect.NewError(connect.CodeInternal, errors.Wrapf(err, "failed to replay shared command events"))
+			}
+			for _, persisted := range catchUp {
+				if !commandEventAfterCursor(convertToV1CommandEvent(persisted), lastSeqNo) {
+					continue
+				}
+				if err := stream.Send(convertToV1CommandEvent(persisted)); err != nil {
+					return err
+				}
+				lastSeqNo = persisted.SeqNo
 			}
 		}
 	}

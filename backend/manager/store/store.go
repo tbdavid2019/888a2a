@@ -30,6 +30,11 @@ type Store struct {
 	// (the default) disables wake-ups (long polls run to their timeout).
 	roomNotifier RoomNotifier
 
+	// commandEventNotifier wakes command-event watchers when another Manager
+	// replica appends to the durable command_event log. The notifier carries
+	// only a command identity; watchers replay rows from their sequence cursor.
+	commandEventNotifier CommandEventNotifier
+
 	userIDCache            *lru.Cache[int, *UserMessage]
 	userEmailCache         *lru.Cache[string, *UserMessage]
 	userHandleCache        *lru.Cache[string, *UserMessage]
@@ -148,6 +153,9 @@ func (s *Store) Close() error {
 	// database, so an in-flight activity write cannot use a closed *sql.DB.
 	s.stopActivityWorkers()
 	if closer, ok := s.roomNotifier.(interface{ Close() error }); ok {
+		_ = closer.Close()
+	}
+	if closer, ok := s.commandEventNotifier.(interface{ Close() error }); ok {
 		_ = closer.Close()
 	}
 	return s.dbConnManager.Close()

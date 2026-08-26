@@ -17,6 +17,7 @@ import (
 	"github.com/tbdavid2019/888a2a/backend/generated-go/v1/v1connect"
 	"github.com/tbdavid2019/888a2a/backend/manager/api/auth"
 	apiv1 "github.com/tbdavid2019/888a2a/backend/manager/api/v1"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/commandeventhub"
 	"github.com/tbdavid2019/888a2a/backend/manager/component/device"
 	"github.com/tbdavid2019/888a2a/backend/manager/component/dispatcher"
 	"github.com/tbdavid2019/888a2a/backend/manager/component/iam"
@@ -53,6 +54,11 @@ func configureV1Routers(
 		return nil, errors.Wrap(err, "failed to configure shared room notifier")
 	}
 	stores.SetRoomNotifier(hub)
+	commandEventHub, err := commandeventhub.NewPostgres(ctx, profile.PgURL)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to configure shared command-event notifier")
+	}
+	stores.SetCommandEventNotifier(commandEventHub)
 
 	iamManager := iam.NewManager(stores)
 	// Device login sessions: in-memory store for the device-code flow. The
@@ -67,6 +73,7 @@ func configureV1Routers(
 	authService := apiv1.NewAuthService(stores, secret, profile, stateCfg, mailerSender)
 	agentService := apiv1.NewAgentService(stores, secret, profile, stateCfg, cmdDispatcher, iamManager, s3clientmanager)
 	commandService := apiv1.NewCommandService(stores, cmdDispatcher, s3clientmanager, iamManager, hub)
+	commandService.SetCommandEventHub(commandEventHub)
 	agentCommandService := apiv1.NewAgentCommandService(stores, cmdDispatcher)
 	machineService := apiv1.NewMachineService(stores, secret, profile, stateCfg, cmdDispatcher, iamManager)
 	deviceService := apiv1.NewDeviceService(deviceStore, stores, secret, profile, iamManager)
