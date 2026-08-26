@@ -48,6 +48,24 @@ const (
 	// OrganizationServiceListMembershipsProcedure is the fully-qualified name of the
 	// OrganizationService's ListMemberships RPC.
 	OrganizationServiceListMembershipsProcedure = "/a2a888.v1.OrganizationService/ListMemberships"
+	// OrganizationServiceAddMembershipProcedure is the fully-qualified name of the
+	// OrganizationService's AddMembership RPC.
+	OrganizationServiceAddMembershipProcedure = "/a2a888.v1.OrganizationService/AddMembership"
+	// OrganizationServiceUpdateMembershipProcedure is the fully-qualified name of the
+	// OrganizationService's UpdateMembership RPC.
+	OrganizationServiceUpdateMembershipProcedure = "/a2a888.v1.OrganizationService/UpdateMembership"
+	// OrganizationServiceRemoveMembershipProcedure is the fully-qualified name of the
+	// OrganizationService's RemoveMembership RPC.
+	OrganizationServiceRemoveMembershipProcedure = "/a2a888.v1.OrganizationService/RemoveMembership"
+	// OrganizationServiceListGroupBindingsProcedure is the fully-qualified name of the
+	// OrganizationService's ListGroupBindings RPC.
+	OrganizationServiceListGroupBindingsProcedure = "/a2a888.v1.OrganizationService/ListGroupBindings"
+	// OrganizationServiceSetGroupBindingProcedure is the fully-qualified name of the
+	// OrganizationService's SetGroupBinding RPC.
+	OrganizationServiceSetGroupBindingProcedure = "/a2a888.v1.OrganizationService/SetGroupBinding"
+	// OrganizationServiceRemoveGroupBindingProcedure is the fully-qualified name of the
+	// OrganizationService's RemoveGroupBinding RPC.
+	OrganizationServiceRemoveGroupBindingProcedure = "/a2a888.v1.OrganizationService/RemoveGroupBinding"
 )
 
 // OrganizationServiceClient is a client for the a2a888.v1.OrganizationService service.
@@ -57,6 +75,12 @@ type OrganizationServiceClient interface {
 	SwitchOrganization(context.Context, *connect.Request[a2a888.SwitchOrganizationRequest]) (*connect.Response[a2a888.SwitchOrganizationResponse], error)
 	ListWorkspaces(context.Context, *connect.Request[a2a888.ListWorkspacesRequest]) (*connect.Response[a2a888.ListWorkspacesResponse], error)
 	ListMemberships(context.Context, *connect.Request[a2a888.ListMembershipsRequest]) (*connect.Response[a2a888.ListMembershipsResponse], error)
+	AddMembership(context.Context, *connect.Request[a2a888.AddMembershipRequest]) (*connect.Response[a2a888.OrganizationMembership], error)
+	UpdateMembership(context.Context, *connect.Request[a2a888.UpdateMembershipRequest]) (*connect.Response[a2a888.OrganizationMembership], error)
+	RemoveMembership(context.Context, *connect.Request[a2a888.RemoveMembershipRequest]) (*connect.Response[a2a888.RemoveMembershipResponse], error)
+	ListGroupBindings(context.Context, *connect.Request[a2a888.ListGroupBindingsRequest]) (*connect.Response[a2a888.ListGroupBindingsResponse], error)
+	SetGroupBinding(context.Context, *connect.Request[a2a888.SetGroupBindingRequest]) (*connect.Response[a2a888.OrganizationGroupBinding], error)
+	RemoveGroupBinding(context.Context, *connect.Request[a2a888.RemoveGroupBindingRequest]) (*connect.Response[a2a888.RemoveGroupBindingResponse], error)
 }
 
 // NewOrganizationServiceClient constructs a client for the a2a888.v1.OrganizationService service.
@@ -100,6 +124,42 @@ func NewOrganizationServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(organizationServiceMethods.ByName("ListMemberships")),
 			connect.WithClientOptions(opts...),
 		),
+		addMembership: connect.NewClient[a2a888.AddMembershipRequest, a2a888.OrganizationMembership](
+			httpClient,
+			baseURL+OrganizationServiceAddMembershipProcedure,
+			connect.WithSchema(organizationServiceMethods.ByName("AddMembership")),
+			connect.WithClientOptions(opts...),
+		),
+		updateMembership: connect.NewClient[a2a888.UpdateMembershipRequest, a2a888.OrganizationMembership](
+			httpClient,
+			baseURL+OrganizationServiceUpdateMembershipProcedure,
+			connect.WithSchema(organizationServiceMethods.ByName("UpdateMembership")),
+			connect.WithClientOptions(opts...),
+		),
+		removeMembership: connect.NewClient[a2a888.RemoveMembershipRequest, a2a888.RemoveMembershipResponse](
+			httpClient,
+			baseURL+OrganizationServiceRemoveMembershipProcedure,
+			connect.WithSchema(organizationServiceMethods.ByName("RemoveMembership")),
+			connect.WithClientOptions(opts...),
+		),
+		listGroupBindings: connect.NewClient[a2a888.ListGroupBindingsRequest, a2a888.ListGroupBindingsResponse](
+			httpClient,
+			baseURL+OrganizationServiceListGroupBindingsProcedure,
+			connect.WithSchema(organizationServiceMethods.ByName("ListGroupBindings")),
+			connect.WithClientOptions(opts...),
+		),
+		setGroupBinding: connect.NewClient[a2a888.SetGroupBindingRequest, a2a888.OrganizationGroupBinding](
+			httpClient,
+			baseURL+OrganizationServiceSetGroupBindingProcedure,
+			connect.WithSchema(organizationServiceMethods.ByName("SetGroupBinding")),
+			connect.WithClientOptions(opts...),
+		),
+		removeGroupBinding: connect.NewClient[a2a888.RemoveGroupBindingRequest, a2a888.RemoveGroupBindingResponse](
+			httpClient,
+			baseURL+OrganizationServiceRemoveGroupBindingProcedure,
+			connect.WithSchema(organizationServiceMethods.ByName("RemoveGroupBinding")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -110,6 +170,12 @@ type organizationServiceClient struct {
 	switchOrganization *connect.Client[a2a888.SwitchOrganizationRequest, a2a888.SwitchOrganizationResponse]
 	listWorkspaces     *connect.Client[a2a888.ListWorkspacesRequest, a2a888.ListWorkspacesResponse]
 	listMemberships    *connect.Client[a2a888.ListMembershipsRequest, a2a888.ListMembershipsResponse]
+	addMembership      *connect.Client[a2a888.AddMembershipRequest, a2a888.OrganizationMembership]
+	updateMembership   *connect.Client[a2a888.UpdateMembershipRequest, a2a888.OrganizationMembership]
+	removeMembership   *connect.Client[a2a888.RemoveMembershipRequest, a2a888.RemoveMembershipResponse]
+	listGroupBindings  *connect.Client[a2a888.ListGroupBindingsRequest, a2a888.ListGroupBindingsResponse]
+	setGroupBinding    *connect.Client[a2a888.SetGroupBindingRequest, a2a888.OrganizationGroupBinding]
+	removeGroupBinding *connect.Client[a2a888.RemoveGroupBindingRequest, a2a888.RemoveGroupBindingResponse]
 }
 
 // ListOrganizations calls a2a888.v1.OrganizationService.ListOrganizations.
@@ -137,6 +203,36 @@ func (c *organizationServiceClient) ListMemberships(ctx context.Context, req *co
 	return c.listMemberships.CallUnary(ctx, req)
 }
 
+// AddMembership calls a2a888.v1.OrganizationService.AddMembership.
+func (c *organizationServiceClient) AddMembership(ctx context.Context, req *connect.Request[a2a888.AddMembershipRequest]) (*connect.Response[a2a888.OrganizationMembership], error) {
+	return c.addMembership.CallUnary(ctx, req)
+}
+
+// UpdateMembership calls a2a888.v1.OrganizationService.UpdateMembership.
+func (c *organizationServiceClient) UpdateMembership(ctx context.Context, req *connect.Request[a2a888.UpdateMembershipRequest]) (*connect.Response[a2a888.OrganizationMembership], error) {
+	return c.updateMembership.CallUnary(ctx, req)
+}
+
+// RemoveMembership calls a2a888.v1.OrganizationService.RemoveMembership.
+func (c *organizationServiceClient) RemoveMembership(ctx context.Context, req *connect.Request[a2a888.RemoveMembershipRequest]) (*connect.Response[a2a888.RemoveMembershipResponse], error) {
+	return c.removeMembership.CallUnary(ctx, req)
+}
+
+// ListGroupBindings calls a2a888.v1.OrganizationService.ListGroupBindings.
+func (c *organizationServiceClient) ListGroupBindings(ctx context.Context, req *connect.Request[a2a888.ListGroupBindingsRequest]) (*connect.Response[a2a888.ListGroupBindingsResponse], error) {
+	return c.listGroupBindings.CallUnary(ctx, req)
+}
+
+// SetGroupBinding calls a2a888.v1.OrganizationService.SetGroupBinding.
+func (c *organizationServiceClient) SetGroupBinding(ctx context.Context, req *connect.Request[a2a888.SetGroupBindingRequest]) (*connect.Response[a2a888.OrganizationGroupBinding], error) {
+	return c.setGroupBinding.CallUnary(ctx, req)
+}
+
+// RemoveGroupBinding calls a2a888.v1.OrganizationService.RemoveGroupBinding.
+func (c *organizationServiceClient) RemoveGroupBinding(ctx context.Context, req *connect.Request[a2a888.RemoveGroupBindingRequest]) (*connect.Response[a2a888.RemoveGroupBindingResponse], error) {
+	return c.removeGroupBinding.CallUnary(ctx, req)
+}
+
 // OrganizationServiceHandler is an implementation of the a2a888.v1.OrganizationService service.
 type OrganizationServiceHandler interface {
 	ListOrganizations(context.Context, *connect.Request[a2a888.ListOrganizationsRequest]) (*connect.Response[a2a888.ListOrganizationsResponse], error)
@@ -144,6 +240,12 @@ type OrganizationServiceHandler interface {
 	SwitchOrganization(context.Context, *connect.Request[a2a888.SwitchOrganizationRequest]) (*connect.Response[a2a888.SwitchOrganizationResponse], error)
 	ListWorkspaces(context.Context, *connect.Request[a2a888.ListWorkspacesRequest]) (*connect.Response[a2a888.ListWorkspacesResponse], error)
 	ListMemberships(context.Context, *connect.Request[a2a888.ListMembershipsRequest]) (*connect.Response[a2a888.ListMembershipsResponse], error)
+	AddMembership(context.Context, *connect.Request[a2a888.AddMembershipRequest]) (*connect.Response[a2a888.OrganizationMembership], error)
+	UpdateMembership(context.Context, *connect.Request[a2a888.UpdateMembershipRequest]) (*connect.Response[a2a888.OrganizationMembership], error)
+	RemoveMembership(context.Context, *connect.Request[a2a888.RemoveMembershipRequest]) (*connect.Response[a2a888.RemoveMembershipResponse], error)
+	ListGroupBindings(context.Context, *connect.Request[a2a888.ListGroupBindingsRequest]) (*connect.Response[a2a888.ListGroupBindingsResponse], error)
+	SetGroupBinding(context.Context, *connect.Request[a2a888.SetGroupBindingRequest]) (*connect.Response[a2a888.OrganizationGroupBinding], error)
+	RemoveGroupBinding(context.Context, *connect.Request[a2a888.RemoveGroupBindingRequest]) (*connect.Response[a2a888.RemoveGroupBindingResponse], error)
 }
 
 // NewOrganizationServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -183,6 +285,42 @@ func NewOrganizationServiceHandler(svc OrganizationServiceHandler, opts ...conne
 		connect.WithSchema(organizationServiceMethods.ByName("ListMemberships")),
 		connect.WithHandlerOptions(opts...),
 	)
+	organizationServiceAddMembershipHandler := connect.NewUnaryHandler(
+		OrganizationServiceAddMembershipProcedure,
+		svc.AddMembership,
+		connect.WithSchema(organizationServiceMethods.ByName("AddMembership")),
+		connect.WithHandlerOptions(opts...),
+	)
+	organizationServiceUpdateMembershipHandler := connect.NewUnaryHandler(
+		OrganizationServiceUpdateMembershipProcedure,
+		svc.UpdateMembership,
+		connect.WithSchema(organizationServiceMethods.ByName("UpdateMembership")),
+		connect.WithHandlerOptions(opts...),
+	)
+	organizationServiceRemoveMembershipHandler := connect.NewUnaryHandler(
+		OrganizationServiceRemoveMembershipProcedure,
+		svc.RemoveMembership,
+		connect.WithSchema(organizationServiceMethods.ByName("RemoveMembership")),
+		connect.WithHandlerOptions(opts...),
+	)
+	organizationServiceListGroupBindingsHandler := connect.NewUnaryHandler(
+		OrganizationServiceListGroupBindingsProcedure,
+		svc.ListGroupBindings,
+		connect.WithSchema(organizationServiceMethods.ByName("ListGroupBindings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	organizationServiceSetGroupBindingHandler := connect.NewUnaryHandler(
+		OrganizationServiceSetGroupBindingProcedure,
+		svc.SetGroupBinding,
+		connect.WithSchema(organizationServiceMethods.ByName("SetGroupBinding")),
+		connect.WithHandlerOptions(opts...),
+	)
+	organizationServiceRemoveGroupBindingHandler := connect.NewUnaryHandler(
+		OrganizationServiceRemoveGroupBindingProcedure,
+		svc.RemoveGroupBinding,
+		connect.WithSchema(organizationServiceMethods.ByName("RemoveGroupBinding")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/a2a888.v1.OrganizationService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case OrganizationServiceListOrganizationsProcedure:
@@ -195,6 +333,18 @@ func NewOrganizationServiceHandler(svc OrganizationServiceHandler, opts ...conne
 			organizationServiceListWorkspacesHandler.ServeHTTP(w, r)
 		case OrganizationServiceListMembershipsProcedure:
 			organizationServiceListMembershipsHandler.ServeHTTP(w, r)
+		case OrganizationServiceAddMembershipProcedure:
+			organizationServiceAddMembershipHandler.ServeHTTP(w, r)
+		case OrganizationServiceUpdateMembershipProcedure:
+			organizationServiceUpdateMembershipHandler.ServeHTTP(w, r)
+		case OrganizationServiceRemoveMembershipProcedure:
+			organizationServiceRemoveMembershipHandler.ServeHTTP(w, r)
+		case OrganizationServiceListGroupBindingsProcedure:
+			organizationServiceListGroupBindingsHandler.ServeHTTP(w, r)
+		case OrganizationServiceSetGroupBindingProcedure:
+			organizationServiceSetGroupBindingHandler.ServeHTTP(w, r)
+		case OrganizationServiceRemoveGroupBindingProcedure:
+			organizationServiceRemoveGroupBindingHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -222,4 +372,28 @@ func (UnimplementedOrganizationServiceHandler) ListWorkspaces(context.Context, *
 
 func (UnimplementedOrganizationServiceHandler) ListMemberships(context.Context, *connect.Request[a2a888.ListMembershipsRequest]) (*connect.Response[a2a888.ListMembershipsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("a2a888.v1.OrganizationService.ListMemberships is not implemented"))
+}
+
+func (UnimplementedOrganizationServiceHandler) AddMembership(context.Context, *connect.Request[a2a888.AddMembershipRequest]) (*connect.Response[a2a888.OrganizationMembership], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("a2a888.v1.OrganizationService.AddMembership is not implemented"))
+}
+
+func (UnimplementedOrganizationServiceHandler) UpdateMembership(context.Context, *connect.Request[a2a888.UpdateMembershipRequest]) (*connect.Response[a2a888.OrganizationMembership], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("a2a888.v1.OrganizationService.UpdateMembership is not implemented"))
+}
+
+func (UnimplementedOrganizationServiceHandler) RemoveMembership(context.Context, *connect.Request[a2a888.RemoveMembershipRequest]) (*connect.Response[a2a888.RemoveMembershipResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("a2a888.v1.OrganizationService.RemoveMembership is not implemented"))
+}
+
+func (UnimplementedOrganizationServiceHandler) ListGroupBindings(context.Context, *connect.Request[a2a888.ListGroupBindingsRequest]) (*connect.Response[a2a888.ListGroupBindingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("a2a888.v1.OrganizationService.ListGroupBindings is not implemented"))
+}
+
+func (UnimplementedOrganizationServiceHandler) SetGroupBinding(context.Context, *connect.Request[a2a888.SetGroupBindingRequest]) (*connect.Response[a2a888.OrganizationGroupBinding], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("a2a888.v1.OrganizationService.SetGroupBinding is not implemented"))
+}
+
+func (UnimplementedOrganizationServiceHandler) RemoveGroupBinding(context.Context, *connect.Request[a2a888.RemoveGroupBindingRequest]) (*connect.Response[a2a888.RemoveGroupBindingResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("a2a888.v1.OrganizationService.RemoveGroupBinding is not implemented"))
 }

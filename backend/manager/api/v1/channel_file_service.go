@@ -100,6 +100,7 @@ func (s *CommandService) UploadFileStream(ctx context.Context, in *UploadFileStr
 	orgID, _ := common.GetOrganizationIDFromContext(ctx)
 	fileID := uuid.New()
 	fileRow := &store.File{
+		OrganizationID:      orgID,
 		ID:                  fileID,
 		UploaderPrincipalID: uploaderPrincipalID,
 		OriginalName:        in.OriginalName,

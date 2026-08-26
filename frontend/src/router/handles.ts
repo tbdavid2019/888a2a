@@ -28,6 +28,7 @@ export const SETTINGS_ROUTE_PROFILE = "settings.profile";
 export const SETTINGS_ROUTE_STORAGE = "settings.storage";
 export const SETTINGS_ROUTE_NOTIFICATIONS = "settings.notifications";
 export const SETTINGS_ROUTE_USERS = "settings.users";
+export const SETTINGS_ROUTE_MEMBERSHIPS = "settings.memberships";
 export const SETTINGS_ROUTE_ROLES = "settings.roles";
 export const SETTINGS_ROUTE_IAM = "settings.iam";
 export const SETTINGS_ROUTE_GROUPS = "settings.groups";

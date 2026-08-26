@@ -37,9 +37,9 @@ type Store struct {
 	policyCache            *lru.Cache[string, *PolicyMessage]
 	idpCache               *lru.Cache[string, *IdentityProviderMessage]
 	groupCache             *lru.Cache[string, *GroupMessage]
-	agentIDCache           *lru.Cache[int, *AgentMessage]
+	agentIDCache           *lru.Cache[string, *AgentMessage]
 	agentResourceIDCache   *lru.Cache[string, *AgentMessage]
-	machineIDCache         *lru.Cache[int, *MachineMessage]
+	machineIDCache         *lru.Cache[string, *MachineMessage]
 	machineResourceIDCache *lru.Cache[string, *MachineMessage]
 	rolesCache             *lru.Cache[string, *RoleMessage]
 
@@ -49,11 +49,12 @@ type Store struct {
 	userMcpConfigSetting  *SettingMessage
 	userMcpConfigCachedAt time.Time
 
-	// globalMentionIndex caches the global agent/user directory used for
-	// mention fallback. It is rebuilt lazily and invalidated on any agent/user
-	// create/update/delete.
+	// globalMentionIndex caches the unscoped agent/user directory used by
+	// authentication/bootstrap paths; tenant-scoped mention projections live in
+	// globalMentionIndexes and are keyed by TenantProjectionKey.
 	globalMentionIndexMu sync.RWMutex
 	globalMentionIndex   *GlobalMentionIndex
+	globalMentionIndexes map[string]*GlobalMentionIndex
 
 	// activity worker pool bounds the fire-and-forget activity generation so a
 	// message burst cannot spawn an unbounded number of goroutines. Jobs are
@@ -101,7 +102,7 @@ func New(ctx context.Context, pgURL string, enableCache bool) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	agentIDCache, err := lru.New[int, *AgentMessage](32768)
+	agentIDCache, err := lru.New[string, *AgentMessage](32768)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +110,7 @@ func New(ctx context.Context, pgURL string, enableCache bool) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	machineIDCache, err := lru.New[int, *MachineMessage](32768)
+	machineIDCache, err := lru.New[string, *MachineMessage](32768)
 	if err != nil {
 		return nil, err
 	}

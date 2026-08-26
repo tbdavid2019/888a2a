@@ -29,6 +29,6 @@ func TestListConversationFilesSQL(t *testing.T) {
 		"file drawer must surface the thread root for reply context")
 	assert.Contains(t, listConversationFilesSQL, "COALESCE(cm.room_version, 0)",
 		"file drawer must surface the carrying message room version")
-	assert.True(t, strings.Contains(listConversationFilesSQL, "WHERE f.conversation_id = $1"),
-		"file drawer must scope to the conversation")
+	assert.True(t, strings.Contains(listConversationFilesSQL, "WHERE f.organization_id = $1 AND f.conversation_id = $2"),
+		"file drawer must scope to the organization and conversation")
 }

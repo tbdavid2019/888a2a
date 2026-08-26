@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	storepb "github.com/tbdavid2019/888a2a/backend/generated-go/store"
@@ -76,14 +77,13 @@ func (s *Store) RotateMachineTokens(ctx context.Context, current *MachineMessage
 		return nil, err
 	}
 
-	s.machineIDCache.Remove(current.ID)
-	s.machineResourceIDCache.Remove(current.ResourceID)
+	s.machineIDCache.Remove(TenantCacheKey(current.OrganizationID, "machine", fmt.Sprintf("%d", current.ID)))
+	s.machineResourceIDCache.Remove(TenantCacheKey(current.OrganizationID, "machine", current.ResourceID))
 	machine, err := s.GetMachine(ctx, current.ID)
 	if err != nil {
 		return nil, err
 	}
-	s.machineIDCache.Add(machine.ID, machine)
-	s.machineResourceIDCache.Add(machine.ResourceID, machine)
+	s.cacheMachine(machine)
 	return machine, nil
 }
 

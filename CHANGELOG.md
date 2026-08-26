@@ -9,6 +9,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Added
 
+- Added tenant-scoped membership administration RPCs/UI, delegated requester/executor audit evidence, composite Organization IAM bindings, collaboration projection tenant columns, and cache/S3 isolation guards.
 - Added Product Identity Inventory document (`docs/product_identity_inventory.md`) mapping all legacy identifiers to approved `888a2a` targets and shell-safe `A2A888_` environment variables.
 - Published draft Section 1 Architecture Decision Records (`docs/decisions/1.1-single-workspace-inventory.md` through `docs/decisions/1.8-saas-vs-byoc-scope.md`). External WuKongIM, connector, approval, and tenant integration evidence remains pending.
 - Added multi-tenant Organization, Workspace, OrganizationMembership, and TenantPrincipal resource contracts in Protobuf (`proto/v1/a2a888/organization.proto`).
@@ -36,6 +37,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Fixed
 
+- Fixed production tenant-header authorization by exposing organization membership lookup on the real Store implementation, and removed legacy procedure literals from auth tests so the naming gate remains green.
 - Added bounded fair tenant queueing and wired per-Organization admission limits into outbox workers.
 - Made legacy machine state migration copy an existing legacy home into `.888a2a` atomically before startup continues.
 - Updated the active Dockerfiles and pi build documentation to use `A2A888_*` variables and `888a2a` runtime targets while retaining explicit legacy aliases.

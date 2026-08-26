@@ -113,7 +113,7 @@ type UpdateAgentMessage struct {
 }
 
 func (s *Store) GetAgent(ctx context.Context, id int) (*AgentMessage, error) {
-	if v, ok := s.agentIDCache.Get(id); ok && s.enableCache {
+	if v, ok := s.agentIDCache.Get(tenantCacheLookupKey(ctx, "agent", id)); ok && s.enableCache {
 		return v, nil
 	}
 
@@ -129,7 +129,7 @@ func (s *Store) GetAgent(ctx context.Context, id int) (*AgentMessage, error) {
 }
 
 func (s *Store) GetAgentByResourceID(ctx context.Context, resourceID string) (*AgentMessage, error) {
-	if v, ok := s.agentResourceIDCache.Get(resourceID); ok && s.enableCache {
+	if v, ok := s.agentResourceIDCache.Get(tenantCacheLookupKey(ctx, "agent", resourceID)); ok && s.enableCache {
 		return v, nil
 	}
 
@@ -196,12 +196,24 @@ func (s *Store) cacheAgent(agent *AgentMessage) {
 	if agent == nil {
 		return
 	}
-	s.agentIDCache.Add(agent.ID, agent)
-	s.agentResourceIDCache.Add(agent.ResourceID, agent)
+	s.agentIDCache.Add(TenantCacheKey(agent.OrganizationID, "agent", fmt.Sprintf("%d", agent.ID)), agent)
+	s.agentResourceIDCache.Add(TenantCacheKey(agent.OrganizationID, "agent", agent.ResourceID), agent)
+}
+
+func tenantCacheLookupKey(ctx context.Context, resourceType string, key any) string {
+	organizationID := "global"
+	if id, ok := common.GetOrganizationIDFromContext(ctx); ok && id != "" {
+		organizationID = id
+	}
+	return TenantCacheKey(organizationID, resourceType, fmt.Sprint(key))
 }
 
 func listAgentImpl(ctx context.Context, txn *sql.Tx, find *FindAgentMessage) ([]*AgentMessage, error) {
 	where, args := []string{"TRUE"}, []any{}
+	if organizationID, ok := common.GetOrganizationIDFromContext(ctx); ok && organizationID != "" {
+		where = append(where, fmt.Sprintf("agent.organization_id = $%d", len(args)+1))
+		args = append(args, organizationID)
+	}
 	if v := find.ID; v != nil {
 		where, args = append(where, fmt.Sprintf("agent.id = $%d", len(args)+1)), append(args, *v)
 	}
@@ -322,6 +334,12 @@ func listAgentImpl(ctx context.Context, txn *sql.Tx, find *FindAgentMessage) ([]
 }
 
 func (s *Store) CreateAgent(ctx context.Context, create *AgentMessage) (*AgentMessage, error) {
+	if create == nil {
+		return nil, errors.New("agent is required")
+	}
+	if err := s.RequireOrganizationActive(ctx, tenantIDFromContext(ctx)); err != nil {
+		return nil, err
+	}
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -370,11 +388,40 @@ func (s *Store) CreateAgent(ctx context.Context, create *AgentMessage) (*AgentMe
 	// on (a proto3 bool cannot express "unset" vs false on CreateAgent); toggle it
 	// via UpdateAgent.
 	var agentID int
+	organizationID := create.OrganizationID
+	if contextOrganizationID, ok := common.GetOrganizationIDFromContext(ctx); ok && create.OrganizationID != "" && create.OrganizationID != contextOrganizationID {
+		return nil, errors.New("agent organization does not match request tenant")
+	}
+	if organizationID == "" {
+		organizationID = tenantIDFromContext(ctx)
+		create.OrganizationID = organizationID
+	}
+	workspaceID := create.WorkspaceID
+	if workspaceID == "" {
+		workspaceID = "default"
+		create.WorkspaceID = workspaceID
+	}
+	var workspaceBelongs bool
+	if err := tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM workspaces WHERE organization_id = $1 AND id = $2)`, organizationID, workspaceID).Scan(&workspaceBelongs); err != nil {
+		return nil, errors.Wrap(err, "check agent workspace tenant")
+	}
+	if !workspaceBelongs {
+		return nil, errors.New("agent workspace does not belong to organization")
+	}
+	if create.MachineID > 0 {
+		var machineBelongs bool
+		if err := tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM machine WHERE organization_id = $1 AND id = $2)`, organizationID, create.MachineID).Scan(&machineBelongs); err != nil {
+			return nil, errors.Wrap(err, "check agent machine tenant")
+		}
+		if !machineBelongs {
+			return nil, errors.New("agent machine does not belong to organization")
+		}
+	}
 	err = tx.QueryRowContext(ctx, `
 		INSERT INTO agent (
-			resource_id, name, description, token_version, info, status, created_by, owner_id, allow_add_to_channel, machine_id
+			resource_id, name, description, token_version, info, status, created_by, owner_id, allow_add_to_channel, machine_id, organization_id, workspace_id
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		ON CONFLICT (resource_id) DO NOTHING
 		RETURNING id, created_at
 	`,
@@ -388,6 +435,8 @@ func (s *Store) CreateAgent(ctx context.Context, create *AgentMessage) (*AgentMe
 		create.OwnerID,
 		create.AllowAddToChannel,
 		machineIDArg,
+		organizationID,
+		workspaceID,
 	).Scan(&agentID, &create.CreatedAt)
 	if err == sql.ErrNoRows {
 		// A concurrent creation claimed the same handle; roll back and retry the
@@ -421,9 +470,10 @@ func (s *Store) CreateAgent(ctx context.Context, create *AgentMessage) (*AgentMe
 		FollowOwnerPermissions:  true,
 		CanManageChannelMembers: true,
 		MachineID:               create.MachineID,
+		OrganizationID:          organizationID,
+		WorkspaceID:             workspaceID,
 	}
-	s.agentIDCache.Add(agent.ID, agent)
-	s.agentResourceIDCache.Add(agent.ResourceID, agent)
+	s.cacheAgent(agent)
 	s.InvalidateGlobalMentionIndex()
 	return agent, nil
 }
@@ -517,8 +567,16 @@ func (s *Store) TouchAgentHeartbeats(ctx context.Context, heartbeats []AgentHear
 // above is the source of truth; a cache miss (disabled cache, eviction) simply
 // skips the refresh and the next read falls back to the DB.
 func (s *Store) refreshAgentHeartbeatCache(agentID int, lastHeartbeatAt int64) {
-	cached, ok := s.agentIDCache.Peek(agentID)
-	if !ok || cached == nil {
+	var cacheKey string
+	var cached *AgentMessage
+	for _, key := range s.agentIDCache.Keys() {
+		candidate, ok := s.agentIDCache.Peek(key)
+		if ok && candidate != nil && candidate.ID == agentID {
+			cacheKey, cached = key, candidate
+			break
+		}
+	}
+	if cacheKey == "" || cached == nil {
 		return
 	}
 	clone := *cached
@@ -534,10 +592,9 @@ func (s *Store) refreshAgentHeartbeatCache(agentID int, lastHeartbeatAt int64) {
 		cloned.LastHeartbeatAt = lastHeartbeatAt
 		clone.Status = cloned
 	}
-	s.agentIDCache.Remove(agentID)
-	s.agentResourceIDCache.Remove(clone.ResourceID)
-	s.agentIDCache.Add(agentID, &clone)
-	s.agentResourceIDCache.Add(clone.ResourceID, &clone)
+	s.agentIDCache.Remove(cacheKey)
+	s.agentResourceIDCache.Remove(TenantCacheKey(clone.OrganizationID, "agent", clone.ResourceID))
+	s.cacheAgent(&clone)
 }
 
 func (s *Store) UpdateAgent(ctx context.Context, current *AgentMessage, patch *UpdateAgentMessage) (*AgentMessage, error) {
@@ -597,7 +654,7 @@ func (s *Store) UpdateAgent(ctx context.Context, current *AgentMessage, patch *U
 		return current, nil
 	}
 
-	args = append(args, current.ID)
+	args = append(args, current.OrganizationID, current.ID)
 
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
@@ -608,8 +665,8 @@ func (s *Store) UpdateAgent(ctx context.Context, current *AgentMessage, patch *U
 	if _, err := tx.ExecContext(ctx, fmt.Sprintf(`
 		UPDATE agent
 		SET `+strings.Join(sets, ", ")+`
-		WHERE id = $%d
-	`, len(args)),
+		WHERE organization_id = $%d AND id = $%d
+	`, len(args)-1, len(args)),
 		args...,
 	); err != nil {
 		return nil, err
@@ -619,15 +676,14 @@ func (s *Store) UpdateAgent(ctx context.Context, current *AgentMessage, patch *U
 		return nil, err
 	}
 
-	s.agentIDCache.Remove(current.ID)
-	s.agentResourceIDCache.Remove(current.ResourceID)
+	s.agentIDCache.Remove(TenantCacheKey(current.OrganizationID, "agent", fmt.Sprintf("%d", current.ID)))
+	s.agentResourceIDCache.Remove(TenantCacheKey(current.OrganizationID, "agent", current.ResourceID))
 	agent, err := s.GetAgent(ctx, current.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	s.agentIDCache.Add(agent.ID, agent)
-	s.agentResourceIDCache.Add(agent.ResourceID, agent)
+	s.cacheAgent(agent)
 	s.InvalidateGlobalMentionIndex()
 	return agent, nil
 }

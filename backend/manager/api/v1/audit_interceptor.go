@@ -39,15 +39,18 @@ func (a *AuditInterceptor) Stop() {
 
 func (a *AuditInterceptor) recordAudit(ctx context.Context, procedure string, err error, resource, payload string) {
 	auditLog := &store.AuditLogMessage{
-		Method:    procedure,
-		ActorType: getActorType(ctx),
-		ActorID:   getActorID(ctx),
-		SourceIP:  getSourceIP(ctx),
-		Status:    statusFromError(err),
-		Error:     errorFromError(err),
-		Resource:  resource,
-		Payload:   payload,
-		CreatedAt: time.Now(),
+		OrganizationID: auditOrganizationID(ctx),
+		RequesterID:    auditPrincipalID(ctx, true),
+		ExecutorID:     auditPrincipalID(ctx, false),
+		Method:         procedure,
+		ActorType:      getActorType(ctx),
+		ActorID:        getActorID(ctx),
+		SourceIP:       getSourceIP(ctx),
+		Status:         statusFromError(err),
+		Error:          errorFromError(err),
+		Resource:       resource,
+		Payload:        payload,
+		CreatedAt:      time.Now(),
 	}
 
 	a.buffer.Record(auditLog)
@@ -61,6 +64,24 @@ func (a *AuditInterceptor) recordAudit(ctx context.Context, procedure string, er
 		"error", auditLog.Error,
 		"timestamp", auditLog.CreatedAt.Format(time.RFC3339),
 	)
+}
+
+func auditOrganizationID(ctx context.Context) string {
+	if id, ok := common.GetOrganizationIDFromContext(ctx); ok && id != "" {
+		return id
+	}
+	return "default"
+}
+
+func auditPrincipalID(ctx context.Context, requester bool) string {
+	if requester {
+		if identity, ok := common.GetRequesterPrincipalFromContext(ctx); ok {
+			return identity.ID
+		}
+	} else if identity, ok := common.GetExecutorPrincipalFromContext(ctx); ok {
+		return identity.ID
+	}
+	return ""
 }
 
 func (a *AuditInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {

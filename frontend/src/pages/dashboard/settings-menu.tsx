@@ -110,6 +110,11 @@ function useSettingsMenuItems(): MenuItem[] {
           icon: Users,
           label: t("sidebar.settings-users"),
         },
+        canViewUsers && {
+          to: "/settings/memberships",
+          icon: UserCog,
+          label: "Organization members",
+        },
         canViewRoles && {
           to: "/settings/roles",
           icon: Shield,

@@ -51,8 +51,11 @@
     - [AssignmentEventType](#a2a888-v1-AssignmentEventType)
   
 - [a2a888/organization.proto](#a2a888_organization-proto)
+    - [AddMembershipRequest](#a2a888-v1-AddMembershipRequest)
     - [GetOrganizationRequest](#a2a888-v1-GetOrganizationRequest)
     - [GetOrganizationResponse](#a2a888-v1-GetOrganizationResponse)
+    - [ListGroupBindingsRequest](#a2a888-v1-ListGroupBindingsRequest)
+    - [ListGroupBindingsResponse](#a2a888-v1-ListGroupBindingsResponse)
     - [ListMembershipsRequest](#a2a888-v1-ListMembershipsRequest)
     - [ListMembershipsResponse](#a2a888-v1-ListMembershipsResponse)
     - [ListOrganizationsRequest](#a2a888-v1-ListOrganizationsRequest)
@@ -61,10 +64,17 @@
     - [ListWorkspacesResponse](#a2a888-v1-ListWorkspacesResponse)
     - [Organization](#a2a888-v1-Organization)
     - [Organization.MetadataEntry](#a2a888-v1-Organization-MetadataEntry)
+    - [OrganizationGroupBinding](#a2a888-v1-OrganizationGroupBinding)
     - [OrganizationMembership](#a2a888-v1-OrganizationMembership)
+    - [RemoveGroupBindingRequest](#a2a888-v1-RemoveGroupBindingRequest)
+    - [RemoveGroupBindingResponse](#a2a888-v1-RemoveGroupBindingResponse)
+    - [RemoveMembershipRequest](#a2a888-v1-RemoveMembershipRequest)
+    - [RemoveMembershipResponse](#a2a888-v1-RemoveMembershipResponse)
+    - [SetGroupBindingRequest](#a2a888-v1-SetGroupBindingRequest)
     - [SwitchOrganizationRequest](#a2a888-v1-SwitchOrganizationRequest)
     - [SwitchOrganizationResponse](#a2a888-v1-SwitchOrganizationResponse)
     - [TenantPrincipal](#a2a888-v1-TenantPrincipal)
+    - [UpdateMembershipRequest](#a2a888-v1-UpdateMembershipRequest)
     - [Workspace](#a2a888-v1-Workspace)
   
     - [MembershipState](#a2a888-v1-MembershipState)
@@ -905,6 +915,21 @@ assignment event.
 
 
 
+<a name="a2a888-v1-AddMembershipRequest"></a>
+
+### AddMembershipRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| membership | [OrganizationMembership](#a2a888-v1-OrganizationMembership) |  |  |
+
+
+
+
+
+
 <a name="a2a888-v1-GetOrganizationRequest"></a>
 
 ### GetOrganizationRequest
@@ -930,6 +955,36 @@ assignment event.
 | ----- | ---- | ----- | ----------- |
 | organization | [Organization](#a2a888-v1-Organization) |  |  |
 | current_membership | [OrganizationMembership](#a2a888-v1-OrganizationMembership) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-ListGroupBindingsRequest"></a>
+
+### ListGroupBindingsRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| organization_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-ListGroupBindingsResponse"></a>
+
+### ListGroupBindingsResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| bindings | [OrganizationGroupBinding](#a2a888-v1-OrganizationGroupBinding) | repeated |  |
 
 
 
@@ -1059,6 +1114,28 @@ Organization represents an Organization tenant boundary.
 
 
 
+<a name="a2a888-v1-OrganizationGroupBinding"></a>
+
+### OrganizationGroupBinding
+OrganizationGroupBinding grants an organization role to every active member
+of a group, optionally limited to one workspace. The role is a resource name
+(for example roles/workspaceAdmin or a custom organization role).
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| organization_id | [string](#string) |  |  |
+| group_id | [string](#string) |  |  |
+| workspace_id | [string](#string) |  |  |
+| role | [string](#string) |  |  |
+| created_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+| updated_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+
+
+
+
+
+
 <a name="a2a888-v1-OrganizationMembership"></a>
 
 ### OrganizationMembership
@@ -1074,6 +1151,75 @@ OrganizationMembership records a principal&#39;s membership in an Organization.
 | workspace_ids | [string](#string) | repeated |  |
 | created_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
 | updated_at | [google.protobuf.Timestamp](#google-protobuf-Timestamp) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-RemoveGroupBindingRequest"></a>
+
+### RemoveGroupBindingRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| organization_id | [string](#string) |  |  |
+| group_id | [string](#string) |  |  |
+| workspace_id | [string](#string) |  |  |
+| role | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-RemoveGroupBindingResponse"></a>
+
+### RemoveGroupBindingResponse
+
+
+
+
+
+
+
+<a name="a2a888-v1-RemoveMembershipRequest"></a>
+
+### RemoveMembershipRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| organization_id | [string](#string) |  |  |
+| principal_id | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="a2a888-v1-RemoveMembershipResponse"></a>
+
+### RemoveMembershipResponse
+
+
+
+
+
+
+
+<a name="a2a888-v1-SetGroupBindingRequest"></a>
+
+### SetGroupBindingRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| binding | [OrganizationGroupBinding](#a2a888-v1-OrganizationGroupBinding) |  |  |
 
 
 
@@ -1134,6 +1280,21 @@ TenantPrincipal encapsulates the active tenant-scoped identity of a caller.
 
 
 
+<a name="a2a888-v1-UpdateMembershipRequest"></a>
+
+### UpdateMembershipRequest
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| membership | [OrganizationMembership](#a2a888-v1-OrganizationMembership) |  |  |
+
+
+
+
+
+
 <a name="a2a888-v1-Workspace"></a>
 
 ### Workspace
@@ -1183,6 +1344,9 @@ OrganizationRole defines the role level within an Organization.
 | ORGANIZATION_ROLE_ADMIN | 2 |  |
 | ORGANIZATION_ROLE_MEMBER | 3 |  |
 | ORGANIZATION_ROLE_GUEST | 4 |  |
+| ORGANIZATION_ROLE_BILLING_ADMIN | 5 |  |
+| ORGANIZATION_ROLE_AGENT_ADMIN | 6 |  |
+| ORGANIZATION_ROLE_APPROVER | 7 |  |
 
 
 
@@ -1231,6 +1395,12 @@ TenantPrincipalType identifies the kind of principal in tenant-scoped operations
 | SwitchOrganization | [SwitchOrganizationRequest](#a2a888-v1-SwitchOrganizationRequest) | [SwitchOrganizationResponse](#a2a888-v1-SwitchOrganizationResponse) |  |
 | ListWorkspaces | [ListWorkspacesRequest](#a2a888-v1-ListWorkspacesRequest) | [ListWorkspacesResponse](#a2a888-v1-ListWorkspacesResponse) |  |
 | ListMemberships | [ListMembershipsRequest](#a2a888-v1-ListMembershipsRequest) | [ListMembershipsResponse](#a2a888-v1-ListMembershipsResponse) |  |
+| AddMembership | [AddMembershipRequest](#a2a888-v1-AddMembershipRequest) | [OrganizationMembership](#a2a888-v1-OrganizationMembership) |  |
+| UpdateMembership | [UpdateMembershipRequest](#a2a888-v1-UpdateMembershipRequest) | [OrganizationMembership](#a2a888-v1-OrganizationMembership) |  |
+| RemoveMembership | [RemoveMembershipRequest](#a2a888-v1-RemoveMembershipRequest) | [RemoveMembershipResponse](#a2a888-v1-RemoveMembershipResponse) |  |
+| ListGroupBindings | [ListGroupBindingsRequest](#a2a888-v1-ListGroupBindingsRequest) | [ListGroupBindingsResponse](#a2a888-v1-ListGroupBindingsResponse) |  |
+| SetGroupBinding | [SetGroupBindingRequest](#a2a888-v1-SetGroupBindingRequest) | [OrganizationGroupBinding](#a2a888-v1-OrganizationGroupBinding) |  |
+| RemoveGroupBinding | [RemoveGroupBindingRequest](#a2a888-v1-RemoveGroupBindingRequest) | [RemoveGroupBindingResponse](#a2a888-v1-RemoveGroupBindingResponse) |  |
 
  
 

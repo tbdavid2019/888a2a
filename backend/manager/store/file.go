@@ -11,6 +11,7 @@ import (
 
 // File is the persisted metadata for an S3-backed object.
 type File struct {
+	OrganizationID      string
 	ID                  uuid.UUID
 	ConversationID      uuid.NullUUID
 	UploaderPrincipalID int
@@ -26,18 +27,27 @@ type File struct {
 // "files/<file_id>/<original_name>", but the id is generated here so callers
 // build the key from the returned ID after the fact, or pass a pre-generated
 // uuid).
-func (*Store) CreateFile(ctx context.Context, tx *sql.Tx, f *File) (*File, error) {
+func (s *Store) CreateFile(ctx context.Context, tx *sql.Tx, f *File) (*File, error) {
+	if f == nil {
+		return nil, errors.New("file is required")
+	}
 	if f.ID == uuid.Nil {
 		f.ID = uuid.New()
 	}
 	if f.S3Key == "" {
 		f.S3Key = "files/" + f.ID.String() + "/" + f.OriginalName
 	}
+	if f.OrganizationID == "" {
+		f.OrganizationID = tenantIDFromContext(ctx)
+	}
+	if err := s.RequireOrganizationActive(ctx, f.OrganizationID); err != nil {
+		return nil, err
+	}
 	err := tx.QueryRowContext(ctx, `
-		INSERT INTO file (id, conversation_id, uploader_principal_id, original_name, mime_type, size_bytes, s3_key)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO file (id, organization_id, conversation_id, uploader_principal_id, original_name, mime_type, size_bytes, s3_key)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING created_at
-	`, f.ID, f.ConversationID, f.UploaderPrincipalID, f.OriginalName, f.MimeType, f.SizeBytes, f.S3Key).Scan(&f.CreatedAt)
+	`, f.ID, f.OrganizationID, f.ConversationID, f.UploaderPrincipalID, f.OriginalName, f.MimeType, f.SizeBytes, f.S3Key).Scan(&f.CreatedAt)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create file")
 	}
@@ -48,10 +58,10 @@ func (*Store) CreateFile(ctx context.Context, tx *sql.Tx, f *File) (*File, error
 func (s *Store) GetFile(ctx context.Context, id uuid.UUID) (*File, error) {
 	var f File
 	err := s.GetDB().QueryRowContext(ctx, `
-		SELECT id, conversation_id, uploader_principal_id, original_name, mime_type, size_bytes, s3_key, created_at
+		SELECT organization_id, id, conversation_id, uploader_principal_id, original_name, mime_type, size_bytes, s3_key, created_at
 		FROM file
-		WHERE id = $1
-	`, id).Scan(&f.ID, &f.ConversationID, &f.UploaderPrincipalID, &f.OriginalName, &f.MimeType, &f.SizeBytes, &f.S3Key, &f.CreatedAt)
+		WHERE organization_id = $1 AND id = $2
+	`, tenantIDFromContext(ctx), id).Scan(&f.OrganizationID, &f.ID, &f.ConversationID, &f.UploaderPrincipalID, &f.OriginalName, &f.MimeType, &f.SizeBytes, &f.S3Key, &f.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -64,11 +74,11 @@ func (s *Store) GetFile(ctx context.Context, id uuid.UUID) (*File, error) {
 // ListFilesByConversation returns all files attached to a conversation, newest first.
 func (s *Store) ListFilesByConversation(ctx context.Context, convID uuid.UUID) ([]*File, error) {
 	rows, err := s.GetDB().QueryContext(ctx, `
-		SELECT id, conversation_id, uploader_principal_id, original_name, mime_type, size_bytes, s3_key, created_at
+		SELECT organization_id, id, conversation_id, uploader_principal_id, original_name, mime_type, size_bytes, s3_key, created_at
 		FROM file
-		WHERE conversation_id = $1
+		WHERE organization_id = $1 AND conversation_id = $2
 		ORDER BY created_at DESC
-	`, convID)
+	`, tenantIDFromContext(ctx), convID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list files")
 	}
@@ -77,7 +87,7 @@ func (s *Store) ListFilesByConversation(ctx context.Context, convID uuid.UUID) (
 	var files []*File
 	for rows.Next() {
 		var f File
-		if err := rows.Scan(&f.ID, &f.ConversationID, &f.UploaderPrincipalID, &f.OriginalName, &f.MimeType, &f.SizeBytes, &f.S3Key, &f.CreatedAt); err != nil {
+		if err := rows.Scan(&f.OrganizationID, &f.ID, &f.ConversationID, &f.UploaderPrincipalID, &f.OriginalName, &f.MimeType, &f.SizeBytes, &f.S3Key, &f.CreatedAt); err != nil {
 			return nil, errors.Wrapf(err, "failed to scan file")
 		}
 		files = append(files, &f)
@@ -107,7 +117,7 @@ type ConversationFile struct {
 // listConversationFilesSQL joins each file to the earliest message that
 // carried it (via the attachments JSONB id) and returns newest-first.
 const listConversationFilesSQL = `
-	SELECT f.id, f.conversation_id, f.uploader_principal_id, f.original_name, f.mime_type, f.size_bytes, f.s3_key, f.created_at,
+	SELECT f.organization_id, f.id, f.conversation_id, f.uploader_principal_id, f.original_name, f.mime_type, f.size_bytes, f.s3_key, f.created_at,
 	       cm.id, COALESCE(cm.content, ''), cm.created_at, cm.thread_root_message_id, COALESCE(cm.room_version, 0),
 	       COALESCE(p.name, ''), COALESCE(cm.sender_type, 0), COALESCE(p.handle, ''), COALESCE(a.resource_id, '')
 	FROM file f
@@ -121,7 +131,7 @@ const listConversationFilesSQL = `
 	) cm ON true
 	LEFT JOIN principal p ON p.id = cm.principal_id
 	LEFT JOIN agent a ON a.id = cm.sender_agent_id
-	WHERE f.conversation_id = $1
+	WHERE f.organization_id = $1 AND f.conversation_id = $2
 	ORDER BY f.created_at DESC
 `
 
@@ -129,7 +139,7 @@ const listConversationFilesSQL = `
 // first, enriched with the message that carried each file. A file uploaded but
 // never attached to a message still appears with empty message context.
 func (s *Store) ListConversationFiles(ctx context.Context, convID uuid.UUID) ([]*ConversationFile, error) {
-	rows, err := s.GetDB().QueryContext(ctx, listConversationFilesSQL, convID)
+	rows, err := s.GetDB().QueryContext(ctx, listConversationFilesSQL, tenantIDFromContext(ctx), convID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list conversation files")
 	}
@@ -139,7 +149,7 @@ func (s *Store) ListConversationFiles(ctx context.Context, convID uuid.UUID) ([]
 	for rows.Next() {
 		var cf ConversationFile
 		if err := rows.Scan(
-			&cf.ID, &cf.ConversationID, &cf.UploaderPrincipalID, &cf.OriginalName, &cf.MimeType, &cf.SizeBytes, &cf.S3Key, &cf.CreatedAt,
+			&cf.OrganizationID, &cf.ID, &cf.ConversationID, &cf.UploaderPrincipalID, &cf.OriginalName, &cf.MimeType, &cf.SizeBytes, &cf.S3Key, &cf.CreatedAt,
 			&cf.MessageID, &cf.MessageContent, &cf.MessageCreatedAt, &cf.ThreadRootID, &cf.RoomVersion,
 			&cf.SenderName, &cf.SenderType, &cf.PrincipalID, &cf.AgentResourceID,
 		); err != nil {

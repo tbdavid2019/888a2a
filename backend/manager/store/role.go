@@ -20,11 +20,12 @@ import (
 // the DB; custom roles live in the role table. Both are resolved identically by
 // the IAM manager during CheckPermission.
 type RoleMessage struct {
-	ResourceID  string
-	Name        string
-	Description string
-	Permissions map[permission.Permission]bool
-	Predefined  bool
+	OrganizationID string
+	ResourceID     string
+	Name           string
+	Description    string
+	Permissions    map[permission.Permission]bool
+	Predefined     bool
 }
 
 // FindRoleMessage is the message for finding roles.
@@ -56,11 +57,11 @@ func (s *Store) GetResourcesUsedByRole(ctx context.Context, role string) ([]*Rol
 		SELECT resource, resource_type
 		FROM policy
 		CROSS JOIN LATERAL jsonb_array_elements(payload->'bindings') AS binding
-		WHERE type = $1
+		WHERE organization_id = $1 AND type = $2
 		  AND COALESCE(jsonb_array_length(binding->'members'), 0) > 0
-		  AND binding->>'role' = $2
+		  AND binding->>'role' = $3
 		GROUP BY resource, resource_type
-	`, models.Policy_IAM.String(), role)
+	`, tenantIDFromContext(ctx), models.Policy_IAM.String(), role)
 	if err != nil {
 		return nil, err
 	}
@@ -96,9 +97,9 @@ func (s *Store) GetPoliciesUsingMember(ctx context.Context, member string) ([]*R
 		FROM policy
 		CROSS JOIN LATERAL jsonb_array_elements(payload->'bindings') AS binding
 		CROSS JOIN LATERAL jsonb_array_elements_text(binding->'members') AS member
-		WHERE type = $1 AND member = $2
+		WHERE organization_id = $1 AND type = $2 AND member = $3
 		GROUP BY resource, resource_type
-	`, models.Policy_IAM.String(), member)
+	`, tenantIDFromContext(ctx), models.Policy_IAM.String(), member)
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +127,15 @@ func (s *Store) GetPoliciesUsingMember(ctx context.Context, member string) ([]*R
 
 // CreateRole creates a new custom role.
 func (s *Store) CreateRole(ctx context.Context, create *RoleMessage) (*RoleMessage, error) {
+	if create == nil {
+		return nil, errors.New("role is required")
+	}
+	if create.OrganizationID == "" {
+		create.OrganizationID = tenantIDFromContext(ctx)
+	}
+	if contextOrganizationID, ok := common.GetOrganizationIDFromContext(ctx); ok && contextOrganizationID != "" && contextOrganizationID != create.OrganizationID {
+		return nil, errors.New("role organization does not match request tenant")
+	}
 	p := &models.RolePermissions{}
 	for k := range create.Permissions {
 		p.Permissions = append(p.Permissions, k)
@@ -136,9 +146,10 @@ func (s *Store) CreateRole(ctx context.Context, create *RoleMessage) (*RoleMessa
 	}
 
 	if _, err := s.GetDB().ExecContext(ctx, `
-		INSERT INTO role (resource_id, name, description, permissions)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO role (organization_id, resource_id, name, description, permissions)
+		VALUES ($1, $2, $3, $4, $5)
 	`,
+		create.OrganizationID,
 		create.ResourceID,
 		create.Name,
 		create.Description,
@@ -146,7 +157,7 @@ func (s *Store) CreateRole(ctx context.Context, create *RoleMessage) (*RoleMessa
 	); err != nil {
 		return nil, err
 	}
-	s.rolesCache.Add(create.ResourceID, create)
+	s.rolesCache.Add(TenantCacheKey(create.OrganizationID, "role", create.ResourceID), create)
 	return create, nil
 }
 
@@ -165,7 +176,7 @@ func (s *Store) GetRole(ctx context.Context, find *FindRoleMessage) (*RoleMessag
 		return nil, &common.Error{Code: common.Conflict, Err: errors.Errorf("found %d roles with filter %+v, expect 1", len(roles), find)}
 	}
 	role := roles[0]
-	s.rolesCache.Add(role.ResourceID, role)
+	s.rolesCache.Add(TenantCacheKey(tenantIDFromContext(ctx), "role", role.ResourceID), role)
 	return role, nil
 }
 
@@ -175,7 +186,8 @@ func (s *Store) GetRoleSnapshot(ctx context.Context, resourceID string) (*RoleMe
 	if role := GetPredefinedRole(resourceID); role != nil {
 		return role, nil
 	}
-	if v, ok := s.rolesCache.Get(resourceID); ok && s.enableCache {
+	cacheKey := TenantCacheKey(tenantIDFromContext(ctx), "role", resourceID)
+	if v, ok := s.rolesCache.Get(cacheKey); ok && s.enableCache {
 		return v, nil
 	}
 	return s.GetRole(ctx, &FindRoleMessage{ResourceID: &resourceID})
@@ -191,10 +203,10 @@ func (s *Store) ListRoles(ctx context.Context, find *FindRoleMessage) ([]*RoleMe
 		}
 	}
 
-	query := "SELECT resource_id, name, description, permissions FROM role"
-	args := []any{}
+	query := "SELECT organization_id, resource_id, name, description, permissions FROM role WHERE organization_id = $1"
+	args := []any{tenantIDFromContext(ctx)}
 	if v := find.ResourceID; v != nil {
-		query += " WHERE resource_id = $1"
+		query += " AND resource_id = $2"
 		args = append(args, *v)
 	}
 
@@ -208,7 +220,7 @@ func (s *Store) ListRoles(ctx context.Context, find *FindRoleMessage) ([]*RoleMe
 	for rows.Next() {
 		role := &RoleMessage{Permissions: map[permission.Permission]bool{}}
 		var permissionBytes []byte
-		if err := rows.Scan(&role.ResourceID, &role.Name, &role.Description, &permissionBytes); err != nil {
+		if err := rows.Scan(&role.OrganizationID, &role.ResourceID, &role.Name, &role.Description, &permissionBytes); err != nil {
 			return nil, err
 		}
 		var rolePermissions models.RolePermissions
@@ -218,7 +230,7 @@ func (s *Store) ListRoles(ctx context.Context, find *FindRoleMessage) ([]*RoleMe
 		for _, v := range rolePermissions.Permissions {
 			role.Permissions[v] = true
 		}
-		s.rolesCache.Add(role.ResourceID, role)
+		s.rolesCache.Add(TenantCacheKey(role.OrganizationID, "role", role.ResourceID), role)
 		roles = append(roles, role)
 	}
 	if err := rows.Err(); err != nil {
@@ -233,6 +245,10 @@ func (s *Store) ListRoles(ctx context.Context, find *FindRoleMessage) ([]*RoleMe
 
 // UpdateRole updates an existing custom role.
 func (s *Store) UpdateRole(ctx context.Context, patch *UpdateRoleMessage) (*RoleMessage, error) {
+	if patch == nil {
+		return nil, errors.New("role patch is required")
+	}
+	organizationID := tenantIDFromContext(ctx)
 	set := []string{}
 	args := []any{}
 	if v := patch.Name; v != nil {
@@ -255,16 +271,16 @@ func (s *Store) UpdateRole(ctx context.Context, patch *UpdateRoleMessage) (*Role
 	if len(set) == 0 {
 		return nil, errors.New("no fields to update")
 	}
-	args = append(args, patch.ResourceID)
+	args = append(args, organizationID, patch.ResourceID)
 
 	role := &RoleMessage{ResourceID: patch.ResourceID, Permissions: map[permission.Permission]bool{}}
 	var permissionBytes []byte
 	if err := s.GetDB().QueryRowContext(ctx, fmt.Sprintf(`
 		UPDATE role
 		SET %s
-		WHERE resource_id = $%d
+		WHERE organization_id = $%d AND resource_id = $%d
 		RETURNING name, description, permissions
-	`, strings.Join(set, ", "), len(args)),
+	`, strings.Join(set, ", "), len(args)-1, len(args)),
 		args...,
 	).Scan(&role.Name, &role.Description, &permissionBytes); err != nil {
 		if err == sql.ErrNoRows {
@@ -272,7 +288,7 @@ func (s *Store) UpdateRole(ctx context.Context, patch *UpdateRoleMessage) (*Role
 		}
 		return nil, err
 	}
-	s.rolesCache.Remove(patch.ResourceID)
+	s.rolesCache.Remove(TenantCacheKey(organizationID, "role", patch.ResourceID))
 	var rolePermissions models.RolePermissions
 	if err := common.ProtojsonUnmarshaler.Unmarshal(permissionBytes, &rolePermissions); err != nil {
 		return nil, err
@@ -280,15 +296,17 @@ func (s *Store) UpdateRole(ctx context.Context, patch *UpdateRoleMessage) (*Role
 	for _, v := range rolePermissions.Permissions {
 		role.Permissions[v] = true
 	}
-	s.rolesCache.Add(role.ResourceID, role)
+	role.OrganizationID = organizationID
+	s.rolesCache.Add(TenantCacheKey(organizationID, "role", role.ResourceID), role)
 	return role, nil
 }
 
 // DeleteRole deletes an existing custom role.
 func (s *Store) DeleteRole(ctx context.Context, resourceID string) error {
-	if _, err := s.GetDB().ExecContext(ctx, `DELETE FROM role WHERE resource_id = $1`, resourceID); err != nil {
+	organizationID := tenantIDFromContext(ctx)
+	if _, err := s.GetDB().ExecContext(ctx, `DELETE FROM role WHERE organization_id = $1 AND resource_id = $2`, organizationID, resourceID); err != nil {
 		return err
 	}
-	s.rolesCache.Remove(resourceID)
+	s.rolesCache.Remove(TenantCacheKey(organizationID, "role", resourceID))
 	return nil
 }

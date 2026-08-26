@@ -29,15 +29,17 @@ const (
 )
 
 type ConversationMessage struct {
-	ID        uuid.UUID
-	AgentID   sql.NullInt32
-	Title     string
-	Type      int32
-	CreatedBy int
-	OwnerID   int
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Version   int64
+	OrganizationID string
+	WorkspaceID    string
+	ID             uuid.UUID
+	AgentID        sql.NullInt32
+	Title          string
+	Type           int32
+	CreatedBy      int
+	OwnerID        int
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	Version        int64
 }
 
 // userMemberHandle resolves a user's handle ("ran-user-1") from the principal
@@ -60,13 +62,16 @@ func (*Store) userMemberHandle(ctx context.Context, q queryRower, principalID in
 // named constant so TestGetOrCreateDirectConversationSQL can lock the
 // race-free INSERT in place without a live database.
 const insertDirectConversationSQL = `
-	INSERT INTO conversation (agent_id, title, type, created_by, owner_id)
-	VALUES ($1, '', 1, $2, $2)
-	ON CONFLICT (agent_id, created_by) WHERE type = 1 DO NOTHING
+	INSERT INTO conversation (organization_id, workspace_id, agent_id, title, type, created_by, owner_id)
+	VALUES ($1, 'default', $2, '', 1, $3, $3)
+	ON CONFLICT (organization_id, agent_id, created_by) WHERE type = 1 DO NOTHING
 	RETURNING id, agent_id, title, type, created_by, owner_id, created_at, updated_at, version
 `
 
 func (s *Store) GetOrCreateDirectConversation(ctx context.Context, agentID, principalID int) (*ConversationMessage, error) {
+	if err := s.RequireOrganizationActive(ctx, tenantIDFromContext(ctx)); err != nil {
+		return nil, err
+	}
 	agent, err := s.GetAgentResourceIDByID(ctx, agentID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get agent resource ID")
@@ -95,9 +100,11 @@ func (s *Store) GetOrCreateDirectConversation(ctx context.Context, agentID, prin
 	defer tx.Rollback()
 
 	var newConv ConversationMessage
-	err = tx.QueryRowContext(ctx, insertDirectConversationSQL, agentID, principalID).Scan(
+	err = tx.QueryRowContext(ctx, insertDirectConversationSQL, tenantIDFromContext(ctx), agentID, principalID).Scan(
 		&newConv.ID, &newConv.AgentID, &newConv.Title, &newConv.Type, &newConv.CreatedBy, &newConv.OwnerID, &newConv.CreatedAt, &newConv.UpdatedAt, &newConv.Version,
 	)
+	newConv.OrganizationID = tenantIDFromContext(ctx)
+	newConv.WorkspaceID = "default"
 	if err != nil {
 		// ON CONFLICT DO NOTHING returns no row when another caller won the
 		// race to create this DM. Roll back our (empty) tx and return the
@@ -144,9 +151,9 @@ func (s *Store) GetOrCreateDirectConversation(ctx context.Context, agentID, prin
 // agent-DM, only one INSERT returns a row; the other gets sql.ErrNoRows and
 // re-reads the winning row. Mirrors insertDirectConversationSQL for type-1 DMs.
 const insertAgentDMSQL = `
-	INSERT INTO conversation (agent_id, title, type, created_by, owner_id, agent_dm_a, agent_dm_b)
-	VALUES (NULL, '', 3, $1, $1, $2, $3)
-	ON CONFLICT (agent_dm_a, agent_dm_b) WHERE type = 3 DO NOTHING
+	INSERT INTO conversation (organization_id, workspace_id, agent_id, title, type, created_by, owner_id, agent_dm_a, agent_dm_b)
+	VALUES ($1, 'default', NULL, '', 3, $2, $2, $3, $4)
+	ON CONFLICT (organization_id, agent_dm_a, agent_dm_b) WHERE type = 3 DO NOTHING
 	RETURNING id, agent_id, title, type, created_by, owner_id, created_at, updated_at, version
 `
 
@@ -157,8 +164,8 @@ func (s *Store) findAgentDM(ctx context.Context, lo, hi int) (*ConversationMessa
 	err := s.GetDB().QueryRowContext(ctx, `
 		SELECT id, agent_id, title, type, created_by, owner_id, created_at, updated_at, version
 		FROM conversation
-		WHERE type = 3 AND agent_dm_a = $1 AND agent_dm_b = $2
-	`, lo, hi).Scan(
+		WHERE organization_id = $3 AND type = 3 AND agent_dm_a = $1 AND agent_dm_b = $2
+	`, lo, hi, tenantIDFromContext(ctx)).Scan(
 		&conv.ID, &conv.AgentID, &conv.Title, &conv.Type, &conv.CreatedBy, &conv.OwnerID, &conv.CreatedAt, &conv.UpdatedAt, &conv.Version,
 	)
 	if err != nil {
@@ -167,6 +174,7 @@ func (s *Store) findAgentDM(ctx context.Context, lo, hi int) (*ConversationMessa
 		}
 		return nil, errors.Wrap(err, "failed to find agent DM")
 	}
+	conv.OrganizationID = tenantIDFromContext(ctx)
 	return &conv, nil
 }
 
@@ -178,6 +186,9 @@ func (s *Store) findAgentDM(ctx context.Context, lo, hi int) (*ConversationMessa
 // per-channel cursors seeded so only future messages surface. Mirrors
 // GetOrCreateDirectConversation for type-1 user DMs.
 func (s *Store) GetOrCreateAgentDM(ctx context.Context, agentAID, agentBID int) (*ConversationMessage, error) {
+	if err := s.RequireOrganizationActive(ctx, tenantIDFromContext(ctx)); err != nil {
+		return nil, err
+	}
 	if agentAID == agentBID {
 		return nil, errors.Errorf("agent-DM requires two distinct agents (got %d twice)", agentAID)
 	}
@@ -215,9 +226,11 @@ func (s *Store) GetOrCreateAgentDM(ctx context.Context, agentAID, agentBID int) 
 	defer tx.Rollback()
 
 	var newConv ConversationMessage
-	err = tx.QueryRowContext(ctx, insertAgentDMSQL, common.SystemBotID, lo, hi).Scan(
+	err = tx.QueryRowContext(ctx, insertAgentDMSQL, tenantIDFromContext(ctx), common.SystemBotID, lo, hi).Scan(
 		&newConv.ID, &newConv.AgentID, &newConv.Title, &newConv.Type, &newConv.CreatedBy, &newConv.OwnerID, &newConv.CreatedAt, &newConv.UpdatedAt, &newConv.Version,
 	)
+	newConv.OrganizationID = tenantIDFromContext(ctx)
+	newConv.WorkspaceID = "default"
 	if err != nil {
 		// ON CONFLICT DO NOTHING returns no row when another caller won the
 		// race. Roll back the empty tx and return the winning row.
@@ -260,9 +273,9 @@ func (s *Store) GetOrCreateAgentDM(ctx context.Context, agentAID, agentBID int) 
 // created_by/owner_id are the initiator (the store caller), satisfying the NOT
 // NULL FKs; agent_id is NULL since a user-DM has no agent.
 const insertUserDMSQL = `
-	INSERT INTO conversation (agent_id, title, type, created_by, owner_id, user_dm_a, user_dm_b)
-	VALUES (NULL, '', 4, $1, $1, $2, $3)
-	ON CONFLICT (user_dm_a, user_dm_b) WHERE type = 4 DO NOTHING
+	INSERT INTO conversation (organization_id, workspace_id, agent_id, title, type, created_by, owner_id, user_dm_a, user_dm_b)
+	VALUES ($1, 'default', NULL, '', 4, $2, $2, $3, $4)
+	ON CONFLICT (organization_id, user_dm_a, user_dm_b) WHERE type = 4 DO NOTHING
 	RETURNING id, agent_id, title, type, created_by, owner_id, created_at, updated_at, version
 `
 
@@ -273,8 +286,8 @@ func (s *Store) findUserDM(ctx context.Context, lo, hi int) (*ConversationMessag
 	err := s.GetDB().QueryRowContext(ctx, `
 		SELECT id, agent_id, title, type, created_by, owner_id, created_at, updated_at, version
 		FROM conversation
-		WHERE type = 4 AND user_dm_a = $1 AND user_dm_b = $2
-	`, lo, hi).Scan(
+		WHERE organization_id = $3 AND type = 4 AND user_dm_a = $1 AND user_dm_b = $2
+	`, lo, hi, tenantIDFromContext(ctx)).Scan(
 		&conv.ID, &conv.AgentID, &conv.Title, &conv.Type, &conv.CreatedBy, &conv.OwnerID, &conv.CreatedAt, &conv.UpdatedAt, &conv.Version,
 	)
 	if err != nil {
@@ -283,6 +296,7 @@ func (s *Store) findUserDM(ctx context.Context, lo, hi int) (*ConversationMessag
 		}
 		return nil, errors.Wrap(err, "failed to find user DM")
 	}
+	conv.OrganizationID = tenantIDFromContext(ctx)
 	return &conv, nil
 }
 
@@ -294,6 +308,9 @@ func (s *Store) findUserDM(ctx context.Context, lo, hi int) (*ConversationMessag
 // and have their read cursors seeded so only future messages surface. Mirrors
 // GetOrCreateAgentDM for type-3 agent DMs.
 func (s *Store) GetOrCreateUserUserDM(ctx context.Context, callerID, peerID int) (*ConversationMessage, error) {
+	if err := s.RequireOrganizationActive(ctx, tenantIDFromContext(ctx)); err != nil {
+		return nil, err
+	}
 	if callerID == peerID {
 		return nil, errors.Errorf("user-DM requires two distinct users (got %d twice)", callerID)
 	}
@@ -325,9 +342,11 @@ func (s *Store) GetOrCreateUserUserDM(ctx context.Context, callerID, peerID int)
 	defer tx.Rollback()
 
 	var newConv ConversationMessage
-	err = tx.QueryRowContext(ctx, insertUserDMSQL, callerID, lo, hi).Scan(
+	err = tx.QueryRowContext(ctx, insertUserDMSQL, tenantIDFromContext(ctx), callerID, lo, hi).Scan(
 		&newConv.ID, &newConv.AgentID, &newConv.Title, &newConv.Type, &newConv.CreatedBy, &newConv.OwnerID, &newConv.CreatedAt, &newConv.UpdatedAt, &newConv.Version,
 	)
+	newConv.OrganizationID = tenantIDFromContext(ctx)
+	newConv.WorkspaceID = "default"
 	if err != nil {
 		// ON CONFLICT DO NOTHING returns no row when another caller won the
 		// race. Roll back the empty tx and return the winning row.
@@ -372,8 +391,8 @@ func (s *Store) FindChannelByTitle(ctx context.Context, title string) (*Conversa
 	err := s.GetDB().QueryRowContext(ctx, `
 		SELECT id, agent_id, title, type, created_by, owner_id, created_at, updated_at, version
 		FROM conversation
-		WHERE type = 2 AND title = $1
-	`, title).Scan(
+		WHERE organization_id = $2 AND type = 2 AND title = $1
+	`, title, tenantIDFromContext(ctx)).Scan(
 		&conv.ID, &conv.AgentID, &conv.Title, &conv.Type, &conv.CreatedBy, &conv.OwnerID, &conv.CreatedAt, &conv.UpdatedAt, &conv.Version,
 	)
 	if err != nil {
@@ -382,6 +401,7 @@ func (s *Store) FindChannelByTitle(ctx context.Context, title string) (*Conversa
 		}
 		return nil, errors.Wrap(err, "failed to find channel by title")
 	}
+	conv.OrganizationID = tenantIDFromContext(ctx)
 	return &conv, nil
 }
 
@@ -390,8 +410,8 @@ func (s *Store) GetConversation(ctx context.Context, id uuid.UUID) (*Conversatio
 	err := s.GetDB().QueryRowContext(ctx, `
 		SELECT id, agent_id, title, type, created_by, owner_id, created_at, updated_at, version
 		FROM conversation
-		WHERE id = $1
-	`, id).Scan(
+		WHERE organization_id = $2 AND id = $1
+	`, id, tenantIDFromContext(ctx)).Scan(
 		&conv.ID, &conv.AgentID, &conv.Title, &conv.Type, &conv.CreatedBy, &conv.OwnerID, &conv.CreatedAt, &conv.UpdatedAt, &conv.Version,
 	)
 	if err != nil {
@@ -400,10 +420,14 @@ func (s *Store) GetConversation(ctx context.Context, id uuid.UUID) (*Conversatio
 		}
 		return nil, errors.Wrapf(err, "failed to get conversation")
 	}
+	conv.OrganizationID = tenantIDFromContext(ctx)
 	return &conv, nil
 }
 
 func (s *Store) CreateChannel(ctx context.Context, title string, ownerID int) (*ConversationMessage, error) {
+	if err := s.RequireOrganizationActive(ctx, tenantIDFromContext(ctx)); err != nil {
+		return nil, err
+	}
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -412,16 +436,18 @@ func (s *Store) CreateChannel(ctx context.Context, title string, ownerID int) (*
 
 	var conv ConversationMessage
 	err = tx.QueryRowContext(ctx, `
-		INSERT INTO conversation (title, type, created_by, owner_id)
-		VALUES ($1, 2, $2, $2)
+		INSERT INTO conversation (organization_id, workspace_id, title, type, created_by, owner_id)
+		VALUES ($1, 'default', $2, 2, $3, $3)
 		RETURNING id, agent_id, title, type, created_by, owner_id, created_at, updated_at, version
-	`, title, ownerID).Scan(
+	`, tenantIDFromContext(ctx), title, ownerID).Scan(
 		&conv.ID, &conv.AgentID, &conv.Title, &conv.Type, &conv.CreatedBy, &conv.OwnerID, &conv.CreatedAt, &conv.UpdatedAt, &conv.Version,
 	)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create channel")
 	}
 
+	conv.OrganizationID = tenantIDFromContext(ctx)
+	conv.WorkspaceID = "default"
 	ownerHandle, err := s.userMemberHandle(ctx, tx, ownerID)
 	if err != nil {
 		return nil, err
@@ -479,11 +505,11 @@ func (s *Store) ListUserConversations(ctx context.Context, principalID int, limi
 	rows, err := s.GetDB().QueryContext(ctx, `
 		SELECT c.id, c.agent_id, c.title, c.type, c.created_by, c.owner_id, c.created_at, c.updated_at, c.version
 		FROM conversation c
-		JOIN conversation_member_meta cm ON cm.conversation_id = c.id
-		WHERE cm.member_type = $1 AND cm.member_id = $2
+		JOIN conversation_member_meta cm ON cm.organization_id = $1 AND cm.conversation_id = c.id
+		WHERE c.organization_id = $1 AND cm.organization_id = $1 AND cm.member_type = $2 AND cm.member_id = $3
 		ORDER BY c.updated_at DESC
-		LIMIT $3 OFFSET $4
-	`, MemberTypeUser, userHandle, limit, offset)
+		LIMIT $4 OFFSET $5
+	`, tenantIDFromContext(ctx), MemberTypeUser, userHandle, limit, offset)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list user conversations")
 	}
@@ -495,6 +521,7 @@ func (s *Store) ListUserConversations(ctx context.Context, principalID int, limi
 		if err := rows.Scan(&conv.ID, &conv.AgentID, &conv.Title, &conv.Type, &conv.CreatedBy, &conv.OwnerID, &conv.CreatedAt, &conv.UpdatedAt, &conv.Version); err != nil {
 			return nil, errors.Wrapf(err, "failed to scan conversation")
 		}
+		conv.OrganizationID = tenantIDFromContext(ctx)
 		convs = append(convs, &conv)
 	}
 	if err := rows.Err(); err != nil {
@@ -554,8 +581,8 @@ const listUserConversationsWithUnreadSQL = `
 		       cm.pinned, cm.pinned_at, cm.closed,
 		       lm.content, lm.attachments, lm.created_at, lm.sender_name, lm.sender_principal_id
 		FROM conversation c
-		JOIN conversation_member_meta cm ON cm.conversation_id = c.id
-		LEFT JOIN user_channel_cursor ucc ON ucc.principal_id = $3 AND ucc.conversation_id = c.id
+		JOIN conversation_member_meta cm ON cm.organization_id = $1 AND cm.conversation_id = c.id
+		LEFT JOIN user_channel_cursor ucc ON ucc.organization_id = $1 AND ucc.principal_id = $4 AND ucc.conversation_id = c.id
 		LEFT JOIN LATERAL (
 		  SELECT m.content, m.attachments, m.created_at,
 		         CASE WHEN m.sender_type = 2 THEN COALESCE(ag.name, '')
@@ -564,15 +591,15 @@ const listUserConversationsWithUnreadSQL = `
 		  FROM chat_message m
 		  LEFT JOIN principal p ON p.id = m.principal_id
 		  LEFT JOIN agent ag ON ag.id = m.sender_agent_id
-		  WHERE m.conversation_id = c.id
+		  WHERE m.organization_id = $1 AND m.conversation_id = c.id
 		    AND m.thread_root_message_id IS NULL
 		  ORDER BY m.room_version DESC
 		  LIMIT 1
 		) lm ON true
-		WHERE cm.member_type = $1 AND cm.member_id = $2
-		  AND ($6 OR NOT cm.closed)
+		WHERE c.organization_id = $1 AND cm.organization_id = $1 AND cm.member_type = $2 AND cm.member_id = $3
+		  AND ($7 OR NOT cm.closed)
 		ORDER BY cm.pinned DESC, cm.pinned_at DESC NULLS LAST, c.updated_at DESC
-		LIMIT $4 OFFSET $5`
+		LIMIT $5 OFFSET $6`
 
 // ListUserConversationsWithUnread returns every conversation the user is a
 // member of, ordered by updated_at DESC, together with the number of
@@ -594,7 +621,7 @@ func (s *Store) ListUserConversationsWithUnread(ctx context.Context, principalID
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.GetDB().QueryContext(ctx, listUserConversationsWithUnreadSQL, MemberTypeUser, userHandle, principalID, limit, offset, includeClosed)
+	rows, err := s.GetDB().QueryContext(ctx, listUserConversationsWithUnreadSQL, tenantIDFromContext(ctx), MemberTypeUser, userHandle, principalID, limit, offset, includeClosed)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list user conversations with unread")
 	}
@@ -626,6 +653,7 @@ func (s *Store) ListUserConversationsWithUnread(ctx context.Context, principalID
 					uc.LastMessage = attachmentListPreview(attachments)
 				}
 			}
+			conv.OrganizationID = tenantIDFromContext(ctx)
 			uc.LastMessageAt = lmCreatedAt
 			uc.LastMessageSender = lmSender.String
 			uc.LastMessagePrincipalID = lmPrincipalID.String
@@ -670,14 +698,14 @@ func attachmentListPreview(attachments []*v1pb.Attachment) string {
 // own read position for its inbox, which is not meaningful to an admin viewing
 // the agent's channel roster from the agent detail page.
 func (s *Store) ListAgentConversations(ctx context.Context, agentResourceID string, viewer *ConversationMemberFilter, limit, offset int) ([]*UserConversation, error) {
-	args := []any{MemberTypeAgent, agentResourceID}
+	args := []any{tenantIDFromContext(ctx), MemberTypeAgent, agentResourceID}
 	query := `
 		SELECT c.id, c.agent_id, c.title, c.type, c.created_by, c.owner_id, c.created_at, c.updated_at, c.version
 		FROM conversation c
 		JOIN conversation_member_meta cm ON cm.conversation_id = c.id
-		WHERE cm.member_type = $1 AND cm.member_id = $2`
+		WHERE c.organization_id = $1 AND cm.organization_id = $1 AND cm.member_type = $2 AND cm.member_id = $3`
 	if viewer != nil {
-		query += ` AND EXISTS (SELECT 1 FROM conversation_member_meta cmv WHERE cmv.conversation_id = c.id AND cmv.member_type = $3 AND cmv.member_id = $4)`
+		query += ` AND EXISTS (SELECT 1 FROM conversation_member_meta cmv WHERE cmv.organization_id = $1 AND cmv.conversation_id = c.id AND cmv.member_type = $4 AND cmv.member_id = $5)`
 		args = append(args, viewer.MemberType, viewer.MemberID)
 	}
 	args = append(args, limit, offset)
@@ -698,6 +726,7 @@ func (s *Store) ListAgentConversations(ctx context.Context, agentResourceID stri
 		); err != nil {
 			return nil, errors.Wrapf(err, "failed to scan agent conversation")
 		}
+		conv.OrganizationID = tenantIDFromContext(ctx)
 		uc.UnreadCount = 0
 		convs = append(convs, &uc)
 	}
@@ -716,7 +745,7 @@ func (s *Store) ListAgentConversations(ctx context.Context, agentResourceID stri
 // IsMember flag reports whether the agent is a direct member (only joined
 // conversations accept posts or appear in the agent's inbox).
 func (s *Store) ListAccessibleChannels(ctx context.Context, agentResourceID string, ownerID int, followOwner bool, limit, offset int) ([]*UserConversation, error) {
-	args := []any{MemberTypeAgent, agentResourceID}
+	args := []any{tenantIDFromContext(ctx), MemberTypeAgent, agentResourceID}
 	ownerClause := "FALSE"
 	if followOwner {
 		ownerHandle, err := s.userMemberHandle(ctx, s.GetDB(), ownerID)
@@ -726,22 +755,21 @@ func (s *Store) ListAccessibleChannels(ctx context.Context, agentResourceID stri
 		args = append(args, MemberTypeUser, ownerHandle)
 		ownerClause = `EXISTS (
 			SELECT 1 FROM conversation_member_meta cmo
-			WHERE cmo.conversation_id = c.id AND cmo.member_type = $3 AND cmo.member_id = $4
+			WHERE cmo.organization_id = $1 AND cmo.conversation_id = c.id AND cmo.member_type = $4 AND cmo.member_id = $5
 		)`
 	}
 	args = append(args, limit, offset)
 	query := `
 		SELECT c.id, c.agent_id, c.title, c.type, c.created_by, c.owner_id, c.created_at, c.updated_at, c.version,
-		       EXISTS (
+			   EXISTS (
 		         SELECT 1 FROM conversation_member_meta cm
-		         WHERE cm.conversation_id = c.id AND cm.member_type = $1 AND cm.member_id = $2
+		         WHERE cm.organization_id = $1 AND cm.conversation_id = c.id AND cm.member_type = $2 AND cm.member_id = $3
 		       )
 		FROM conversation c
-		WHERE EXISTS (
+		WHERE c.organization_id = $1 AND (EXISTS (
 		        SELECT 1 FROM conversation_member_meta cm
-		        WHERE cm.conversation_id = c.id AND cm.member_type = $1 AND cm.member_id = $2
-		      )
-		   OR (` + ownerClause + `)
+		        WHERE cm.organization_id = $1 AND cm.conversation_id = c.id AND cm.member_type = $2 AND cm.member_id = $3
+		      ) OR (` + ownerClause + `))
 		ORDER BY c.updated_at DESC
 		LIMIT $` + itoa(len(args)-1) + ` OFFSET $` + itoa(len(args))
 
@@ -761,6 +789,7 @@ func (s *Store) ListAccessibleChannels(ctx context.Context, agentResourceID stri
 		); err != nil {
 			return nil, errors.Wrapf(err, "failed to scan accessible channel")
 		}
+		conv.OrganizationID = tenantIDFromContext(ctx)
 		uc.UnreadCount = 0
 		convs = append(convs, &uc)
 	}
@@ -783,7 +812,8 @@ func (s *Store) GetConversationMemberCount(ctx context.Context, id uuid.UUID) (i
 
 func (s *Store) GetAgentResourceIDByID(ctx context.Context, agentID int) (string, error) {
 	var resourceID string
-	err := s.GetDB().QueryRowContext(ctx, `SELECT resource_id FROM agent WHERE id = $1`, agentID).Scan(&resourceID)
+	organizationID := tenantIDFromContext(ctx)
+	err := s.GetDB().QueryRowContext(ctx, `SELECT resource_id FROM agent WHERE organization_id = $1 AND id = $2`, organizationID, agentID).Scan(&resourceID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", nil

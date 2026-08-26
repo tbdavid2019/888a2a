@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,6 +26,7 @@ import (
 	errs "github.com/pkg/errors"
 
 	"github.com/tbdavid2019/888a2a/backend/common"
+	a2a888 "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
 	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 	"github.com/tbdavid2019/888a2a/backend/manager/config"
 	"github.com/tbdavid2019/888a2a/backend/manager/store"
@@ -86,6 +88,14 @@ type Store interface {
 	UserStore
 	AgentStore
 	MachineStore
+}
+
+// organizationMembershipStore is an optional capability implemented by the
+// production store. Keeping it optional preserves the deliberately small auth
+// test double while allowing production to validate an explicitly selected
+// organization before handing control to a handler.
+type organizationMembershipStore interface {
+	GetMembership(context.Context, string, int) (*a2a888.OrganizationMembership, error)
 }
 
 // TokenExpireCache is the subset of *state.State used to reject revoked/expired
@@ -239,8 +249,106 @@ func (in *APIAuthInterceptor) injectAuthResult(
 			orgID = "default"
 		}
 	}
+	if err := in.validateOrganizationSelection(ctx, result, orgID); err != nil {
+		return nil, err
+	}
 	ctx = common.SetOrganizationIDToContext(ctx, orgID)
+	if workspaceID := header.Get("X-Workspace-ID"); workspaceID != "" {
+		if err := in.validateWorkspaceSelection(ctx, result, orgID, workspaceID); err != nil {
+			return nil, err
+		}
+		ctx = common.SetWorkspaceIDToContext(ctx, workspaceID)
+	}
+	ctx = injectPrincipalEvidence(ctx, result, declared, orgID)
 	return ctx, nil
+}
+
+// validateOrganizationSelection prevents a caller from selecting an
+// arbitrary tenant with X-Organization-ID. A user may select only an active
+// membership; machine and agent credentials are bound to their own tenant.
+// The membership check is optional solely for the narrow auth test interface;
+// the production *store.Store implements it.
+func (in *APIAuthInterceptor) validateOrganizationSelection(ctx context.Context, result *authResult, orgID string) error {
+	if result == nil || orgID == "" {
+		return connect.NewError(connect.CodePermissionDenied, errs.New("organization access denied"))
+	}
+	if result.user != nil {
+		membershipStore, ok := in.store.(organizationMembershipStore)
+		if !ok {
+			return nil
+		}
+		membership, err := membershipStore.GetMembership(ctx, orgID, result.user.ID)
+		if err != nil || membership == nil || membership.State != a2a888.MembershipState_MEMBERSHIP_STATE_ACTIVE {
+			return connect.NewError(connect.CodePermissionDenied, errs.New("organization access denied"))
+		}
+	}
+	if result.agent != nil && result.agent.OrganizationID != "" && result.agent.OrganizationID != orgID {
+		return connect.NewError(connect.CodePermissionDenied, errs.New("organization access denied"))
+	}
+	if result.machine != nil && result.machine.OrganizationID != "" && result.machine.OrganizationID != orgID {
+		return connect.NewError(connect.CodePermissionDenied, errs.New("organization access denied"))
+	}
+	return nil
+}
+
+func (in *APIAuthInterceptor) validateWorkspaceSelection(ctx context.Context, result *authResult, organizationID, workspaceID string) error {
+	if result == nil || workspaceID == "" {
+		return connect.NewError(connect.CodePermissionDenied, errs.New("workspace access denied"))
+	}
+	if result.user != nil {
+		membershipStore, ok := in.store.(organizationMembershipStore)
+		if !ok {
+			return nil
+		}
+		membership, err := membershipStore.GetMembership(ctx, organizationID, result.user.ID)
+		if err != nil || membership == nil || !slices.Contains(membership.WorkspaceIds, workspaceID) {
+			return connect.NewError(connect.CodePermissionDenied, errs.New("workspace access denied"))
+		}
+	}
+	if result.agent != nil && result.agent.WorkspaceID != "" && result.agent.WorkspaceID != workspaceID {
+		return connect.NewError(connect.CodePermissionDenied, errs.New("workspace access denied"))
+	}
+	return nil
+}
+
+func injectPrincipalEvidence(ctx context.Context, result *authResult, declared *store.AgentMessage, organizationID string) context.Context {
+	if result == nil {
+		return ctx
+	}
+	if result.user != nil {
+		return common.SetRequesterPrincipalToContext(ctx, common.PrincipalIdentity{
+			ID:             strconv.Itoa(result.user.ID),
+			OrganizationID: organizationID,
+			Type:           "human",
+		})
+	}
+	if declared != nil {
+		ctx = common.SetRequesterPrincipalToContext(ctx, common.PrincipalIdentity{
+			ID:             strconv.Itoa(result.machine.ID),
+			OrganizationID: result.machine.OrganizationID,
+			Type:           "service_account",
+		})
+		return common.SetExecutorPrincipalToContext(ctx, common.PrincipalIdentity{
+			ID:             declared.ResourceID,
+			OrganizationID: declared.OrganizationID,
+			Type:           "agent",
+		})
+	}
+	if result.agent != nil {
+		return common.SetExecutorPrincipalToContext(ctx, common.PrincipalIdentity{
+			ID:             result.agent.ResourceID,
+			OrganizationID: result.agent.OrganizationID,
+			Type:           "agent",
+		})
+	}
+	if result.machine != nil {
+		return common.SetRequesterPrincipalToContext(ctx, common.PrincipalIdentity{
+			ID:             result.machine.ResourceID,
+			OrganizationID: result.machine.OrganizationID,
+			Type:           "service_account",
+		})
+	}
+	return ctx
 }
 
 // AuthenticateHTTP authenticates a plain HTTP request (used by browser-facing

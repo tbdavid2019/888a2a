@@ -75,4 +75,6 @@ func TestTenantObjectKey_CrossTenantCollisionResistance(t *testing.T) {
 	// Nested path prefixes should not be confused with tenant boundary
 	nestedKey := TenantObjectKey("tenant-alpha", "subpath/tenant-beta/file.txt")
 	assert.Equal(t, "tenant-alpha/subpath/tenant-beta/file.txt", nestedKey)
+	assert.Equal(t, "tenant-alpha/files/_/secret.txt", TenantObjectKey("tenant-alpha", "files/../secret.txt"))
+	assert.Equal(t, "tenant_alpha/files/secret.txt", TenantObjectKey("tenant/alpha", "files/secret.txt"))
 }

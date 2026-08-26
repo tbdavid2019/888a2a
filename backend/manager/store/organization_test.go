@@ -37,6 +37,10 @@ func TestParseOrgRole(t *testing.T) {
 		{"ADMIN", a2a888.OrganizationRole_ORGANIZATION_ROLE_ADMIN},
 		{"MEMBER", a2a888.OrganizationRole_ORGANIZATION_ROLE_MEMBER},
 		{"GUEST", a2a888.OrganizationRole_ORGANIZATION_ROLE_GUEST},
+		{"BILLING_ADMIN", a2a888.OrganizationRole_ORGANIZATION_ROLE_BILLING_ADMIN},
+		{"AGENT_ADMIN", a2a888.OrganizationRole_ORGANIZATION_ROLE_AGENT_ADMIN},
+		{"APPROVER", a2a888.OrganizationRole_ORGANIZATION_ROLE_APPROVER},
+		{"ORGANIZATION_ROLE_BILLING_ADMIN", a2a888.OrganizationRole_ORGANIZATION_ROLE_BILLING_ADMIN},
 		{"UNKNOWN", a2a888.OrganizationRole_ORGANIZATION_ROLE_MEMBER},
 	}
 
@@ -63,6 +67,22 @@ func TestParseMembershipState(t *testing.T) {
 		got := parseMembershipState(tc.input)
 		if got != tc.expected {
 			t.Errorf("parseMembershipState(%q) = %v; want %v", tc.input, got, tc.expected)
+		}
+	}
+}
+
+func TestOrganizationStateAllowsWrites(t *testing.T) {
+	for _, tc := range []struct {
+		state string
+		want  bool
+	}{
+		{state: "ACTIVE", want: true},
+		{state: "SUSPENDED", want: false},
+		{state: "CLOSED", want: false},
+		{state: "", want: false},
+	} {
+		if got := organizationStateAllowsWrites(tc.state); got != tc.want {
+			t.Errorf("organizationStateAllowsWrites(%q) = %v, want %v", tc.state, got, tc.want)
 		}
 	}
 }
@@ -119,6 +139,15 @@ func TestTenantProjectionKey_PrefixIsolation(t *testing.T) {
 	p2 := TenantProjectionKey("tenant-beta", "roster", "chan-1")
 	if p1 == p2 {
 		t.Fatalf("cross-tenant projection key collision detected: %q == %q", p1, p2)
+	}
+}
+
+func TestTenantKeysSanitizeTenantBoundary(t *testing.T) {
+	if got := TenantCacheKey("org/a", "role", "same"); got != "org:org_a:role:same" {
+		t.Fatalf("TenantCacheKey escaped tenant path incorrectly: %q", got)
+	}
+	if got := TenantProjectionKey("..", "roster", "same"); got != "org:default:proj:roster:same" {
+		t.Fatalf("TenantProjectionKey accepted traversal tenant: %q", got)
 	}
 }
 

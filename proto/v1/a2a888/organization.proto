@@ -21,6 +21,9 @@ enum OrganizationRole {
   ORGANIZATION_ROLE_ADMIN = 2;
   ORGANIZATION_ROLE_MEMBER = 3;
   ORGANIZATION_ROLE_GUEST = 4;
+  ORGANIZATION_ROLE_BILLING_ADMIN = 5;
+  ORGANIZATION_ROLE_AGENT_ADMIN = 6;
+  ORGANIZATION_ROLE_APPROVER = 7;
 }
 
 // MembershipState represents whether a member is active, suspended, or pending invitation.
@@ -73,6 +76,18 @@ message OrganizationMembership {
   google.protobuf.Timestamp updated_at = 7;
 }
 
+// OrganizationGroupBinding grants an organization role to every active member
+// of a group, optionally limited to one workspace. The role is a resource name
+// (for example roles/workspaceAdmin or a custom organization role).
+message OrganizationGroupBinding {
+  string organization_id = 1;
+  string group_id = 2;
+  string workspace_id = 3;
+  string role = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
 // TenantPrincipal encapsulates the active tenant-scoped identity of a caller.
 message TenantPrincipal {
   string principal_id = 1;
@@ -92,6 +107,12 @@ service OrganizationService {
   rpc SwitchOrganization(SwitchOrganizationRequest) returns (SwitchOrganizationResponse);
   rpc ListWorkspaces(ListWorkspacesRequest) returns (ListWorkspacesResponse);
   rpc ListMemberships(ListMembershipsRequest) returns (ListMembershipsResponse);
+  rpc AddMembership(AddMembershipRequest) returns (OrganizationMembership);
+  rpc UpdateMembership(UpdateMembershipRequest) returns (OrganizationMembership);
+  rpc RemoveMembership(RemoveMembershipRequest) returns (RemoveMembershipResponse);
+  rpc ListGroupBindings(ListGroupBindingsRequest) returns (ListGroupBindingsResponse);
+  rpc SetGroupBinding(SetGroupBindingRequest) returns (OrganizationGroupBinding);
+  rpc RemoveGroupBinding(RemoveGroupBindingRequest) returns (RemoveGroupBindingResponse);
 }
 
 message ListOrganizationsRequest {}
@@ -134,3 +155,39 @@ message ListMembershipsRequest {
 message ListMembershipsResponse {
   repeated OrganizationMembership memberships = 1;
 }
+
+message AddMembershipRequest {
+  OrganizationMembership membership = 1;
+}
+
+message UpdateMembershipRequest {
+  OrganizationMembership membership = 1;
+}
+
+message RemoveMembershipRequest {
+  string organization_id = 1;
+  string principal_id = 2;
+}
+
+message RemoveMembershipResponse {}
+
+message ListGroupBindingsRequest {
+  string organization_id = 1;
+}
+
+message ListGroupBindingsResponse {
+  repeated OrganizationGroupBinding bindings = 1;
+}
+
+message SetGroupBindingRequest {
+  OrganizationGroupBinding binding = 1;
+}
+
+message RemoveGroupBindingRequest {
+  string organization_id = 1;
+  string group_id = 2;
+  string workspace_id = 3;
+  string role = 4;
+}
+
+message RemoveGroupBindingResponse {}

@@ -1,11 +1,13 @@
 package store
 
 import (
+	"context"
 	"strconv"
 	"testing"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 
+	"github.com/tbdavid2019/888a2a/backend/common"
 	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
@@ -30,6 +32,16 @@ func newTestUserStore(t *testing.T) *Store {
 		userIDCache:     idCache,
 		userEmailCache:  emailCache,
 		userHandleCache: handleCache,
+	}
+}
+
+func TestGlobalUserCacheDisabledForTenantContext(t *testing.T) {
+	if !globalUserCacheAllowed(context.Background()) {
+		t.Fatal("unscoped authentication lookups should retain the global user cache")
+	}
+	ctx := common.SetOrganizationIDToContext(context.Background(), "org-a")
+	if globalUserCacheAllowed(ctx) {
+		t.Fatal("tenant-scoped lookups must not reuse a user cache entry carrying another membership's groups")
 	}
 }
 

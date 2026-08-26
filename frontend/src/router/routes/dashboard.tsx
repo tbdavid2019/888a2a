@@ -31,6 +31,7 @@ import {
   SETTINGS_ROUTE_IAM,
   SETTINGS_ROUTE_IDENTITY_PROVIDERS,
   SETTINGS_ROUTE_MCP_SERVERS,
+  SETTINGS_ROUTE_MEMBERSHIPS,
   SETTINGS_ROUTE_NOTIFICATIONS,
   SETTINGS_ROUTE_PROFILE,
   SETTINGS_ROUTE_ROLES,
@@ -355,6 +356,14 @@ export const dashboardChildrenRoutes: RouteObject[] = [
         lazy: () =>
           import("@/pages/dashboard/user-list").then((m) => ({
             Component: m.UserListPage,
+          })),
+      },
+      {
+        path: "memberships",
+        handle: { name: SETTINGS_ROUTE_MEMBERSHIPS },
+        lazy: () =>
+          import("@/pages/dashboard/settings-memberships").then((m) => ({
+            Component: m.SettingsMembershipsPage,
           })),
       },
       {

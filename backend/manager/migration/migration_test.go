@@ -427,6 +427,69 @@ func TestCollaborationResourcesTenantColumnsAndIndexes(t *testing.T) {
 	}
 }
 
+func TestOrganizationIAMMigrationPresent(t *testing.T) {
+	latest := latestSQL(t)
+	incBytes, err := os.ReadFile("migration/1.1/0032##organization-iam-and-audit.sql")
+	if err != nil {
+		t.Fatalf("read organization IAM migration: %v", err)
+	}
+	incremental := string(incBytes)
+	for _, want := range []string{
+		"CREATE TABLE IF NOT EXISTS organization_membership_workspaces",
+		"CREATE TABLE IF NOT EXISTS organization_group_bindings",
+		"idx_org_group_bindings_unique",
+		"organization_group_binding_group_fk",
+		"organization_group_binding_workspace_fk",
+		"idx_policy_tenant_resource_type",
+		"idx_role_tenant_resource_id",
+		"requester_id TEXT NOT NULL DEFAULT ''",
+		"executor_id TEXT NOT NULL DEFAULT ''",
+		"org_memberships_role_check",
+		"BILLING_ADMIN",
+		"AGENT_ADMIN",
+		"APPROVER",
+	} {
+		if !strings.Contains(latest, want) {
+			t.Errorf("LATEST.sql missing organization IAM contract %q", want)
+		}
+		if !strings.Contains(incremental, want) {
+			t.Errorf("0032 migration missing organization IAM contract %q", want)
+		}
+	}
+	if strings.Contains(incremental, "DROP TABLE") || strings.Contains(incremental, "TRUNCATE") {
+		t.Fatal("organization IAM upgrade migration must be additive")
+	}
+}
+
+func TestCollaborationProjectionTenantColumnsPresent(t *testing.T) {
+	latest := latestSQL(t)
+	incBytes, err := os.ReadFile("migration/1.1/0032##organization-iam-and-audit.sql")
+	if err != nil {
+		t.Fatalf("read organization IAM migration: %v", err)
+	}
+	incremental := string(incBytes)
+	for _, table := range []string{
+		"command", "chat_message", "conversation_member_meta", "command_conversation",
+		"command_token_usage", "agent_channel_cursor", "user_channel_cursor",
+		"thread_participant", "message_reaction",
+	} {
+		want := "ALTER TABLE " + table + " ADD COLUMN IF NOT EXISTS organization_id"
+		if !strings.Contains(latest, want) || !strings.Contains(incremental, want) {
+			t.Errorf("tenant projection column missing for %s", table)
+		}
+	}
+	for _, want := range []string{
+		"UPDATE chat_message cm SET organization_id = conv.organization_id",
+		"UPDATE command c SET organization_id = conv.organization_id",
+		"idx_chat_message_organization",
+		"idx_command_conversation_organization",
+	} {
+		if !strings.Contains(latest, want) || !strings.Contains(incremental, want) {
+			t.Errorf("tenant projection backfill/index missing %q", want)
+		}
+	}
+}
+
 func TestDurableOutboxSchemaPresent(t *testing.T) {
 	latest := latestSQL(t)
 	incBytes, err := os.ReadFile("migration/1.1/0029##durable-outbox.sql")

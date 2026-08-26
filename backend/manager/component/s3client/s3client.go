@@ -166,9 +166,31 @@ func TenantObjectKey(orgID string, rawKey string) string {
 	if orgID == "" {
 		orgID = "default"
 	}
+	orgID = safeObjectKeySegment(orgID)
 	rawKey = strings.TrimPrefix(rawKey, "/")
 	if strings.HasPrefix(rawKey, orgID+"/") {
-		return rawKey
+		rawKey = strings.TrimPrefix(rawKey, orgID+"/")
 	}
-	return orgID + "/" + rawKey
+	parts := strings.Split(rawKey, "/")
+	for i, part := range parts {
+		if part == "." || part == ".." {
+			parts[i] = "_"
+		}
+	}
+	return orgID + "/" + strings.Join(parts, "/")
+}
+
+func safeObjectKeySegment(value string) string {
+	var b strings.Builder
+	for _, r := range value {
+		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-' || r == '_' || r == '.' {
+			b.WriteRune(r)
+		} else {
+			b.WriteByte('_')
+		}
+	}
+	if b.Len() == 0 || b.String() == "." || b.String() == ".." {
+		return "default"
+	}
+	return b.String()
 }

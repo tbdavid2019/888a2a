@@ -36,11 +36,12 @@ type UpdateGroupMessage struct {
 // is optional (external/SCIM groups may have no email). IAM bindings may
 // reference a group as groups/{id} or, when it has one, groups/{email}.
 type GroupMessage struct {
-	ID          string
-	Email       string
-	Title       string
-	Description string
-	Payload     *models.GroupPayload
+	OrganizationID string
+	ID             string
+	Email          string
+	Title          string
+	Description    string
+	Payload        *models.GroupPayload
 }
 
 // GetGroup gets a group by email.
@@ -94,6 +95,9 @@ func (s *Store) GetGroupByName(ctx context.Context, name string) (*GroupMessage,
 
 // ListGroups list all groups.
 func (s *Store) ListGroups(ctx context.Context, find *FindGroupMessage) ([]*GroupMessage, error) {
+	if find == nil {
+		find = &FindGroupMessage{}
+	}
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -109,13 +113,13 @@ func (s *Store) ListGroups(ctx context.Context, find *FindGroupMessage) ([]*Grou
 	}
 
 	for _, group := range groups {
-		s.groupCache.Add(group.ID, group)
+		s.groupCache.Add(TenantCacheKey(group.OrganizationID, "group", group.ID), group)
 	}
 	return groups, nil
 }
 
 func (*Store) listGroupImpl(ctx context.Context, txn *sql.Tx, find *FindGroupMessage) ([]*GroupMessage, error) {
-	where, args := []string{"TRUE"}, []any{}
+	where, args := []string{"user_group.organization_id = $1"}, []any{tenantIDFromContext(ctx)}
 	if filter := find.Filter; filter != nil {
 		where = append(where, filter.Where)
 		args = append(args, filter.Args...)
@@ -141,7 +145,7 @@ func (*Store) listGroupImpl(ctx context.Context, txn *sql.Tx, find *FindGroupMes
 				jsonb_array_elements_text(jsonb_array_elements(policy.payload->'bindings')->'members') AS member,
 				jsonb_array_elements(policy.payload->'bindings')->>'role' AS role
 			FROM policy
-			WHERE ((resource_type = '%s' AND resource = $%d) OR resource_type = '%s') AND type = '%s'
+			WHERE organization_id = $1 AND ((resource_type = '%s' AND resource = $%d) OR resource_type = '%s') AND type = '%s'
 		),
 		project_members AS (
 			SELECT ARRAY_AGG(member) AS members FROM all_members WHERE role NOT LIKE 'roles/workspace%%'
@@ -155,6 +159,7 @@ func (*Store) listGroupImpl(ctx context.Context, txn *sql.Tx, find *FindGroupMes
 
 	query := with + `
 	SELECT
+		user_group.organization_id,
 		user_group.id,
 		user_group.email,
 		user_group.name,
@@ -180,6 +185,7 @@ func (*Store) listGroupImpl(ctx context.Context, txn *sql.Tx, find *FindGroupMes
 		var email sql.NullString
 		var payload []byte
 		if err := rows.Scan(
+			&group.OrganizationID,
 			&group.ID,
 			&email,
 			&group.Title,
@@ -208,6 +214,12 @@ func (*Store) listGroupImpl(ctx context.Context, txn *sql.Tx, find *FindGroupMes
 // CreateGroup creates a group. ID may be empty (a UUID is generated); Email may
 // be empty for groups without an email.
 func (s *Store) CreateGroup(ctx context.Context, create *GroupMessage) (*GroupMessage, error) {
+	if create == nil {
+		return nil, errors.New("group is required")
+	}
+	if create.OrganizationID == "" {
+		create.OrganizationID = tenantIDFromContext(ctx)
+	}
 	if create.Payload == nil {
 		create.Payload = &models.GroupPayload{}
 	}
@@ -223,10 +235,10 @@ func (s *Store) CreateGroup(ctx context.Context, create *GroupMessage) (*GroupMe
 	defer tx.Rollback()
 
 	if err := tx.QueryRowContext(ctx, `
-		INSERT INTO user_group (id, email, name, description, payload)
-		VALUES (COALESCE(NULLIF($1, ''), gen_random_uuid()::text), NULLIF($2, ''), $3, $4, $5)
+		INSERT INTO user_group (id, organization_id, email, name, description, payload)
+		VALUES (COALESCE(NULLIF($1, ''), gen_random_uuid()::text), $2, NULLIF($3, ''), $4, $5, $6)
 		RETURNING id
-	`, create.ID, create.Email, create.Title, create.Description, payloadBytes).Scan(&create.ID); err != nil {
+	`, create.ID, create.OrganizationID, create.Email, create.Title, create.Description, payloadBytes).Scan(&create.ID); err != nil {
 		return nil, err
 	}
 
@@ -234,12 +246,13 @@ func (s *Store) CreateGroup(ctx context.Context, create *GroupMessage) (*GroupMe
 		return nil, errors.Wrap(err, "failed to commit")
 	}
 
-	s.groupCache.Add(create.ID, create)
+	s.groupCache.Add(TenantCacheKey(create.OrganizationID, "group", create.ID), create)
 	return create, nil
 }
 
 // UpdateGroup updates a group by its stable id.
 func (s *Store) UpdateGroup(ctx context.Context, id string, patch *UpdateGroupMessage) (*GroupMessage, error) {
+	organizationID := tenantIDFromContext(ctx)
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to begin transaction")
@@ -262,7 +275,7 @@ func (s *Store) UpdateGroup(ctx context.Context, id string, patch *UpdateGroupMe
 	if len(set) == 0 {
 		return nil, errors.New("no fields to update")
 	}
-	args = append(args, id)
+	args = append(args, organizationID, id)
 
 	var group GroupMessage
 	var email sql.NullString
@@ -270,14 +283,16 @@ func (s *Store) UpdateGroup(ctx context.Context, id string, patch *UpdateGroupMe
 	if err := tx.QueryRowContext(ctx, fmt.Sprintf(`
 		UPDATE user_group
 		SET %s
-		WHERE id = $%d
+		WHERE organization_id = $%d AND id = $%d
 		RETURNING
+			organization_id,
 			id,
 			email,
 			name,
 			description,
 			payload
-		`, strings.Join(set, ", "), len(set)+1), args...).Scan(
+		`, strings.Join(set, ", "), len(args)-1, len(args)), args...).Scan(
+		&group.OrganizationID,
 		&group.ID,
 		&email,
 		&group.Title,
@@ -299,19 +314,20 @@ func (s *Store) UpdateGroup(ctx context.Context, id string, patch *UpdateGroupMe
 		return nil, errors.Wrap(err, "failed to commit transaction")
 	}
 
-	s.groupCache.Add(group.ID, &group)
+	s.groupCache.Add(TenantCacheKey(group.OrganizationID, "group", group.ID), &group)
 	return &group, nil
 }
 
 // DeleteGroup deletes a group by its stable id.
 func (s *Store) DeleteGroup(ctx context.Context, id string) error {
+	organizationID := tenantIDFromContext(ctx)
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, "failed to begin transaction")
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.ExecContext(ctx, `DELETE FROM user_group WHERE id = $1`, id); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM user_group WHERE organization_id = $1 AND id = $2`, organizationID, id); err != nil {
 		return err
 	}
 
@@ -319,6 +335,6 @@ func (s *Store) DeleteGroup(ctx context.Context, id string) error {
 		return errors.Wrap(err, "failed to commit transaction")
 	}
 
-	s.groupCache.Remove(id)
+	s.groupCache.Remove(TenantCacheKey(organizationID, "group", id))
 	return nil
 }

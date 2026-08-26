@@ -54,7 +54,7 @@ func TestListUserConversationsWithUnreadSQL(t *testing.T) {
 	if !strings.Contains(listUserConversationsWithUnreadSQL, "lm.attachments") {
 		t.Fatal("preview must carry attachments so file-only messages can fall back to the file name")
 	}
-	if !strings.Contains(listUserConversationsWithUnreadSQL, "AND ($6 OR NOT cm.closed)") {
+	if !strings.Contains(listUserConversationsWithUnreadSQL, "AND ($7 OR NOT cm.closed)") {
 		t.Fatal("list must exclude closed conversations by default but include them when include_closed is requested; a closed chat only reappears when a new main-channel message clears the flag")
 	}
 }

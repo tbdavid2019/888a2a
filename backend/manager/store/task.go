@@ -77,6 +77,14 @@ func (s *Store) RootMessageKinds(ctx context.Context, rootID uuid.UUID) (isTask,
 // to distinguish the two. Returns the created message (with TaskInfo populated)
 // and the new conversation version.
 func (s *Store) CreateTaskMessageBumpVersion(ctx context.Context, msg *ChatMessage) (*ChatMessage, int64, error) {
+	if msg == nil {
+		return nil, 0, errors.New("chat message is required")
+	}
+	organizationID := tenantIDFromContext(ctx)
+	if err := s.RequireOrganizationActive(ctx, organizationID); err != nil {
+		return nil, 0, err
+	}
+	msg.OrganizationID = organizationID
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
 		return nil, 0, errors.Wrapf(err, "failed to begin tx")
@@ -93,9 +101,9 @@ func (s *Store) CreateTaskMessageBumpVersion(ctx context.Context, msg *ChatMessa
 		   SET version = version + 1,
 		       next_task_number = next_task_number + 1,
 		       updated_at = now()
-		 WHERE id = $1
+			 WHERE organization_id = $2 AND id = $1
 		RETURNING version, next_task_number - 1
-	`, msg.ConversationID).Scan(&newVersion, &taskNumber); err != nil {
+	`, msg.ConversationID, organizationID).Scan(&newVersion, &taskNumber); err != nil {
 		return nil, 0, errors.Wrapf(err, "failed to bump conversation version and task number")
 	}
 
@@ -120,6 +128,7 @@ func (s *Store) CreateTaskMessageBumpVersion(ctx context.Context, msg *ChatMessa
 	}
 
 	return &ChatMessage{
+		OrganizationID:      msg.OrganizationID,
 		ID:                  id,
 		ConversationID:      msg.ConversationID,
 		PrincipalID:         msg.PrincipalID,
@@ -148,9 +157,9 @@ func (s *Store) CreateTaskMessageBumpVersion(ctx context.Context, msg *ChatMessa
 // message, after bumping next_task_number separately).
 func createTaskRowInTx(ctx context.Context, tx *sql.Tx, msgID, convID uuid.UUID, taskNumber int32, status int16, assignee sql.NullInt32) error {
 	_, err := tx.ExecContext(ctx, `
-		INSERT INTO task (message_id, conversation_id, task_number, status, assignee_agent_id)
-		VALUES ($1, $2, $3, $4, $5)
-	`, msgID, convID, taskNumber, status, assignee)
+		INSERT INTO task (organization_id, message_id, conversation_id, task_number, status, assignee_agent_id)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, tenantIDFromContext(ctx), msgID, convID, taskNumber, status, assignee)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create task row")
 	}
@@ -164,6 +173,9 @@ func createTaskRowInTx(ctx context.Context, tx *sql.Tx, msgID, convID uuid.UUID,
 // conversation (IsThreadRoot). On success the returned ChatMessage is re-read
 // with TaskInfo populated.
 func (s *Store) ConvertMessageToTask(ctx context.Context, msgID, convID uuid.UUID) (*ChatMessage, error) {
+	if err := s.RequireOrganizationActive(ctx, tenantIDFromContext(ctx)); err != nil {
+		return nil, err
+	}
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to begin tx")

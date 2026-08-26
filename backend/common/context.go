@@ -21,6 +21,9 @@ const (
 	SourceIPContextKey
 	AccessTokenExpiresAtContextKey
 	OrganizationContextKey
+	WorkspaceContextKey
+	RequesterPrincipalContextKey
+	ExecutorPrincipalContextKey
 )
 
 type AuthMethod int
@@ -44,6 +47,15 @@ type AuthContext struct {
 	Permission             string
 	AuthMethod             AuthMethod
 	Resources              []*Resource
+}
+
+// PrincipalIdentity is the immutable identity evidence captured for a
+// tenant-scoped request. Requester and executor are intentionally separate so
+// delegation cannot collapse into an ambiguous actor string in audit records.
+type PrincipalIdentity struct {
+	ID             string
+	OrganizationID string
+	Type           string
 }
 
 func GetAuthContextFromContext(ctx context.Context) (*AuthContext, bool) {
@@ -110,4 +122,31 @@ func GetOrganizationIDFromContext(ctx context.Context) (string, bool) {
 
 func SetOrganizationIDToContext(ctx context.Context, orgID string) context.Context {
 	return context.WithValue(ctx, OrganizationContextKey, orgID)
+}
+
+func GetWorkspaceIDFromContext(ctx context.Context) (string, bool) {
+	workspaceID, ok := ctx.Value(WorkspaceContextKey).(string)
+	return workspaceID, ok
+}
+
+func SetWorkspaceIDToContext(ctx context.Context, workspaceID string) context.Context {
+	return context.WithValue(ctx, WorkspaceContextKey, workspaceID)
+}
+
+func GetRequesterPrincipalFromContext(ctx context.Context) (PrincipalIdentity, bool) {
+	identity, ok := ctx.Value(RequesterPrincipalContextKey).(PrincipalIdentity)
+	return identity, ok
+}
+
+func SetRequesterPrincipalToContext(ctx context.Context, identity PrincipalIdentity) context.Context {
+	return context.WithValue(ctx, RequesterPrincipalContextKey, identity)
+}
+
+func GetExecutorPrincipalFromContext(ctx context.Context) (PrincipalIdentity, bool) {
+	identity, ok := ctx.Value(ExecutorPrincipalContextKey).(PrincipalIdentity)
+	return identity, ok
+}
+
+func SetExecutorPrincipalToContext(ctx context.Context, identity PrincipalIdentity) context.Context {
+	return context.WithValue(ctx, ExecutorPrincipalContextKey, identity)
 }

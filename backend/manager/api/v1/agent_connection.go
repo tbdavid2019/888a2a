@@ -99,6 +99,9 @@ func (s *AgentService) ConnectAgent(ctx context.Context, req *connect.Request[v1
 		tokenFamily = authResult.tokenFamily
 		bootstrapTokenID = authResult.tokenID
 	}
+	if err := s.store.RequireOrganizationActive(ctx, agent.OrganizationID); err != nil {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("organization runtime is not active"))
+	}
 	if tokenFamily == "" {
 		tokenFamily = agent.ResourceID
 	}
@@ -238,6 +241,9 @@ func (s *AgentService) AgentHeartbeat(ctx context.Context, req *connect.Request[
 	agent, ok := GetAgentFromContext(ctx)
 	if !ok || agent == nil {
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("agent not authenticated"))
+	}
+	if err := s.store.RequireOrganizationActive(ctx, agent.OrganizationID); err != nil {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("organization runtime is not active"))
 	}
 
 	if req.Msg.SessionId != "" {

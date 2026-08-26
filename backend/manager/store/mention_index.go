@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/tbdavid2019/888a2a/backend/common"
 	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
@@ -32,8 +33,16 @@ func (i *GlobalMentionIndex) Get(key string) (*v1pb.Mention, bool) {
 // is created/updated/deleted, so it stays fresh without a database round-trip
 // on every message that mentions a non-member.
 func (s *Store) GetGlobalMentionIndex(ctx context.Context) (*GlobalMentionIndex, error) {
+	organizationID, scoped := common.GetOrganizationIDFromContext(ctx)
+	projectionKey := TenantProjectionKey(organizationID, "mentions", "directory")
 	s.globalMentionIndexMu.RLock()
-	if s.globalMentionIndex != nil {
+	if scoped && s.globalMentionIndexes != nil {
+		if idx := s.globalMentionIndexes[projectionKey]; idx != nil {
+			s.globalMentionIndexMu.RUnlock()
+			return idx, nil
+		}
+	}
+	if !scoped && s.globalMentionIndex != nil {
 		idx := s.globalMentionIndex
 		s.globalMentionIndexMu.RUnlock()
 		return idx, nil
@@ -43,7 +52,12 @@ func (s *Store) GetGlobalMentionIndex(ctx context.Context) (*GlobalMentionIndex,
 	s.globalMentionIndexMu.Lock()
 	defer s.globalMentionIndexMu.Unlock()
 	// Another goroutine may have built it while we waited for the lock.
-	if s.globalMentionIndex != nil {
+	if scoped && s.globalMentionIndexes != nil {
+		if idx := s.globalMentionIndexes[projectionKey]; idx != nil {
+			return idx, nil
+		}
+	}
+	if !scoped && s.globalMentionIndex != nil {
 		return s.globalMentionIndex, nil
 	}
 
@@ -58,7 +72,14 @@ func (s *Store) GetGlobalMentionIndex(ctx context.Context) (*GlobalMentionIndex,
 		return nil, err
 	}
 	idx := BuildGlobalMentionIndex(agents, users)
-	s.globalMentionIndex = idx
+	if scoped {
+		if s.globalMentionIndexes == nil {
+			s.globalMentionIndexes = make(map[string]*GlobalMentionIndex)
+		}
+		s.globalMentionIndexes[projectionKey] = idx
+	} else {
+		s.globalMentionIndex = idx
+	}
 	return idx, nil
 }
 
@@ -68,6 +89,7 @@ func (s *Store) GetGlobalMentionIndex(ctx context.Context) (*GlobalMentionIndex,
 func (s *Store) InvalidateGlobalMentionIndex() {
 	s.globalMentionIndexMu.Lock()
 	s.globalMentionIndex = nil
+	s.globalMentionIndexes = nil
 	s.globalMentionIndexMu.Unlock()
 }
 

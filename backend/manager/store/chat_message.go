@@ -23,6 +23,7 @@ const (
 )
 
 type ChatMessage struct {
+	OrganizationID string
 	ID             uuid.UUID
 	ConversationID uuid.UUID
 	PrincipalID    int
@@ -80,7 +81,7 @@ func scanChatMessageRow(row interface {
 	var mentionsBytes []byte
 	var attachmentsBytes []byte
 	if err := row.Scan(
-		&msg.ID, &msg.ConversationID, &msg.PrincipalID, &msg.PrincipalName,
+		&msg.OrganizationID, &msg.ID, &msg.ConversationID, &msg.PrincipalID, &msg.PrincipalName,
 		&msg.SenderAgentID, &msg.AgentResourceID, &msg.AgentName,
 		&msg.Role, &msg.Content, &msg.CommandID, &msg.CreatedAt, &msg.RoomVersion, &msg.SenderType,
 		&mentionsBytes, &attachmentsBytes, &msg.ThreadRootMessageID, &msg.PrincipalHandle,
@@ -104,11 +105,26 @@ func scanChatMessageRow(row interface {
 	return &msg, nil
 }
 
-const chatMessageColumns = `cm.id, cm.conversation_id, cm.principal_id, COALESCE(p.name, ''),
+const chatMessageColumns = `cm.organization_id, cm.id, cm.conversation_id, cm.principal_id, COALESCE(p.name, ''),
        cm.sender_agent_id, COALESCE(a.resource_id, ''), COALESCE(a.name, ''),
        cm.role, cm.content, cm.command_id, cm.created_at, cm.room_version, cm.sender_type, cm.mentions, cm.attachments, cm.thread_root_message_id, COALESCE(p.handle, '')`
 
 func (s *Store) CreateChatMessage(ctx context.Context, msg *ChatMessage) (*ChatMessage, error) {
+	if msg == nil {
+		return nil, errors.New("chat message is required")
+	}
+	organizationID := tenantIDFromContext(ctx)
+	if err := s.RequireOrganizationActive(ctx, organizationID); err != nil {
+		return nil, err
+	}
+	var conversationExists bool
+	if err := s.GetDB().QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM conversation WHERE organization_id = $1 AND id = $2)`, organizationID, msg.ConversationID).Scan(&conversationExists); err != nil {
+		return nil, errors.Wrap(err, "check conversation tenant")
+	}
+	if !conversationExists {
+		return nil, ErrConversationNotFound
+	}
+	msg.OrganizationID = organizationID
 	var id uuid.UUID
 	var createdAt time.Time
 	var roomVersion int64
@@ -123,15 +139,16 @@ func (s *Store) CreateChatMessage(ctx context.Context, msg *ChatMessage) (*ChatM
 	}
 	searchText := markdownToPlainText(msg.Content)
 	err = s.GetDB().QueryRowContext(ctx, `
-		INSERT INTO chat_message (conversation_id, principal_id, role, content, command_id, sender_agent_id, room_version, sender_type, mentions, attachments, thread_root_message_id, search_text)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		INSERT INTO chat_message (organization_id, conversation_id, principal_id, role, content, command_id, sender_agent_id, room_version, sender_type, mentions, attachments, thread_root_message_id, search_text)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id, created_at, room_version
-	`, msg.ConversationID, msg.PrincipalID, msg.Role, msg.Content, msg.CommandID, msg.SenderAgentID, msg.RoomVersion, msg.SenderType, mentionsBytes, attachmentsBytes, msg.ThreadRootMessageID, searchText).Scan(&id, &createdAt, &roomVersion)
+	`, msg.OrganizationID, msg.ConversationID, msg.PrincipalID, msg.Role, msg.Content, msg.CommandID, msg.SenderAgentID, msg.RoomVersion, msg.SenderType, mentionsBytes, attachmentsBytes, msg.ThreadRootMessageID, searchText).Scan(&id, &createdAt, &roomVersion)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create chat message")
 	}
 
 	return &ChatMessage{
+		OrganizationID:      msg.OrganizationID,
 		ID:                  id,
 		ConversationID:      msg.ConversationID,
 		PrincipalID:         msg.PrincipalID,
@@ -158,7 +175,7 @@ func (s *Store) CreateChatMessage(ctx context.Context, msg *ChatMessage) (*ChatM
 // a named constant so the regression guard TestCreateChatMessageBumpVersionSQL
 // can lock the updated_at clause in place without a live database.
 const conversationVersionBumpSQL = `
-	UPDATE conversation SET version = version + 1, updated_at = now() WHERE id = $1
+	UPDATE conversation SET version = version + 1, updated_at = now() WHERE organization_id = $2 AND id = $1
 	RETURNING version
 `
 
@@ -180,6 +197,14 @@ const clearConversationClosedSQL = `
 // Returns the created message (with RoomVersion populated) and the new
 // conversation version.
 func (s *Store) CreateChatMessageBumpVersion(ctx context.Context, msg *ChatMessage) (*ChatMessage, int64, error) {
+	if msg == nil {
+		return nil, 0, errors.New("chat message is required")
+	}
+	organizationID := tenantIDFromContext(ctx)
+	if err := s.RequireOrganizationActive(ctx, organizationID); err != nil {
+		return nil, 0, err
+	}
+	msg.OrganizationID = organizationID
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
 		return nil, 0, errors.Wrapf(err, "failed to begin tx")
@@ -187,7 +212,7 @@ func (s *Store) CreateChatMessageBumpVersion(ctx context.Context, msg *ChatMessa
 	defer tx.Rollback()
 
 	var newVersion int64
-	if err := tx.QueryRowContext(ctx, conversationVersionBumpSQL, msg.ConversationID).Scan(&newVersion); err != nil {
+	if err := tx.QueryRowContext(ctx, conversationVersionBumpSQL, msg.ConversationID, organizationID).Scan(&newVersion); err != nil {
 		return nil, 0, errors.Wrapf(err, "failed to bump conversation version")
 	}
 
@@ -207,6 +232,7 @@ func (s *Store) CreateChatMessageBumpVersion(ctx context.Context, msg *ChatMessa
 	}
 
 	return &ChatMessage{
+		OrganizationID:      msg.OrganizationID,
 		ID:                  id,
 		ConversationID:      msg.ConversationID,
 		PrincipalID:         msg.PrincipalID,
@@ -243,10 +269,10 @@ func createChatMessageInTx(ctx context.Context, tx *sql.Tx, msg *ChatMessage, ro
 	var id uuid.UUID
 	var createdAt time.Time
 	if err := tx.QueryRowContext(ctx, `
-		INSERT INTO chat_message (conversation_id, principal_id, role, content, command_id, sender_agent_id, room_version, sender_type, mentions, attachments, thread_root_message_id, search_text)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		INSERT INTO chat_message (organization_id, conversation_id, principal_id, role, content, command_id, sender_agent_id, room_version, sender_type, mentions, attachments, thread_root_message_id, search_text)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id, created_at
-	`, msg.ConversationID, msg.PrincipalID, msg.Role, msg.Content, msg.CommandID, msg.SenderAgentID, roomVersion, msg.SenderType, mentionsBytes, attachmentsBytes, msg.ThreadRootMessageID, searchText).Scan(&id, &createdAt); err != nil {
+	`, msg.OrganizationID, msg.ConversationID, msg.PrincipalID, msg.Role, msg.Content, msg.CommandID, msg.SenderAgentID, roomVersion, msg.SenderType, mentionsBytes, attachmentsBytes, msg.ThreadRootMessageID, searchText).Scan(&id, &createdAt); err != nil {
 		return uuid.Nil, time.Time{}, errors.Wrapf(err, "failed to create chat message")
 	}
 	// A main-channel message un-closes the conversation for every member (a
@@ -266,8 +292,8 @@ func (s *Store) ListConversationMessages(ctx context.Context, conversationID uui
 	}
 
 	var whereClause string
-	args := []any{conversationID}
-	argIdx := 2
+	args := []any{conversationID, tenantIDFromContext(ctx)}
+	argIdx := 3
 	// afterVersion > 0 returns only the delta (room_version > afterVersion) in
 	// chronological (ASC) order — callers append it to their cached tail.
 	// beforeVersion > 0 and the no-version default both return the NEWEST N
@@ -291,7 +317,7 @@ func (s *Store) ListConversationMessages(ctx context.Context, conversationID uui
 		FROM chat_message cm
 		JOIN principal p ON p.id = cm.principal_id
 		LEFT JOIN agent a ON a.id = cm.sender_agent_id
-		WHERE cm.conversation_id = $1 AND cm.thread_root_message_id IS NULL` + whereClause + orderClause + `
+		WHERE cm.conversation_id = $1 AND cm.organization_id = $2 AND cm.thread_root_message_id IS NULL` + whereClause + orderClause + `
 		LIMIT $` + itoa(argIdx) + ` OFFSET $` + itoa(argIdx+1)
 	args = append(args, limit, offset)
 
@@ -335,7 +361,7 @@ func (s *Store) ListConversationMessages(ctx context.Context, conversationID uui
 
 	var currentVersion int64
 	if err := s.GetDB().QueryRowContext(ctx,
-		`SELECT version FROM conversation WHERE id = $1`, conversationID,
+		`SELECT version FROM conversation WHERE organization_id = $2 AND id = $1`, conversationID, tenantIDFromContext(ctx),
 	).Scan(&currentVersion); err != nil {
 		return nil, 0, errors.Wrapf(err, "failed to get conversation version")
 	}
@@ -361,9 +387,9 @@ func (s *Store) fillThreadReplyCounts(ctx context.Context, msgs []*ChatMessage) 
 	rows, err := s.GetDB().QueryContext(ctx, `
 		SELECT thread_root_message_id, count(*)
 		FROM chat_message
-		WHERE thread_root_message_id = ANY($1)
+		WHERE organization_id = $2 AND thread_root_message_id = ANY($1)
 		GROUP BY thread_root_message_id
-	`, roots)
+	`, roots, tenantIDFromContext(ctx))
 	if err != nil {
 		return errors.Wrapf(err, "failed to count thread replies")
 	}
@@ -410,16 +436,16 @@ func (s *Store) ListThreadMessages(ctx context.Context, conversationID, rootID u
 		FROM chat_message cm
 		JOIN principal p ON p.id = cm.principal_id
 		LEFT JOIN agent a ON a.id = cm.sender_agent_id
-		WHERE cm.id = $1 AND cm.conversation_id = $2 AND cm.thread_root_message_id IS NULL`,
-		rootID, conversationID)
+		WHERE cm.organization_id = $3 AND cm.id = $1 AND cm.conversation_id = $2 AND cm.thread_root_message_id IS NULL`,
+		rootID, conversationID, tenantIDFromContext(ctx))
 	root, err := scanChatMessageRow(rootRow)
 	if err != nil {
 		return nil, 0, errors.Wrapf(err, "failed to get thread root message")
 	}
 
 	var whereClause string
-	args := []any{rootID}
-	argIdx := 2
+	args := []any{rootID, tenantIDFromContext(ctx)}
+	argIdx := 3
 	orderClause := ` ORDER BY cm.created_at DESC`
 	if afterVersion > 0 {
 		whereClause = ` AND cm.room_version > $` + itoa(argIdx)
@@ -437,7 +463,7 @@ func (s *Store) ListThreadMessages(ctx context.Context, conversationID, rootID u
 		FROM chat_message cm
 		JOIN principal p ON p.id = cm.principal_id
 		LEFT JOIN agent a ON a.id = cm.sender_agent_id
-		WHERE cm.thread_root_message_id = $1` + whereClause + orderClause + `
+		WHERE cm.organization_id = $2 AND cm.thread_root_message_id = $1` + whereClause + orderClause + `
 		LIMIT $` + itoa(argIdx) + ` OFFSET $` + itoa(argIdx+1)
 	args = append(args, limit, offset)
 
@@ -466,7 +492,7 @@ func (s *Store) ListThreadMessages(ctx context.Context, conversationID, rootID u
 
 	var currentVersion int64
 	if err := s.GetDB().QueryRowContext(ctx,
-		`SELECT version FROM conversation WHERE id = $1`, conversationID,
+		`SELECT version FROM conversation WHERE organization_id = $2 AND id = $1`, conversationID, tenantIDFromContext(ctx),
 	).Scan(&currentVersion); err != nil {
 		return nil, 0, errors.Wrapf(err, "failed to get conversation version")
 	}
@@ -507,10 +533,10 @@ func (s *Store) ListChannelThreads(ctx context.Context, conversationID uuid.UUID
 	rows, err := s.GetDB().QueryContext(ctx, `
 		SELECT thread_root_message_id, count(*)::int, max(room_version), max(created_at)
 		FROM chat_message
-		WHERE conversation_id = $1 AND thread_root_message_id IS NOT NULL
+		WHERE organization_id = $2 AND conversation_id = $1 AND thread_root_message_id IS NOT NULL
 		GROUP BY thread_root_message_id
 		ORDER BY max(room_version) DESC
-	`, conversationID)
+	`, conversationID, tenantIDFromContext(ctx))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list channel threads")
 	}
@@ -542,9 +568,9 @@ func (s *Store) MessageExistsInConversation(ctx context.Context, conversationID,
 	err := s.GetDB().QueryRowContext(ctx, `
 		SELECT EXISTS (
 			SELECT 1 FROM chat_message
-			WHERE id = $1 AND conversation_id = $2
+			WHERE organization_id = $3 AND id = $1 AND conversation_id = $2
 		)
-	`, messageID, conversationID).Scan(&exists)
+	`, messageID, conversationID, tenantIDFromContext(ctx)).Scan(&exists)
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to check message existence")
 	}
@@ -560,9 +586,9 @@ func (s *Store) IsThreadRoot(ctx context.Context, conversationID, rootID uuid.UU
 	err := s.GetDB().QueryRowContext(ctx, `
 		SELECT EXISTS (
 			SELECT 1 FROM chat_message
-			WHERE id = $1 AND conversation_id = $2 AND thread_root_message_id IS NULL
+			WHERE organization_id = $3 AND id = $1 AND conversation_id = $2 AND thread_root_message_id IS NULL
 		)
-	`, rootID, conversationID).Scan(&exists)
+	`, rootID, conversationID, tenantIDFromContext(ctx)).Scan(&exists)
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to check thread root")
 	}
@@ -582,7 +608,7 @@ func (s *Store) GetThreadRootMessages(ctx context.Context, rootIDs []uuid.UUID) 
 		FROM chat_message cm
 		JOIN principal p ON p.id = cm.principal_id
 		LEFT JOIN agent a ON a.id = cm.sender_agent_id
-		WHERE cm.id = ANY($1) AND cm.thread_root_message_id IS NULL`, rootIDs)
+		WHERE cm.organization_id = $2 AND cm.id = ANY($1) AND cm.thread_root_message_id IS NULL`, rootIDs, tenantIDFromContext(ctx))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get thread root messages")
 	}
@@ -615,7 +641,7 @@ const threadRootSenderSQL = `
 // authored the root (e.g. the agent that uploaded a file being commented on)
 // so it is woken on every reply in the thread, even without a fresh @mention.
 func (s *Store) GetThreadRootSender(ctx context.Context, rootID uuid.UUID) (senderType int32, senderAgentID sql.NullInt32, err error) {
-	err = s.GetDB().QueryRowContext(ctx, threadRootSenderSQL, rootID).Scan(&senderType, &senderAgentID)
+	err = s.GetDB().QueryRowContext(ctx, threadRootSenderSQL+" AND organization_id = $2", rootID, tenantIDFromContext(ctx)).Scan(&senderType, &senderAgentID)
 	if err != nil {
 		return 0, sql.NullInt32{}, errors.Wrapf(err, "failed to get thread root sender")
 	}
@@ -628,10 +654,10 @@ func (s *Store) GetRecentChatMessages(ctx context.Context, conversationID uuid.U
 		FROM chat_message cm
 		JOIN principal p ON p.id = cm.principal_id
 		LEFT JOIN agent a ON a.id = cm.sender_agent_id
-		WHERE cm.conversation_id = $1
+		WHERE cm.organization_id = $3 AND cm.conversation_id = $1
 		ORDER BY cm.created_at DESC
 		LIMIT $2
-	`, conversationID, limit)
+	`, conversationID, limit, tenantIDFromContext(ctx))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get recent chat messages")
 	}

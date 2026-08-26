@@ -433,8 +433,9 @@ func (s *Store) findDirectConversation(ctx context.Context, userHandle, agentRes
 			WHERE cma.member_type = $3 AND cma.member_id = $4
 		)
 		AND c.type = 1
+		AND c.organization_id = $5
 		LIMIT 1
-	`, MemberTypeUser, userHandle, MemberTypeAgent, agentResourceID).Scan(
+	`, MemberTypeUser, userHandle, MemberTypeAgent, agentResourceID, tenantIDFromContext(ctx)).Scan(
 		&conv.ID, &conv.AgentID, &conv.Title, &conv.Type, &conv.CreatedBy, &conv.OwnerID, &conv.CreatedAt, &conv.UpdatedAt, &conv.Version,
 	)
 	if err != nil {
@@ -443,6 +444,7 @@ func (s *Store) findDirectConversation(ctx context.Context, userHandle, agentRes
 		}
 		return nil, errors.Wrapf(err, "failed to find direct conversation")
 	}
+	conv.OrganizationID = tenantIDFromContext(ctx)
 	return &conv, nil
 }
 
@@ -451,10 +453,10 @@ func (s *Store) findDirectConversation(ctx context.Context, userHandle, agentRes
 
 func upsertConversationMemberMetaTx(ctx context.Context, tx *sql.Tx, convID uuid.UUID, memberType int32, memberID string) error {
 	_, err := tx.ExecContext(ctx, `
-		INSERT INTO conversation_member_meta (conversation_id, member_type, member_id)
-		VALUES ($1, $2, $3)
+		INSERT INTO conversation_member_meta (organization_id, conversation_id, member_type, member_id)
+		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (conversation_id, member_type, member_id) DO NOTHING
-	`, convID, memberType, memberID)
+	`, tenantIDFromContext(ctx), convID, memberType, memberID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to upsert conversation member meta")
 	}
@@ -464,8 +466,8 @@ func upsertConversationMemberMetaTx(ctx context.Context, tx *sql.Tx, convID uuid
 func deleteConversationMemberMetaTx(ctx context.Context, tx *sql.Tx, convID uuid.UUID, memberType int32, memberID string) error {
 	_, err := tx.ExecContext(ctx, `
 		DELETE FROM conversation_member_meta
-		WHERE conversation_id = $1 AND member_type = $2 AND member_id = $3
-	`, convID, memberType, memberID)
+		WHERE organization_id = $1 AND conversation_id = $2 AND member_type = $3 AND member_id = $4
+	`, tenantIDFromContext(ctx), convID, memberType, memberID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete conversation member meta")
 	}

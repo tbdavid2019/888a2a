@@ -156,6 +156,51 @@ export declare type OrganizationMembership = Message<"a2a888.v1.OrganizationMemb
 export declare const OrganizationMembershipSchema: GenMessage<OrganizationMembership>;
 
 /**
+ * OrganizationGroupBinding grants an organization role to every active member
+ * of a group, optionally limited to one workspace. The role is a resource name
+ * (for example roles/workspaceAdmin or a custom organization role).
+ *
+ * @generated from message a2a888.v1.OrganizationGroupBinding
+ */
+export declare type OrganizationGroupBinding = Message<"a2a888.v1.OrganizationGroupBinding"> & {
+  /**
+   * @generated from field: string organization_id = 1;
+   */
+  organizationId: string;
+
+  /**
+   * @generated from field: string group_id = 2;
+   */
+  groupId: string;
+
+  /**
+   * @generated from field: string workspace_id = 3;
+   */
+  workspaceId: string;
+
+  /**
+   * @generated from field: string role = 4;
+   */
+  role: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 5;
+   */
+  createdAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp updated_at = 6;
+   */
+  updatedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message a2a888.v1.OrganizationGroupBinding.
+ * Use `create(OrganizationGroupBindingSchema)` to create a new message.
+ */
+export declare const OrganizationGroupBindingSchema: GenMessage<OrganizationGroupBinding>;
+
+/**
  * TenantPrincipal encapsulates the active tenant-scoped identity of a caller.
  *
  * @generated from message a2a888.v1.TenantPrincipal
@@ -385,6 +430,162 @@ export declare type ListMembershipsResponse = Message<"a2a888.v1.ListMemberships
 export declare const ListMembershipsResponseSchema: GenMessage<ListMembershipsResponse>;
 
 /**
+ * @generated from message a2a888.v1.AddMembershipRequest
+ */
+export declare type AddMembershipRequest = Message<"a2a888.v1.AddMembershipRequest"> & {
+  /**
+   * @generated from field: a2a888.v1.OrganizationMembership membership = 1;
+   */
+  membership?: OrganizationMembership | undefined;
+};
+
+/**
+ * Describes the message a2a888.v1.AddMembershipRequest.
+ * Use `create(AddMembershipRequestSchema)` to create a new message.
+ */
+export declare const AddMembershipRequestSchema: GenMessage<AddMembershipRequest>;
+
+/**
+ * @generated from message a2a888.v1.UpdateMembershipRequest
+ */
+export declare type UpdateMembershipRequest = Message<"a2a888.v1.UpdateMembershipRequest"> & {
+  /**
+   * @generated from field: a2a888.v1.OrganizationMembership membership = 1;
+   */
+  membership?: OrganizationMembership | undefined;
+};
+
+/**
+ * Describes the message a2a888.v1.UpdateMembershipRequest.
+ * Use `create(UpdateMembershipRequestSchema)` to create a new message.
+ */
+export declare const UpdateMembershipRequestSchema: GenMessage<UpdateMembershipRequest>;
+
+/**
+ * @generated from message a2a888.v1.RemoveMembershipRequest
+ */
+export declare type RemoveMembershipRequest = Message<"a2a888.v1.RemoveMembershipRequest"> & {
+  /**
+   * @generated from field: string organization_id = 1;
+   */
+  organizationId: string;
+
+  /**
+   * @generated from field: string principal_id = 2;
+   */
+  principalId: string;
+};
+
+/**
+ * Describes the message a2a888.v1.RemoveMembershipRequest.
+ * Use `create(RemoveMembershipRequestSchema)` to create a new message.
+ */
+export declare const RemoveMembershipRequestSchema: GenMessage<RemoveMembershipRequest>;
+
+/**
+ * @generated from message a2a888.v1.RemoveMembershipResponse
+ */
+export declare type RemoveMembershipResponse = Message<"a2a888.v1.RemoveMembershipResponse"> & {
+};
+
+/**
+ * Describes the message a2a888.v1.RemoveMembershipResponse.
+ * Use `create(RemoveMembershipResponseSchema)` to create a new message.
+ */
+export declare const RemoveMembershipResponseSchema: GenMessage<RemoveMembershipResponse>;
+
+/**
+ * @generated from message a2a888.v1.ListGroupBindingsRequest
+ */
+export declare type ListGroupBindingsRequest = Message<"a2a888.v1.ListGroupBindingsRequest"> & {
+  /**
+   * @generated from field: string organization_id = 1;
+   */
+  organizationId: string;
+};
+
+/**
+ * Describes the message a2a888.v1.ListGroupBindingsRequest.
+ * Use `create(ListGroupBindingsRequestSchema)` to create a new message.
+ */
+export declare const ListGroupBindingsRequestSchema: GenMessage<ListGroupBindingsRequest>;
+
+/**
+ * @generated from message a2a888.v1.ListGroupBindingsResponse
+ */
+export declare type ListGroupBindingsResponse = Message<"a2a888.v1.ListGroupBindingsResponse"> & {
+  /**
+   * @generated from field: repeated a2a888.v1.OrganizationGroupBinding bindings = 1;
+   */
+  bindings: OrganizationGroupBinding[];
+};
+
+/**
+ * Describes the message a2a888.v1.ListGroupBindingsResponse.
+ * Use `create(ListGroupBindingsResponseSchema)` to create a new message.
+ */
+export declare const ListGroupBindingsResponseSchema: GenMessage<ListGroupBindingsResponse>;
+
+/**
+ * @generated from message a2a888.v1.SetGroupBindingRequest
+ */
+export declare type SetGroupBindingRequest = Message<"a2a888.v1.SetGroupBindingRequest"> & {
+  /**
+   * @generated from field: a2a888.v1.OrganizationGroupBinding binding = 1;
+   */
+  binding?: OrganizationGroupBinding | undefined;
+};
+
+/**
+ * Describes the message a2a888.v1.SetGroupBindingRequest.
+ * Use `create(SetGroupBindingRequestSchema)` to create a new message.
+ */
+export declare const SetGroupBindingRequestSchema: GenMessage<SetGroupBindingRequest>;
+
+/**
+ * @generated from message a2a888.v1.RemoveGroupBindingRequest
+ */
+export declare type RemoveGroupBindingRequest = Message<"a2a888.v1.RemoveGroupBindingRequest"> & {
+  /**
+   * @generated from field: string organization_id = 1;
+   */
+  organizationId: string;
+
+  /**
+   * @generated from field: string group_id = 2;
+   */
+  groupId: string;
+
+  /**
+   * @generated from field: string workspace_id = 3;
+   */
+  workspaceId: string;
+
+  /**
+   * @generated from field: string role = 4;
+   */
+  role: string;
+};
+
+/**
+ * Describes the message a2a888.v1.RemoveGroupBindingRequest.
+ * Use `create(RemoveGroupBindingRequestSchema)` to create a new message.
+ */
+export declare const RemoveGroupBindingRequestSchema: GenMessage<RemoveGroupBindingRequest>;
+
+/**
+ * @generated from message a2a888.v1.RemoveGroupBindingResponse
+ */
+export declare type RemoveGroupBindingResponse = Message<"a2a888.v1.RemoveGroupBindingResponse"> & {
+};
+
+/**
+ * Describes the message a2a888.v1.RemoveGroupBindingResponse.
+ * Use `create(RemoveGroupBindingResponseSchema)` to create a new message.
+ */
+export declare const RemoveGroupBindingResponseSchema: GenMessage<RemoveGroupBindingResponse>;
+
+/**
  * OrganizationState represents the operational lifecycle state of an Organization.
  *
  * @generated from enum a2a888.v1.OrganizationState
@@ -446,6 +647,21 @@ export enum OrganizationRole {
    * @generated from enum value: ORGANIZATION_ROLE_GUEST = 4;
    */
   GUEST = 4,
+
+  /**
+   * @generated from enum value: ORGANIZATION_ROLE_BILLING_ADMIN = 5;
+   */
+  BILLING_ADMIN = 5,
+
+  /**
+   * @generated from enum value: ORGANIZATION_ROLE_AGENT_ADMIN = 6;
+   */
+  AGENT_ADMIN = 6,
+
+  /**
+   * @generated from enum value: ORGANIZATION_ROLE_APPROVER = 7;
+   */
+  APPROVER = 7,
 }
 
 /**
@@ -565,6 +781,54 @@ export declare const OrganizationService: GenService<{
     methodKind: "unary";
     input: typeof ListMembershipsRequestSchema;
     output: typeof ListMembershipsResponseSchema;
+  },
+  /**
+   * @generated from rpc a2a888.v1.OrganizationService.AddMembership
+   */
+  addMembership: {
+    methodKind: "unary";
+    input: typeof AddMembershipRequestSchema;
+    output: typeof OrganizationMembershipSchema;
+  },
+  /**
+   * @generated from rpc a2a888.v1.OrganizationService.UpdateMembership
+   */
+  updateMembership: {
+    methodKind: "unary";
+    input: typeof UpdateMembershipRequestSchema;
+    output: typeof OrganizationMembershipSchema;
+  },
+  /**
+   * @generated from rpc a2a888.v1.OrganizationService.RemoveMembership
+   */
+  removeMembership: {
+    methodKind: "unary";
+    input: typeof RemoveMembershipRequestSchema;
+    output: typeof RemoveMembershipResponseSchema;
+  },
+  /**
+   * @generated from rpc a2a888.v1.OrganizationService.ListGroupBindings
+   */
+  listGroupBindings: {
+    methodKind: "unary";
+    input: typeof ListGroupBindingsRequestSchema;
+    output: typeof ListGroupBindingsResponseSchema;
+  },
+  /**
+   * @generated from rpc a2a888.v1.OrganizationService.SetGroupBinding
+   */
+  setGroupBinding: {
+    methodKind: "unary";
+    input: typeof SetGroupBindingRequestSchema;
+    output: typeof OrganizationGroupBindingSchema;
+  },
+  /**
+   * @generated from rpc a2a888.v1.OrganizationService.RemoveGroupBinding
+   */
+  removeGroupBinding: {
+    methodKind: "unary";
+    input: typeof RemoveGroupBindingRequestSchema;
+    output: typeof RemoveGroupBindingResponseSchema;
   },
 }>;
 

@@ -47,7 +47,9 @@ Agent Network gate: 12 Agents across two Machines SHALL discover peers, exchange
 - [ ] 2.8 Make IAM resource resolution tenant-first; verify adversarial tests return indistinguishable denial for guessed cross-tenant identifiers.
 - [ ] 2.9 Prefix object-storage keys, cache keys and local projections with Organization scope; verify cross-tenant key-collision tests pass.
 - [ ] 2.10 Add Organization lifecycle enforcement for active, suspended and closed states; verify human, connector, A2A and runtime writes stop consistently when suspended.
-- [ ] 2.11 Add Organization switcher and membership administration UI; verify frontend tests cover multi-membership, inaccessible routes and suspended state.
+- [x] 2.11 Add Organization switcher and membership administration UI; verify frontend tests cover multi-membership, inaccessible routes and suspended state.
+
+Evidence notes (2026-08-26): 2.1 and 2.11 are proven by `buf format`, `buf lint`, `buf generate`, frontend type-check/lint, and 573 frontend tests. Tasks 2.2-2.4 remain pending because fresh-install and upgrade execution requires the external PostgreSQL migration gate (`A2A888_RUN_MIGRATION_TESTS=1` plus `A2A888_TEST_PG_URL`). Tasks 2.5-2.10 have tenant-scoped implementation and unit/static coverage, but remain pending until the two-organization PostgreSQL/API fixture proves cross-tenant switching, group-effective permission changes, adversarial resource denial, storage/projection isolation, and consistent suspended writes across human, connector, A2A, and runtime paths.
 
 ## 3. Durable Event and Multi-Instance Foundation
 

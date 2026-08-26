@@ -75,6 +75,9 @@ func (s *AgentStreamService) AgentChannel(
 	if err != nil {
 		return err
 	}
+	if err := s.store.RequireOrganizationActive(ctx, agent.OrganizationID); err != nil {
+		return connect.NewError(connect.CodePermissionDenied, errors.New("organization runtime is not active"))
+	}
 
 	sess := s.dispatcher.RegisterAgent(ctx, agent.ID, machine.ID, agent.ResourceID, sendFunc)
 	// Identity-aware teardown: if a reconnect replaced this session before the

@@ -145,6 +145,11 @@ func (s *Store) cacheActiveUser(user *UserMessage) {
 	s.userHandleCache.Add(user.Handle, user)
 }
 
+func globalUserCacheAllowed(ctx context.Context) bool {
+	_, scoped := common.GetOrganizationIDFromContext(ctx)
+	return !scoped
+}
+
 // invalidateUserCache evicts a user from both caches by its previous id/email,
 // used on delete/restore/email-change so the next lookup re-reads from the DB.
 func (s *Store) invalidateUserCache(id int, email string) {
@@ -186,8 +191,10 @@ func (s *Store) findUser(ctx context.Context, find *FindUserMessage) (*UserMessa
 // a miss falls back to a point query (not a full-table load), which resolves
 // soft-deleted users with MemberDeleted=true but does not cache them.
 func (s *Store) GetUserByID(ctx context.Context, id int) (*UserMessage, error) {
-	if v, ok := s.userIDCache.Get(id); ok && s.enableCache {
-		return v, nil
+	if globalUserCacheAllowed(ctx) {
+		if v, ok := s.userIDCache.Get(id); ok && s.enableCache {
+			return v, nil
+		}
 	}
 
 	user, err := s.findUser(ctx, &FindUserMessage{ID: &id, ShowDeleted: true})
@@ -197,7 +204,9 @@ func (s *Store) GetUserByID(ctx context.Context, id int) (*UserMessage, error) {
 	if user == nil {
 		return nil, nil
 	}
-	s.cacheActiveUser(user)
+	if globalUserCacheAllowed(ctx) {
+		s.cacheActiveUser(user)
+	}
 	return user, nil
 }
 
@@ -205,8 +214,10 @@ func (s *Store) GetUserByID(ctx context.Context, id int) (*UserMessage, error) {
 // copy; a miss falls back to a point query (not a full-table load), which
 // resolves soft-deleted users with MemberDeleted=true but does not cache them.
 func (s *Store) GetUserByEmail(ctx context.Context, email string) (*UserMessage, error) {
-	if v, ok := s.userEmailCache.Get(email); ok && s.enableCache {
-		return v, nil
+	if globalUserCacheAllowed(ctx) {
+		if v, ok := s.userEmailCache.Get(email); ok && s.enableCache {
+			return v, nil
+		}
 	}
 
 	user, err := s.findUser(ctx, &FindUserMessage{Email: &email, ShowDeleted: true})
@@ -216,7 +227,9 @@ func (s *Store) GetUserByEmail(ctx context.Context, email string) (*UserMessage,
 	if user == nil {
 		return nil, nil
 	}
-	s.cacheActiveUser(user)
+	if globalUserCacheAllowed(ctx) {
+		s.cacheActiveUser(user)
+	}
 	return user, nil
 }
 
@@ -225,8 +238,10 @@ func (s *Store) GetUserByEmail(ctx context.Context, email string) (*UserMessage,
 // load), which resolves soft-deleted users with MemberDeleted=true but does not
 // cache them.
 func (s *Store) GetUserByHandle(ctx context.Context, handle string) (*UserMessage, error) {
-	if v, ok := s.userHandleCache.Get(handle); ok && s.enableCache {
-		return v, nil
+	if globalUserCacheAllowed(ctx) {
+		if v, ok := s.userHandleCache.Get(handle); ok && s.enableCache {
+			return v, nil
+		}
 	}
 
 	user, err := s.findUser(ctx, &FindUserMessage{Handle: &handle, ShowDeleted: true})
@@ -236,7 +251,9 @@ func (s *Store) GetUserByHandle(ctx context.Context, handle string) (*UserMessag
 	if user == nil {
 		return nil, nil
 	}
-	s.cacheActiveUser(user)
+	if globalUserCacheAllowed(ctx) {
+		s.cacheActiveUser(user)
+	}
 	return user, nil
 }
 
@@ -306,8 +323,10 @@ func (s *Store) ListUsers(ctx context.Context, find *FindUserMessage) ([]*UserMe
 		return nil, err
 	}
 
-	for _, user := range users {
-		s.cacheActiveUser(user)
+	if globalUserCacheAllowed(ctx) {
+		for _, user := range users {
+			s.cacheActiveUser(user)
+		}
 	}
 	return users, nil
 }
@@ -318,7 +337,17 @@ func (s *Store) ListUsers(ctx context.Context, find *FindUserMessage) ([]*UserMe
 // be unit-tested without a database: every user-controlled value must appear in
 // args, never interpolated into the query text.
 func buildListUsersQuery(find *FindUserMessage) (string, []any) {
+	return buildListUsersQueryForOrganization(find, "")
+}
+
+func buildListUsersQueryForOrganization(find *FindUserMessage, organizationID string) (string, []any) {
 	where, args := []string{"TRUE"}, []any{}
+	groupOrganizationFilter := ""
+	if organizationID != "" {
+		args = append(args, organizationID)
+		groupOrganizationFilter = fmt.Sprintf(" AND user_group.organization_id = $%d", len(args))
+		where = append(where, fmt.Sprintf("EXISTS (SELECT 1 FROM organization_memberships om WHERE om.organization_id = $%d AND om.principal_id = principal.id AND om.state = 'ACTIVE')", len(args)))
+	}
 	if filter := find.Filter; filter != nil {
 		where = append(where, filter.Where)
 		args = append(args, filter.Args...)
@@ -392,7 +421,7 @@ func buildListUsersQuery(find *FindUserMessage) (string, []any) {
 		LEFT JOIN user_group ON EXISTS (
 			SELECT 1 FROM jsonb_array_elements(user_group.payload->'members') AS m
 			WHERE m->>'member' = CONCAT('users/', principal.id)
-		)
+		)` + groupOrganizationFilter + `
 		GROUP BY principal.id
 	)
 	SELECT
@@ -426,7 +455,8 @@ func buildListUsersQuery(find *FindUserMessage) (string, []any) {
 }
 
 func listUserImpl(ctx context.Context, txn *sql.Tx, find *FindUserMessage) ([]*UserMessage, error) {
-	query, args := buildListUsersQuery(find)
+	organizationID, _ := common.GetOrganizationIDFromContext(ctx)
+	query, args := buildListUsersQueryForOrganization(find, organizationID)
 
 	var userMessages []*UserMessage
 	rows, err := txn.QueryContext(ctx, query, args...)

@@ -28,6 +28,15 @@ export function createAuthInterceptor(
   onUnauthenticated: UnauthenticatedHandler
 ): Interceptor {
   return (next) => async (req) => {
+    // The active organization is a routing hint, not an authorization grant;
+    // the server validates membership before accepting it. Keeping it on the
+    // transport makes every request after a switch explicitly tenant-scoped.
+    try {
+      const organizationID = localStorage.getItem("888a2a-active-organization");
+      if (organizationID) req.header.set("X-Organization-ID", organizationID);
+    } catch {
+      // Storage may be unavailable in privacy mode or non-browser tests.
+    }
     try {
       const res = await next(req);
       if (res.stream) {

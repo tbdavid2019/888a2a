@@ -79,11 +79,14 @@ func (OrganizationState) EnumDescriptor() ([]byte, []int) {
 type OrganizationRole int32
 
 const (
-	OrganizationRole_ORGANIZATION_ROLE_UNSPECIFIED OrganizationRole = 0
-	OrganizationRole_ORGANIZATION_ROLE_OWNER       OrganizationRole = 1
-	OrganizationRole_ORGANIZATION_ROLE_ADMIN       OrganizationRole = 2
-	OrganizationRole_ORGANIZATION_ROLE_MEMBER      OrganizationRole = 3
-	OrganizationRole_ORGANIZATION_ROLE_GUEST       OrganizationRole = 4
+	OrganizationRole_ORGANIZATION_ROLE_UNSPECIFIED   OrganizationRole = 0
+	OrganizationRole_ORGANIZATION_ROLE_OWNER         OrganizationRole = 1
+	OrganizationRole_ORGANIZATION_ROLE_ADMIN         OrganizationRole = 2
+	OrganizationRole_ORGANIZATION_ROLE_MEMBER        OrganizationRole = 3
+	OrganizationRole_ORGANIZATION_ROLE_GUEST         OrganizationRole = 4
+	OrganizationRole_ORGANIZATION_ROLE_BILLING_ADMIN OrganizationRole = 5
+	OrganizationRole_ORGANIZATION_ROLE_AGENT_ADMIN   OrganizationRole = 6
+	OrganizationRole_ORGANIZATION_ROLE_APPROVER      OrganizationRole = 7
 )
 
 // Enum value maps for OrganizationRole.
@@ -94,13 +97,19 @@ var (
 		2: "ORGANIZATION_ROLE_ADMIN",
 		3: "ORGANIZATION_ROLE_MEMBER",
 		4: "ORGANIZATION_ROLE_GUEST",
+		5: "ORGANIZATION_ROLE_BILLING_ADMIN",
+		6: "ORGANIZATION_ROLE_AGENT_ADMIN",
+		7: "ORGANIZATION_ROLE_APPROVER",
 	}
 	OrganizationRole_value = map[string]int32{
-		"ORGANIZATION_ROLE_UNSPECIFIED": 0,
-		"ORGANIZATION_ROLE_OWNER":       1,
-		"ORGANIZATION_ROLE_ADMIN":       2,
-		"ORGANIZATION_ROLE_MEMBER":      3,
-		"ORGANIZATION_ROLE_GUEST":       4,
+		"ORGANIZATION_ROLE_UNSPECIFIED":   0,
+		"ORGANIZATION_ROLE_OWNER":         1,
+		"ORGANIZATION_ROLE_ADMIN":         2,
+		"ORGANIZATION_ROLE_MEMBER":        3,
+		"ORGANIZATION_ROLE_GUEST":         4,
+		"ORGANIZATION_ROLE_BILLING_ADMIN": 5,
+		"ORGANIZATION_ROLE_AGENT_ADMIN":   6,
+		"ORGANIZATION_ROLE_APPROVER":      7,
 	}
 )
 
@@ -519,6 +528,93 @@ func (x *OrganizationMembership) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// OrganizationGroupBinding grants an organization role to every active member
+// of a group, optionally limited to one workspace. The role is a resource name
+// (for example roles/workspaceAdmin or a custom organization role).
+type OrganizationGroupBinding struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	OrganizationId string                 `protobuf:"bytes,1,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	GroupId        string                 `protobuf:"bytes,2,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+	WorkspaceId    string                 `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	Role           string                 `protobuf:"bytes,4,opt,name=role,proto3" json:"role,omitempty"`
+	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt      *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *OrganizationGroupBinding) Reset() {
+	*x = OrganizationGroupBinding{}
+	mi := &file_a2a888_organization_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrganizationGroupBinding) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrganizationGroupBinding) ProtoMessage() {}
+
+func (x *OrganizationGroupBinding) ProtoReflect() protoreflect.Message {
+	mi := &file_a2a888_organization_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrganizationGroupBinding.ProtoReflect.Descriptor instead.
+func (*OrganizationGroupBinding) Descriptor() ([]byte, []int) {
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *OrganizationGroupBinding) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *OrganizationGroupBinding) GetGroupId() string {
+	if x != nil {
+		return x.GroupId
+	}
+	return ""
+}
+
+func (x *OrganizationGroupBinding) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
+}
+
+func (x *OrganizationGroupBinding) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *OrganizationGroupBinding) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *OrganizationGroupBinding) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
 // TenantPrincipal encapsulates the active tenant-scoped identity of a caller.
 type TenantPrincipal struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
@@ -537,7 +633,7 @@ type TenantPrincipal struct {
 
 func (x *TenantPrincipal) Reset() {
 	*x = TenantPrincipal{}
-	mi := &file_a2a888_organization_proto_msgTypes[3]
+	mi := &file_a2a888_organization_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -549,7 +645,7 @@ func (x *TenantPrincipal) String() string {
 func (*TenantPrincipal) ProtoMessage() {}
 
 func (x *TenantPrincipal) ProtoReflect() protoreflect.Message {
-	mi := &file_a2a888_organization_proto_msgTypes[3]
+	mi := &file_a2a888_organization_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -562,7 +658,7 @@ func (x *TenantPrincipal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TenantPrincipal.ProtoReflect.Descriptor instead.
 func (*TenantPrincipal) Descriptor() ([]byte, []int) {
-	return file_a2a888_organization_proto_rawDescGZIP(), []int{3}
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *TenantPrincipal) GetPrincipalId() string {
@@ -636,7 +732,7 @@ type ListOrganizationsRequest struct {
 
 func (x *ListOrganizationsRequest) Reset() {
 	*x = ListOrganizationsRequest{}
-	mi := &file_a2a888_organization_proto_msgTypes[4]
+	mi := &file_a2a888_organization_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -648,7 +744,7 @@ func (x *ListOrganizationsRequest) String() string {
 func (*ListOrganizationsRequest) ProtoMessage() {}
 
 func (x *ListOrganizationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_a2a888_organization_proto_msgTypes[4]
+	mi := &file_a2a888_organization_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -661,7 +757,7 @@ func (x *ListOrganizationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOrganizationsRequest.ProtoReflect.Descriptor instead.
 func (*ListOrganizationsRequest) Descriptor() ([]byte, []int) {
-	return file_a2a888_organization_proto_rawDescGZIP(), []int{4}
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{5}
 }
 
 type ListOrganizationsResponse struct {
@@ -674,7 +770,7 @@ type ListOrganizationsResponse struct {
 
 func (x *ListOrganizationsResponse) Reset() {
 	*x = ListOrganizationsResponse{}
-	mi := &file_a2a888_organization_proto_msgTypes[5]
+	mi := &file_a2a888_organization_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -686,7 +782,7 @@ func (x *ListOrganizationsResponse) String() string {
 func (*ListOrganizationsResponse) ProtoMessage() {}
 
 func (x *ListOrganizationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_a2a888_organization_proto_msgTypes[5]
+	mi := &file_a2a888_organization_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -699,7 +795,7 @@ func (x *ListOrganizationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOrganizationsResponse.ProtoReflect.Descriptor instead.
 func (*ListOrganizationsResponse) Descriptor() ([]byte, []int) {
-	return file_a2a888_organization_proto_rawDescGZIP(), []int{5}
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ListOrganizationsResponse) GetOrganizations() []*Organization {
@@ -725,7 +821,7 @@ type GetOrganizationRequest struct {
 
 func (x *GetOrganizationRequest) Reset() {
 	*x = GetOrganizationRequest{}
-	mi := &file_a2a888_organization_proto_msgTypes[6]
+	mi := &file_a2a888_organization_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -737,7 +833,7 @@ func (x *GetOrganizationRequest) String() string {
 func (*GetOrganizationRequest) ProtoMessage() {}
 
 func (x *GetOrganizationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_a2a888_organization_proto_msgTypes[6]
+	mi := &file_a2a888_organization_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -750,7 +846,7 @@ func (x *GetOrganizationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrganizationRequest.ProtoReflect.Descriptor instead.
 func (*GetOrganizationRequest) Descriptor() ([]byte, []int) {
-	return file_a2a888_organization_proto_rawDescGZIP(), []int{6}
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetOrganizationRequest) GetOrganizationId() string {
@@ -770,7 +866,7 @@ type GetOrganizationResponse struct {
 
 func (x *GetOrganizationResponse) Reset() {
 	*x = GetOrganizationResponse{}
-	mi := &file_a2a888_organization_proto_msgTypes[7]
+	mi := &file_a2a888_organization_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -782,7 +878,7 @@ func (x *GetOrganizationResponse) String() string {
 func (*GetOrganizationResponse) ProtoMessage() {}
 
 func (x *GetOrganizationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_a2a888_organization_proto_msgTypes[7]
+	mi := &file_a2a888_organization_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -795,7 +891,7 @@ func (x *GetOrganizationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetOrganizationResponse.ProtoReflect.Descriptor instead.
 func (*GetOrganizationResponse) Descriptor() ([]byte, []int) {
-	return file_a2a888_organization_proto_rawDescGZIP(), []int{7}
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetOrganizationResponse) GetOrganization() *Organization {
@@ -821,7 +917,7 @@ type SwitchOrganizationRequest struct {
 
 func (x *SwitchOrganizationRequest) Reset() {
 	*x = SwitchOrganizationRequest{}
-	mi := &file_a2a888_organization_proto_msgTypes[8]
+	mi := &file_a2a888_organization_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -833,7 +929,7 @@ func (x *SwitchOrganizationRequest) String() string {
 func (*SwitchOrganizationRequest) ProtoMessage() {}
 
 func (x *SwitchOrganizationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_a2a888_organization_proto_msgTypes[8]
+	mi := &file_a2a888_organization_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -846,7 +942,7 @@ func (x *SwitchOrganizationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SwitchOrganizationRequest.ProtoReflect.Descriptor instead.
 func (*SwitchOrganizationRequest) Descriptor() ([]byte, []int) {
-	return file_a2a888_organization_proto_rawDescGZIP(), []int{8}
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *SwitchOrganizationRequest) GetOrganizationId() string {
@@ -866,7 +962,7 @@ type SwitchOrganizationResponse struct {
 
 func (x *SwitchOrganizationResponse) Reset() {
 	*x = SwitchOrganizationResponse{}
-	mi := &file_a2a888_organization_proto_msgTypes[9]
+	mi := &file_a2a888_organization_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -878,7 +974,7 @@ func (x *SwitchOrganizationResponse) String() string {
 func (*SwitchOrganizationResponse) ProtoMessage() {}
 
 func (x *SwitchOrganizationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_a2a888_organization_proto_msgTypes[9]
+	mi := &file_a2a888_organization_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -891,7 +987,7 @@ func (x *SwitchOrganizationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SwitchOrganizationResponse.ProtoReflect.Descriptor instead.
 func (*SwitchOrganizationResponse) Descriptor() ([]byte, []int) {
-	return file_a2a888_organization_proto_rawDescGZIP(), []int{9}
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *SwitchOrganizationResponse) GetOrganization() *Organization {
@@ -917,7 +1013,7 @@ type ListWorkspacesRequest struct {
 
 func (x *ListWorkspacesRequest) Reset() {
 	*x = ListWorkspacesRequest{}
-	mi := &file_a2a888_organization_proto_msgTypes[10]
+	mi := &file_a2a888_organization_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -929,7 +1025,7 @@ func (x *ListWorkspacesRequest) String() string {
 func (*ListWorkspacesRequest) ProtoMessage() {}
 
 func (x *ListWorkspacesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_a2a888_organization_proto_msgTypes[10]
+	mi := &file_a2a888_organization_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -942,7 +1038,7 @@ func (x *ListWorkspacesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkspacesRequest.ProtoReflect.Descriptor instead.
 func (*ListWorkspacesRequest) Descriptor() ([]byte, []int) {
-	return file_a2a888_organization_proto_rawDescGZIP(), []int{10}
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ListWorkspacesRequest) GetOrganizationId() string {
@@ -961,7 +1057,7 @@ type ListWorkspacesResponse struct {
 
 func (x *ListWorkspacesResponse) Reset() {
 	*x = ListWorkspacesResponse{}
-	mi := &file_a2a888_organization_proto_msgTypes[11]
+	mi := &file_a2a888_organization_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -973,7 +1069,7 @@ func (x *ListWorkspacesResponse) String() string {
 func (*ListWorkspacesResponse) ProtoMessage() {}
 
 func (x *ListWorkspacesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_a2a888_organization_proto_msgTypes[11]
+	mi := &file_a2a888_organization_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -986,7 +1082,7 @@ func (x *ListWorkspacesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkspacesResponse.ProtoReflect.Descriptor instead.
 func (*ListWorkspacesResponse) Descriptor() ([]byte, []int) {
-	return file_a2a888_organization_proto_rawDescGZIP(), []int{11}
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListWorkspacesResponse) GetWorkspaces() []*Workspace {
@@ -1005,7 +1101,7 @@ type ListMembershipsRequest struct {
 
 func (x *ListMembershipsRequest) Reset() {
 	*x = ListMembershipsRequest{}
-	mi := &file_a2a888_organization_proto_msgTypes[12]
+	mi := &file_a2a888_organization_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1017,7 +1113,7 @@ func (x *ListMembershipsRequest) String() string {
 func (*ListMembershipsRequest) ProtoMessage() {}
 
 func (x *ListMembershipsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_a2a888_organization_proto_msgTypes[12]
+	mi := &file_a2a888_organization_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1030,7 +1126,7 @@ func (x *ListMembershipsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMembershipsRequest.ProtoReflect.Descriptor instead.
 func (*ListMembershipsRequest) Descriptor() ([]byte, []int) {
-	return file_a2a888_organization_proto_rawDescGZIP(), []int{12}
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListMembershipsRequest) GetOrganizationId() string {
@@ -1049,7 +1145,7 @@ type ListMembershipsResponse struct {
 
 func (x *ListMembershipsResponse) Reset() {
 	*x = ListMembershipsResponse{}
-	mi := &file_a2a888_organization_proto_msgTypes[13]
+	mi := &file_a2a888_organization_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1061,7 +1157,7 @@ func (x *ListMembershipsResponse) String() string {
 func (*ListMembershipsResponse) ProtoMessage() {}
 
 func (x *ListMembershipsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_a2a888_organization_proto_msgTypes[13]
+	mi := &file_a2a888_organization_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1074,7 +1170,7 @@ func (x *ListMembershipsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMembershipsResponse.ProtoReflect.Descriptor instead.
 func (*ListMembershipsResponse) Descriptor() ([]byte, []int) {
-	return file_a2a888_organization_proto_rawDescGZIP(), []int{13}
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ListMembershipsResponse) GetMemberships() []*OrganizationMembership {
@@ -1082,6 +1178,418 @@ func (x *ListMembershipsResponse) GetMemberships() []*OrganizationMembership {
 		return x.Memberships
 	}
 	return nil
+}
+
+type AddMembershipRequest struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Membership    *OrganizationMembership `protobuf:"bytes,1,opt,name=membership,proto3" json:"membership,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddMembershipRequest) Reset() {
+	*x = AddMembershipRequest{}
+	mi := &file_a2a888_organization_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddMembershipRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddMembershipRequest) ProtoMessage() {}
+
+func (x *AddMembershipRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_a2a888_organization_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddMembershipRequest.ProtoReflect.Descriptor instead.
+func (*AddMembershipRequest) Descriptor() ([]byte, []int) {
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *AddMembershipRequest) GetMembership() *OrganizationMembership {
+	if x != nil {
+		return x.Membership
+	}
+	return nil
+}
+
+type UpdateMembershipRequest struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Membership    *OrganizationMembership `protobuf:"bytes,1,opt,name=membership,proto3" json:"membership,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateMembershipRequest) Reset() {
+	*x = UpdateMembershipRequest{}
+	mi := &file_a2a888_organization_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateMembershipRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateMembershipRequest) ProtoMessage() {}
+
+func (x *UpdateMembershipRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_a2a888_organization_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateMembershipRequest.ProtoReflect.Descriptor instead.
+func (*UpdateMembershipRequest) Descriptor() ([]byte, []int) {
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *UpdateMembershipRequest) GetMembership() *OrganizationMembership {
+	if x != nil {
+		return x.Membership
+	}
+	return nil
+}
+
+type RemoveMembershipRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	OrganizationId string                 `protobuf:"bytes,1,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	PrincipalId    string                 `protobuf:"bytes,2,opt,name=principal_id,json=principalId,proto3" json:"principal_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *RemoveMembershipRequest) Reset() {
+	*x = RemoveMembershipRequest{}
+	mi := &file_a2a888_organization_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveMembershipRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveMembershipRequest) ProtoMessage() {}
+
+func (x *RemoveMembershipRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_a2a888_organization_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveMembershipRequest.ProtoReflect.Descriptor instead.
+func (*RemoveMembershipRequest) Descriptor() ([]byte, []int) {
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *RemoveMembershipRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *RemoveMembershipRequest) GetPrincipalId() string {
+	if x != nil {
+		return x.PrincipalId
+	}
+	return ""
+}
+
+type RemoveMembershipResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveMembershipResponse) Reset() {
+	*x = RemoveMembershipResponse{}
+	mi := &file_a2a888_organization_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveMembershipResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveMembershipResponse) ProtoMessage() {}
+
+func (x *RemoveMembershipResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_a2a888_organization_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveMembershipResponse.ProtoReflect.Descriptor instead.
+func (*RemoveMembershipResponse) Descriptor() ([]byte, []int) {
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{18}
+}
+
+type ListGroupBindingsRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	OrganizationId string                 `protobuf:"bytes,1,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ListGroupBindingsRequest) Reset() {
+	*x = ListGroupBindingsRequest{}
+	mi := &file_a2a888_organization_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListGroupBindingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListGroupBindingsRequest) ProtoMessage() {}
+
+func (x *ListGroupBindingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_a2a888_organization_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListGroupBindingsRequest.ProtoReflect.Descriptor instead.
+func (*ListGroupBindingsRequest) Descriptor() ([]byte, []int) {
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ListGroupBindingsRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+type ListGroupBindingsResponse struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Bindings      []*OrganizationGroupBinding `protobuf:"bytes,1,rep,name=bindings,proto3" json:"bindings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListGroupBindingsResponse) Reset() {
+	*x = ListGroupBindingsResponse{}
+	mi := &file_a2a888_organization_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListGroupBindingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListGroupBindingsResponse) ProtoMessage() {}
+
+func (x *ListGroupBindingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_a2a888_organization_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListGroupBindingsResponse.ProtoReflect.Descriptor instead.
+func (*ListGroupBindingsResponse) Descriptor() ([]byte, []int) {
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *ListGroupBindingsResponse) GetBindings() []*OrganizationGroupBinding {
+	if x != nil {
+		return x.Bindings
+	}
+	return nil
+}
+
+type SetGroupBindingRequest struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Binding       *OrganizationGroupBinding `protobuf:"bytes,1,opt,name=binding,proto3" json:"binding,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetGroupBindingRequest) Reset() {
+	*x = SetGroupBindingRequest{}
+	mi := &file_a2a888_organization_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetGroupBindingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetGroupBindingRequest) ProtoMessage() {}
+
+func (x *SetGroupBindingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_a2a888_organization_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetGroupBindingRequest.ProtoReflect.Descriptor instead.
+func (*SetGroupBindingRequest) Descriptor() ([]byte, []int) {
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *SetGroupBindingRequest) GetBinding() *OrganizationGroupBinding {
+	if x != nil {
+		return x.Binding
+	}
+	return nil
+}
+
+type RemoveGroupBindingRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	OrganizationId string                 `protobuf:"bytes,1,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	GroupId        string                 `protobuf:"bytes,2,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+	WorkspaceId    string                 `protobuf:"bytes,3,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	Role           string                 `protobuf:"bytes,4,opt,name=role,proto3" json:"role,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *RemoveGroupBindingRequest) Reset() {
+	*x = RemoveGroupBindingRequest{}
+	mi := &file_a2a888_organization_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveGroupBindingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveGroupBindingRequest) ProtoMessage() {}
+
+func (x *RemoveGroupBindingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_a2a888_organization_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveGroupBindingRequest.ProtoReflect.Descriptor instead.
+func (*RemoveGroupBindingRequest) Descriptor() ([]byte, []int) {
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *RemoveGroupBindingRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *RemoveGroupBindingRequest) GetGroupId() string {
+	if x != nil {
+		return x.GroupId
+	}
+	return ""
+}
+
+func (x *RemoveGroupBindingRequest) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
+}
+
+func (x *RemoveGroupBindingRequest) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+type RemoveGroupBindingResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveGroupBindingResponse) Reset() {
+	*x = RemoveGroupBindingResponse{}
+	mi := &file_a2a888_organization_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveGroupBindingResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveGroupBindingResponse) ProtoMessage() {}
+
+func (x *RemoveGroupBindingResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_a2a888_organization_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveGroupBindingResponse.ProtoReflect.Descriptor instead.
+func (*RemoveGroupBindingResponse) Descriptor() ([]byte, []int) {
+	return file_a2a888_organization_proto_rawDescGZIP(), []int{23}
 }
 
 var File_a2a888_organization_proto protoreflect.FileDescriptor
@@ -1122,7 +1630,16 @@ const file_a2a888_organization_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x92\x03\n" +
+	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x8b\x02\n" +
+	"\x18OrganizationGroupBinding\x12'\n" +
+	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\x12\x19\n" +
+	"\bgroup_id\x18\x02 \x01(\tR\agroupId\x12!\n" +
+	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\x12\x12\n" +
+	"\x04role\x18\x04 \x01(\tR\x04role\x129\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x92\x03\n" +
 	"\x0fTenantPrincipal\x12!\n" +
 	"\fprincipal_id\x18\x01 \x01(\tR\vprincipalId\x12'\n" +
 	"\x0forganization_id\x18\x02 \x01(\tR\x0eorganizationId\x12E\n" +
@@ -1158,18 +1675,45 @@ const file_a2a888_organization_proto_rawDesc = "" +
 	"\x16ListMembershipsRequest\x12'\n" +
 	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\"^\n" +
 	"\x17ListMembershipsResponse\x12C\n" +
-	"\vmemberships\x18\x01 \x03(\v2!.a2a888.v1.OrganizationMembershipR\vmemberships*\x97\x01\n" +
+	"\vmemberships\x18\x01 \x03(\v2!.a2a888.v1.OrganizationMembershipR\vmemberships\"Y\n" +
+	"\x14AddMembershipRequest\x12A\n" +
+	"\n" +
+	"membership\x18\x01 \x01(\v2!.a2a888.v1.OrganizationMembershipR\n" +
+	"membership\"\\\n" +
+	"\x17UpdateMembershipRequest\x12A\n" +
+	"\n" +
+	"membership\x18\x01 \x01(\v2!.a2a888.v1.OrganizationMembershipR\n" +
+	"membership\"e\n" +
+	"\x17RemoveMembershipRequest\x12'\n" +
+	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\x12!\n" +
+	"\fprincipal_id\x18\x02 \x01(\tR\vprincipalId\"\x1a\n" +
+	"\x18RemoveMembershipResponse\"C\n" +
+	"\x18ListGroupBindingsRequest\x12'\n" +
+	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\"\\\n" +
+	"\x19ListGroupBindingsResponse\x12?\n" +
+	"\bbindings\x18\x01 \x03(\v2#.a2a888.v1.OrganizationGroupBindingR\bbindings\"W\n" +
+	"\x16SetGroupBindingRequest\x12=\n" +
+	"\abinding\x18\x01 \x01(\v2#.a2a888.v1.OrganizationGroupBindingR\abinding\"\x96\x01\n" +
+	"\x19RemoveGroupBindingRequest\x12'\n" +
+	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\x12\x19\n" +
+	"\bgroup_id\x18\x02 \x01(\tR\agroupId\x12!\n" +
+	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\x12\x12\n" +
+	"\x04role\x18\x04 \x01(\tR\x04role\"\x1c\n" +
+	"\x1aRemoveGroupBindingResponse*\x97\x01\n" +
 	"\x11OrganizationState\x12\"\n" +
 	"\x1eORGANIZATION_STATE_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19ORGANIZATION_STATE_ACTIVE\x10\x01\x12 \n" +
 	"\x1cORGANIZATION_STATE_SUSPENDED\x10\x02\x12\x1d\n" +
-	"\x19ORGANIZATION_STATE_CLOSED\x10\x03*\xaa\x01\n" +
+	"\x19ORGANIZATION_STATE_CLOSED\x10\x03*\x92\x02\n" +
 	"\x10OrganizationRole\x12!\n" +
 	"\x1dORGANIZATION_ROLE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17ORGANIZATION_ROLE_OWNER\x10\x01\x12\x1b\n" +
 	"\x17ORGANIZATION_ROLE_ADMIN\x10\x02\x12\x1c\n" +
 	"\x18ORGANIZATION_ROLE_MEMBER\x10\x03\x12\x1b\n" +
-	"\x17ORGANIZATION_ROLE_GUEST\x10\x04*\x8e\x01\n" +
+	"\x17ORGANIZATION_ROLE_GUEST\x10\x04\x12#\n" +
+	"\x1fORGANIZATION_ROLE_BILLING_ADMIN\x10\x05\x12!\n" +
+	"\x1dORGANIZATION_ROLE_AGENT_ADMIN\x10\x06\x12\x1e\n" +
+	"\x1aORGANIZATION_ROLE_APPROVER\x10\a*\x8e\x01\n" +
 	"\x0fMembershipState\x12 \n" +
 	"\x1cMEMBERSHIP_STATE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17MEMBERSHIP_STATE_ACTIVE\x10\x01\x12\x1e\n" +
@@ -1180,13 +1724,19 @@ const file_a2a888_organization_proto_rawDesc = "" +
 	"\x1eTENANT_PRINCIPAL_TYPE_END_USER\x10\x01\x12)\n" +
 	"%TENANT_PRINCIPAL_TYPE_SERVICE_ACCOUNT\x10\x02\x12$\n" +
 	" TENANT_PRINCIPAL_TYPE_SYSTEM_BOT\x10\x03\x12\x1f\n" +
-	"\x1bTENANT_PRINCIPAL_TYPE_AGENT\x10\x042\xe3\x03\n" +
+	"\x1bTENANT_PRINCIPAL_TYPE_AGENT\x10\x042\x8e\b\n" +
 	"\x13OrganizationService\x12^\n" +
 	"\x11ListOrganizations\x12#.a2a888.v1.ListOrganizationsRequest\x1a$.a2a888.v1.ListOrganizationsResponse\x12X\n" +
 	"\x0fGetOrganization\x12!.a2a888.v1.GetOrganizationRequest\x1a\".a2a888.v1.GetOrganizationResponse\x12a\n" +
 	"\x12SwitchOrganization\x12$.a2a888.v1.SwitchOrganizationRequest\x1a%.a2a888.v1.SwitchOrganizationResponse\x12U\n" +
 	"\x0eListWorkspaces\x12 .a2a888.v1.ListWorkspacesRequest\x1a!.a2a888.v1.ListWorkspacesResponse\x12X\n" +
-	"\x0fListMemberships\x12!.a2a888.v1.ListMembershipsRequest\x1a\".a2a888.v1.ListMembershipsResponseB;Z9github.com/tbdavid2019/888a2a/backend/generated-go/a2a888b\x06proto3"
+	"\x0fListMemberships\x12!.a2a888.v1.ListMembershipsRequest\x1a\".a2a888.v1.ListMembershipsResponse\x12S\n" +
+	"\rAddMembership\x12\x1f.a2a888.v1.AddMembershipRequest\x1a!.a2a888.v1.OrganizationMembership\x12Y\n" +
+	"\x10UpdateMembership\x12\".a2a888.v1.UpdateMembershipRequest\x1a!.a2a888.v1.OrganizationMembership\x12[\n" +
+	"\x10RemoveMembership\x12\".a2a888.v1.RemoveMembershipRequest\x1a#.a2a888.v1.RemoveMembershipResponse\x12^\n" +
+	"\x11ListGroupBindings\x12#.a2a888.v1.ListGroupBindingsRequest\x1a$.a2a888.v1.ListGroupBindingsResponse\x12Y\n" +
+	"\x0fSetGroupBinding\x12!.a2a888.v1.SetGroupBindingRequest\x1a#.a2a888.v1.OrganizationGroupBinding\x12a\n" +
+	"\x12RemoveGroupBinding\x12$.a2a888.v1.RemoveGroupBindingRequest\x1a%.a2a888.v1.RemoveGroupBindingResponseB;Z9github.com/tbdavid2019/888a2a/backend/generated-go/a2a888b\x06proto3"
 
 var (
 	file_a2a888_organization_proto_rawDescOnce sync.Once
@@ -1201,7 +1751,7 @@ func file_a2a888_organization_proto_rawDescGZIP() []byte {
 }
 
 var file_a2a888_organization_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_a2a888_organization_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_a2a888_organization_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_a2a888_organization_proto_goTypes = []any{
 	(OrganizationState)(0),             // 0: a2a888.v1.OrganizationState
 	(OrganizationRole)(0),              // 1: a2a888.v1.OrganizationRole
@@ -1210,54 +1760,82 @@ var file_a2a888_organization_proto_goTypes = []any{
 	(*Organization)(nil),               // 4: a2a888.v1.Organization
 	(*Workspace)(nil),                  // 5: a2a888.v1.Workspace
 	(*OrganizationMembership)(nil),     // 6: a2a888.v1.OrganizationMembership
-	(*TenantPrincipal)(nil),            // 7: a2a888.v1.TenantPrincipal
-	(*ListOrganizationsRequest)(nil),   // 8: a2a888.v1.ListOrganizationsRequest
-	(*ListOrganizationsResponse)(nil),  // 9: a2a888.v1.ListOrganizationsResponse
-	(*GetOrganizationRequest)(nil),     // 10: a2a888.v1.GetOrganizationRequest
-	(*GetOrganizationResponse)(nil),    // 11: a2a888.v1.GetOrganizationResponse
-	(*SwitchOrganizationRequest)(nil),  // 12: a2a888.v1.SwitchOrganizationRequest
-	(*SwitchOrganizationResponse)(nil), // 13: a2a888.v1.SwitchOrganizationResponse
-	(*ListWorkspacesRequest)(nil),      // 14: a2a888.v1.ListWorkspacesRequest
-	(*ListWorkspacesResponse)(nil),     // 15: a2a888.v1.ListWorkspacesResponse
-	(*ListMembershipsRequest)(nil),     // 16: a2a888.v1.ListMembershipsRequest
-	(*ListMembershipsResponse)(nil),    // 17: a2a888.v1.ListMembershipsResponse
-	nil,                                // 18: a2a888.v1.Organization.MetadataEntry
-	(*timestamppb.Timestamp)(nil),      // 19: google.protobuf.Timestamp
+	(*OrganizationGroupBinding)(nil),   // 7: a2a888.v1.OrganizationGroupBinding
+	(*TenantPrincipal)(nil),            // 8: a2a888.v1.TenantPrincipal
+	(*ListOrganizationsRequest)(nil),   // 9: a2a888.v1.ListOrganizationsRequest
+	(*ListOrganizationsResponse)(nil),  // 10: a2a888.v1.ListOrganizationsResponse
+	(*GetOrganizationRequest)(nil),     // 11: a2a888.v1.GetOrganizationRequest
+	(*GetOrganizationResponse)(nil),    // 12: a2a888.v1.GetOrganizationResponse
+	(*SwitchOrganizationRequest)(nil),  // 13: a2a888.v1.SwitchOrganizationRequest
+	(*SwitchOrganizationResponse)(nil), // 14: a2a888.v1.SwitchOrganizationResponse
+	(*ListWorkspacesRequest)(nil),      // 15: a2a888.v1.ListWorkspacesRequest
+	(*ListWorkspacesResponse)(nil),     // 16: a2a888.v1.ListWorkspacesResponse
+	(*ListMembershipsRequest)(nil),     // 17: a2a888.v1.ListMembershipsRequest
+	(*ListMembershipsResponse)(nil),    // 18: a2a888.v1.ListMembershipsResponse
+	(*AddMembershipRequest)(nil),       // 19: a2a888.v1.AddMembershipRequest
+	(*UpdateMembershipRequest)(nil),    // 20: a2a888.v1.UpdateMembershipRequest
+	(*RemoveMembershipRequest)(nil),    // 21: a2a888.v1.RemoveMembershipRequest
+	(*RemoveMembershipResponse)(nil),   // 22: a2a888.v1.RemoveMembershipResponse
+	(*ListGroupBindingsRequest)(nil),   // 23: a2a888.v1.ListGroupBindingsRequest
+	(*ListGroupBindingsResponse)(nil),  // 24: a2a888.v1.ListGroupBindingsResponse
+	(*SetGroupBindingRequest)(nil),     // 25: a2a888.v1.SetGroupBindingRequest
+	(*RemoveGroupBindingRequest)(nil),  // 26: a2a888.v1.RemoveGroupBindingRequest
+	(*RemoveGroupBindingResponse)(nil), // 27: a2a888.v1.RemoveGroupBindingResponse
+	nil,                                // 28: a2a888.v1.Organization.MetadataEntry
+	(*timestamppb.Timestamp)(nil),      // 29: google.protobuf.Timestamp
 }
 var file_a2a888_organization_proto_depIdxs = []int32{
 	0,  // 0: a2a888.v1.Organization.state:type_name -> a2a888.v1.OrganizationState
-	18, // 1: a2a888.v1.Organization.metadata:type_name -> a2a888.v1.Organization.MetadataEntry
-	19, // 2: a2a888.v1.Organization.created_at:type_name -> google.protobuf.Timestamp
-	19, // 3: a2a888.v1.Organization.updated_at:type_name -> google.protobuf.Timestamp
-	19, // 4: a2a888.v1.Workspace.created_at:type_name -> google.protobuf.Timestamp
-	19, // 5: a2a888.v1.Workspace.updated_at:type_name -> google.protobuf.Timestamp
+	28, // 1: a2a888.v1.Organization.metadata:type_name -> a2a888.v1.Organization.MetadataEntry
+	29, // 2: a2a888.v1.Organization.created_at:type_name -> google.protobuf.Timestamp
+	29, // 3: a2a888.v1.Organization.updated_at:type_name -> google.protobuf.Timestamp
+	29, // 4: a2a888.v1.Workspace.created_at:type_name -> google.protobuf.Timestamp
+	29, // 5: a2a888.v1.Workspace.updated_at:type_name -> google.protobuf.Timestamp
 	1,  // 6: a2a888.v1.OrganizationMembership.role:type_name -> a2a888.v1.OrganizationRole
 	2,  // 7: a2a888.v1.OrganizationMembership.state:type_name -> a2a888.v1.MembershipState
-	19, // 8: a2a888.v1.OrganizationMembership.created_at:type_name -> google.protobuf.Timestamp
-	19, // 9: a2a888.v1.OrganizationMembership.updated_at:type_name -> google.protobuf.Timestamp
-	3,  // 10: a2a888.v1.TenantPrincipal.principal_type:type_name -> a2a888.v1.TenantPrincipalType
-	4,  // 11: a2a888.v1.ListOrganizationsResponse.organizations:type_name -> a2a888.v1.Organization
-	4,  // 12: a2a888.v1.GetOrganizationResponse.organization:type_name -> a2a888.v1.Organization
-	6,  // 13: a2a888.v1.GetOrganizationResponse.current_membership:type_name -> a2a888.v1.OrganizationMembership
-	4,  // 14: a2a888.v1.SwitchOrganizationResponse.organization:type_name -> a2a888.v1.Organization
-	6,  // 15: a2a888.v1.SwitchOrganizationResponse.membership:type_name -> a2a888.v1.OrganizationMembership
-	5,  // 16: a2a888.v1.ListWorkspacesResponse.workspaces:type_name -> a2a888.v1.Workspace
-	6,  // 17: a2a888.v1.ListMembershipsResponse.memberships:type_name -> a2a888.v1.OrganizationMembership
-	8,  // 18: a2a888.v1.OrganizationService.ListOrganizations:input_type -> a2a888.v1.ListOrganizationsRequest
-	10, // 19: a2a888.v1.OrganizationService.GetOrganization:input_type -> a2a888.v1.GetOrganizationRequest
-	12, // 20: a2a888.v1.OrganizationService.SwitchOrganization:input_type -> a2a888.v1.SwitchOrganizationRequest
-	14, // 21: a2a888.v1.OrganizationService.ListWorkspaces:input_type -> a2a888.v1.ListWorkspacesRequest
-	16, // 22: a2a888.v1.OrganizationService.ListMemberships:input_type -> a2a888.v1.ListMembershipsRequest
-	9,  // 23: a2a888.v1.OrganizationService.ListOrganizations:output_type -> a2a888.v1.ListOrganizationsResponse
-	11, // 24: a2a888.v1.OrganizationService.GetOrganization:output_type -> a2a888.v1.GetOrganizationResponse
-	13, // 25: a2a888.v1.OrganizationService.SwitchOrganization:output_type -> a2a888.v1.SwitchOrganizationResponse
-	15, // 26: a2a888.v1.OrganizationService.ListWorkspaces:output_type -> a2a888.v1.ListWorkspacesResponse
-	17, // 27: a2a888.v1.OrganizationService.ListMemberships:output_type -> a2a888.v1.ListMembershipsResponse
-	23, // [23:28] is the sub-list for method output_type
-	18, // [18:23] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	29, // 8: a2a888.v1.OrganizationMembership.created_at:type_name -> google.protobuf.Timestamp
+	29, // 9: a2a888.v1.OrganizationMembership.updated_at:type_name -> google.protobuf.Timestamp
+	29, // 10: a2a888.v1.OrganizationGroupBinding.created_at:type_name -> google.protobuf.Timestamp
+	29, // 11: a2a888.v1.OrganizationGroupBinding.updated_at:type_name -> google.protobuf.Timestamp
+	3,  // 12: a2a888.v1.TenantPrincipal.principal_type:type_name -> a2a888.v1.TenantPrincipalType
+	4,  // 13: a2a888.v1.ListOrganizationsResponse.organizations:type_name -> a2a888.v1.Organization
+	4,  // 14: a2a888.v1.GetOrganizationResponse.organization:type_name -> a2a888.v1.Organization
+	6,  // 15: a2a888.v1.GetOrganizationResponse.current_membership:type_name -> a2a888.v1.OrganizationMembership
+	4,  // 16: a2a888.v1.SwitchOrganizationResponse.organization:type_name -> a2a888.v1.Organization
+	6,  // 17: a2a888.v1.SwitchOrganizationResponse.membership:type_name -> a2a888.v1.OrganizationMembership
+	5,  // 18: a2a888.v1.ListWorkspacesResponse.workspaces:type_name -> a2a888.v1.Workspace
+	6,  // 19: a2a888.v1.ListMembershipsResponse.memberships:type_name -> a2a888.v1.OrganizationMembership
+	6,  // 20: a2a888.v1.AddMembershipRequest.membership:type_name -> a2a888.v1.OrganizationMembership
+	6,  // 21: a2a888.v1.UpdateMembershipRequest.membership:type_name -> a2a888.v1.OrganizationMembership
+	7,  // 22: a2a888.v1.ListGroupBindingsResponse.bindings:type_name -> a2a888.v1.OrganizationGroupBinding
+	7,  // 23: a2a888.v1.SetGroupBindingRequest.binding:type_name -> a2a888.v1.OrganizationGroupBinding
+	9,  // 24: a2a888.v1.OrganizationService.ListOrganizations:input_type -> a2a888.v1.ListOrganizationsRequest
+	11, // 25: a2a888.v1.OrganizationService.GetOrganization:input_type -> a2a888.v1.GetOrganizationRequest
+	13, // 26: a2a888.v1.OrganizationService.SwitchOrganization:input_type -> a2a888.v1.SwitchOrganizationRequest
+	15, // 27: a2a888.v1.OrganizationService.ListWorkspaces:input_type -> a2a888.v1.ListWorkspacesRequest
+	17, // 28: a2a888.v1.OrganizationService.ListMemberships:input_type -> a2a888.v1.ListMembershipsRequest
+	19, // 29: a2a888.v1.OrganizationService.AddMembership:input_type -> a2a888.v1.AddMembershipRequest
+	20, // 30: a2a888.v1.OrganizationService.UpdateMembership:input_type -> a2a888.v1.UpdateMembershipRequest
+	21, // 31: a2a888.v1.OrganizationService.RemoveMembership:input_type -> a2a888.v1.RemoveMembershipRequest
+	23, // 32: a2a888.v1.OrganizationService.ListGroupBindings:input_type -> a2a888.v1.ListGroupBindingsRequest
+	25, // 33: a2a888.v1.OrganizationService.SetGroupBinding:input_type -> a2a888.v1.SetGroupBindingRequest
+	26, // 34: a2a888.v1.OrganizationService.RemoveGroupBinding:input_type -> a2a888.v1.RemoveGroupBindingRequest
+	10, // 35: a2a888.v1.OrganizationService.ListOrganizations:output_type -> a2a888.v1.ListOrganizationsResponse
+	12, // 36: a2a888.v1.OrganizationService.GetOrganization:output_type -> a2a888.v1.GetOrganizationResponse
+	14, // 37: a2a888.v1.OrganizationService.SwitchOrganization:output_type -> a2a888.v1.SwitchOrganizationResponse
+	16, // 38: a2a888.v1.OrganizationService.ListWorkspaces:output_type -> a2a888.v1.ListWorkspacesResponse
+	18, // 39: a2a888.v1.OrganizationService.ListMemberships:output_type -> a2a888.v1.ListMembershipsResponse
+	6,  // 40: a2a888.v1.OrganizationService.AddMembership:output_type -> a2a888.v1.OrganizationMembership
+	6,  // 41: a2a888.v1.OrganizationService.UpdateMembership:output_type -> a2a888.v1.OrganizationMembership
+	22, // 42: a2a888.v1.OrganizationService.RemoveMembership:output_type -> a2a888.v1.RemoveMembershipResponse
+	24, // 43: a2a888.v1.OrganizationService.ListGroupBindings:output_type -> a2a888.v1.ListGroupBindingsResponse
+	7,  // 44: a2a888.v1.OrganizationService.SetGroupBinding:output_type -> a2a888.v1.OrganizationGroupBinding
+	27, // 45: a2a888.v1.OrganizationService.RemoveGroupBinding:output_type -> a2a888.v1.RemoveGroupBindingResponse
+	35, // [35:46] is the sub-list for method output_type
+	24, // [24:35] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_a2a888_organization_proto_init() }
@@ -1271,7 +1849,7 @@ func file_a2a888_organization_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_a2a888_organization_proto_rawDesc), len(file_a2a888_organization_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   15,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

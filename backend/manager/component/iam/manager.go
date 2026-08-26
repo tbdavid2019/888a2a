@@ -584,8 +584,52 @@ func (m *Manager) CheckTenantPermission(ctx context.Context, orgID string, perm 
 		return false, err
 	}
 
-	// 3. Evaluate role and state
-	return EvaluateMembershipPermission(org, membership, perm), nil
+	// 3. Evaluate the direct organization role first.
+	if EvaluateMembershipPermission(org, membership, perm) {
+		return true, nil
+	}
+
+	// 4. Organization group bindings are evaluated at request time. This makes
+	// suspension/removal immediately effective without copying grants into each
+	// membership row. Workspace-scoped bindings apply when the request carries a
+	// workspace context; organization-wide bindings always apply.
+	var handle string
+	if err := m.store.GetDB().QueryRowContext(ctx, `SELECT handle FROM principal WHERE id = $1`, principalID).Scan(&handle); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, errors.Wrap(err, "resolve organization principal handle")
+	}
+	workspaceID, _ := common.GetWorkspaceIDFromContext(ctx)
+	var roles []string
+	rows, err := m.store.GetDB().QueryContext(ctx, `
+		SELECT b.role
+		FROM organization_group_bindings b
+		JOIN user_group g ON g.id = b.group_id AND g.organization_id = b.organization_id
+		WHERE b.organization_id = $1
+		  AND (b.workspace_id IS NULL OR b.workspace_id = $2)
+		  AND g.payload->'members' @> jsonb_build_array(jsonb_build_object('member', $3))
+	`, orgID, workspaceID, common.FormatUserHandle(handle))
+	if err != nil {
+		return false, errors.Wrap(err, "resolve organization group bindings")
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var role string
+		if err := rows.Scan(&role); err != nil {
+			return false, errors.Wrap(err, "scan organization group binding role")
+		}
+		roles = append(roles, role)
+	}
+	if err := rows.Err(); err != nil {
+		return false, errors.Wrap(err, "iterate organization group bindings")
+	}
+	for _, role := range roles {
+		if rolePerms := m.rolePermissions(ctx, role); rolePerms != nil && rolePerms[perm] {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // CheckOrganizationActive checks whether an organization exists and is in active state.

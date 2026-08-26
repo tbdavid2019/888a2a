@@ -35,6 +35,7 @@ import {
   SETTINGS_ROUTE_IAM,
   SETTINGS_ROUTE_IDENTITY_PROVIDERS,
   SETTINGS_ROUTE_MCP_SERVERS,
+  SETTINGS_ROUTE_MEMBERSHIPS,
   SETTINGS_ROUTE_NOTIFICATIONS,
   SETTINGS_ROUTE_PROFILE,
   SETTINGS_ROUTE_ROLES,
@@ -202,6 +203,12 @@ function useSidebarItems(): SidebarItem[] {
           {
             title: t("sidebar.settings-users"),
             name: SETTINGS_ROUTE_USERS,
+            type: "route",
+            hide: !canViewUsers,
+          },
+          {
+            title: "Organization members",
+            name: SETTINGS_ROUTE_MEMBERSHIPS,
             type: "route",
             hide: !canViewUsers,
           },

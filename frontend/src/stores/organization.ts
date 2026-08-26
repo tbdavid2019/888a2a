@@ -54,6 +54,11 @@ export const createOrganizationSlice: AppSliceCreator<OrganizationSlice> = (
       create(SwitchOrganizationRequestSchema, { organizationId: orgId })
     );
     if (res.organization) {
+      try {
+        localStorage.setItem("888a2a-active-organization", orgId);
+      } catch {
+        // Storage may be disabled; the server-side selection remains authoritative.
+      }
       set({
         currentOrganizationId: orgId,
         channels: [],

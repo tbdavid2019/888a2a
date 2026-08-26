@@ -198,6 +198,7 @@ func (s *Store) PatchWorkspaceIamPolicy(ctx context.Context, patch *PatchIamPoli
 }
 
 func (s *Store) getIamPolicy(ctx context.Context, find *FindPolicyMessage) (*IamPolicyMessage, error) {
+	find.OrganizationID = tenantIDFromContext(ctx)
 	pType := models.Policy_IAM
 	find.Type = &pType
 	policy, err := s.GetPolicyV2(ctx, find)
@@ -223,6 +224,7 @@ func (s *Store) getIamPolicy(ctx context.Context, find *FindPolicyMessage) (*Iam
 
 // PolicyMessage is the mssage for policy.
 type PolicyMessage struct {
+	OrganizationID    string
 	Resource          string
 	ResourceType      models.Policy_Resource
 	Payload           string
@@ -235,9 +237,10 @@ type PolicyMessage struct {
 
 // FindPolicyMessage is the message for finding policies.
 type FindPolicyMessage struct {
-	ResourceType *models.Policy_Resource
-	Resource     *string
-	Type         *models.Policy_Type
+	OrganizationID string
+	ResourceType   *models.Policy_Resource
+	Resource       *string
+	Type           *models.Policy_Type
 	// ShowAll will show all policies regardless of the enforce status.
 	ShowAll bool
 }
@@ -254,8 +257,18 @@ type UpdatePolicyMessage struct {
 
 // GetPolicyV2 gets a policy.
 func (s *Store) GetPolicyV2(ctx context.Context, find *FindPolicyMessage) (*PolicyMessage, error) {
+	if find == nil {
+		find = &FindPolicyMessage{}
+	}
+	if find.OrganizationID == "" {
+		find.OrganizationID = tenantIDFromContext(ctx)
+	}
+	if contextOrganizationID, ok := common.GetOrganizationIDFromContext(ctx); ok && contextOrganizationID != "" && contextOrganizationID != find.OrganizationID {
+		return nil, errors.New("policy organization does not match request tenant")
+	}
+	cacheCtx := common.SetOrganizationIDToContext(ctx, find.OrganizationID)
 	if find.ResourceType != nil && find.Resource != nil && find.Type != nil {
-		if v, ok := s.policyCache.Get(getPolicyCacheKey(ctx, *find.ResourceType, *find.Resource, *find.Type)); ok && s.enableCache {
+		if v, ok := s.policyCache.Get(getPolicyCacheKey(cacheCtx, *find.ResourceType, *find.Resource, *find.Type)); ok && s.enableCache {
 			return v, nil
 		}
 	}
@@ -275,7 +288,7 @@ func (s *Store) GetPolicyV2(ctx context.Context, find *FindPolicyMessage) (*Poli
 	if len(policies) == 0 {
 		// Cache the policy for not found as well to reduce the look up latency.
 		if find.ResourceType != nil && find.Resource != nil && find.Type != nil {
-			s.policyCache.Add(getPolicyCacheKey(ctx, *find.ResourceType, *find.Resource, *find.Type), nil)
+			s.policyCache.Add(getPolicyCacheKey(cacheCtx, *find.ResourceType, *find.Resource, *find.Type), nil)
 		}
 		return nil, nil
 	}
@@ -288,13 +301,23 @@ func (s *Store) GetPolicyV2(ctx context.Context, find *FindPolicyMessage) (*Poli
 		return nil, err
 	}
 
-	s.policyCache.Add(getPolicyCacheKey(ctx, policy.ResourceType, policy.Resource, policy.Type), policy)
+	s.policyCache.Add(getPolicyCacheKey(cacheCtx, policy.ResourceType, policy.Resource, policy.Type), policy)
 
 	return policy, nil
 }
 
 // ListPoliciesV2 lists all policies.
 func (s *Store) ListPoliciesV2(ctx context.Context, find *FindPolicyMessage) ([]*PolicyMessage, error) {
+	if find == nil {
+		find = &FindPolicyMessage{}
+	}
+	if find.OrganizationID == "" {
+		find.OrganizationID = tenantIDFromContext(ctx)
+	}
+	if contextOrganizationID, ok := common.GetOrganizationIDFromContext(ctx); ok && contextOrganizationID != "" && contextOrganizationID != find.OrganizationID {
+		return nil, errors.New("policy organization does not match request tenant")
+	}
+	cacheCtx := common.SetOrganizationIDToContext(ctx, find.OrganizationID)
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -311,7 +334,7 @@ func (s *Store) ListPoliciesV2(ctx context.Context, find *FindPolicyMessage) ([]
 	}
 
 	for _, policy := range policies {
-		s.policyCache.Add(getPolicyCacheKey(ctx, policy.ResourceType, policy.Resource, policy.Type), policy)
+		s.policyCache.Add(getPolicyCacheKey(cacheCtx, policy.ResourceType, policy.Resource, policy.Type), policy)
 	}
 
 	return policies, nil
@@ -319,6 +342,15 @@ func (s *Store) ListPoliciesV2(ctx context.Context, find *FindPolicyMessage) ([]
 
 // CreatePolicyV2 creates a policy.
 func (s *Store) CreatePolicyV2(ctx context.Context, create *PolicyMessage) (*PolicyMessage, error) {
+	if create == nil {
+		return nil, errors.New("policy is required")
+	}
+	if create.OrganizationID == "" {
+		create.OrganizationID = tenantIDFromContext(ctx)
+	}
+	if contextOrganizationID, ok := common.GetOrganizationIDFromContext(ctx); ok && contextOrganizationID != "" && contextOrganizationID != create.OrganizationID {
+		return nil, errors.New("policy organization does not match request tenant")
+	}
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -334,13 +366,17 @@ func (s *Store) CreatePolicyV2(ctx context.Context, create *PolicyMessage) (*Pol
 		return nil, err
 	}
 
-	s.policyCache.Add(getPolicyCacheKey(ctx, policy.ResourceType, policy.Resource, policy.Type), policy)
+	s.policyCache.Add(getPolicyCacheKey(common.SetOrganizationIDToContext(ctx, policy.OrganizationID), policy.ResourceType, policy.Resource, policy.Type), policy)
 
 	return policy, nil
 }
 
 // UpdatePolicyV2 updates the policy.
 func (s *Store) UpdatePolicyV2(ctx context.Context, patch *UpdatePolicyMessage) (*PolicyMessage, error) {
+	if patch == nil {
+		return nil, errors.New("policy patch is required")
+	}
+	organizationID := tenantIDFromContext(ctx)
 	set, args := []string{"updated_at = $1"}, []any{time.Now()}
 	if v := patch.InheritFromParent; v != nil {
 		set, args = append(set, fmt.Sprintf("inherit_from_parent = $%d", len(args)+1)), append(args, *v)
@@ -351,7 +387,7 @@ func (s *Store) UpdatePolicyV2(ctx context.Context, patch *UpdatePolicyMessage) 
 	if v := patch.Enforce; v != nil {
 		set, args = append(set, fmt.Sprintf(`enforce = $%d`, len(args)+1)), append(args, *v)
 	}
-	args = append(args, patch.ResourceType, patch.Resource, patch.Type.String())
+	args = append(args, organizationID, patch.ResourceType, patch.Resource, patch.Type.String())
 
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
@@ -360,21 +396,22 @@ func (s *Store) UpdatePolicyV2(ctx context.Context, patch *UpdatePolicyMessage) 
 	defer tx.Rollback()
 
 	policy := &PolicyMessage{
-		Resource:     patch.Resource,
-		ResourceType: patch.ResourceType,
-		Type:         patch.Type,
+		OrganizationID: organizationID,
+		Resource:       patch.Resource,
+		ResourceType:   patch.ResourceType,
+		Type:           patch.Type,
 	}
 
 	if err := tx.QueryRowContext(ctx, fmt.Sprintf(`
 			UPDATE policy
 			SET `+strings.Join(set, ", ")+`
-			WHERE resource_type = $%d AND resource = $%d AND type =$%d
+			WHERE organization_id = $%d AND resource_type = $%d AND resource = $%d AND type =$%d
 			RETURNING
 				payload,
 				inherit_from_parent,
 				enforce,
 				updated_at
-		`, len(args)-2, len(args)-1, len(args)),
+		`, len(args)-3, len(args)-2, len(args)-1, len(args)),
 		args...,
 	).Scan(
 		&policy.Payload,
@@ -392,13 +429,23 @@ func (s *Store) UpdatePolicyV2(ctx context.Context, patch *UpdatePolicyMessage) 
 		return nil, err
 	}
 
-	s.policyCache.Add(getPolicyCacheKey(ctx, policy.ResourceType, policy.Resource, policy.Type), policy)
+	s.policyCache.Add(getPolicyCacheKey(common.SetOrganizationIDToContext(ctx, organizationID), policy.ResourceType, policy.Resource, policy.Type), policy)
 
 	return policy, nil
 }
 
 // DeletePolicyV2 deletes the policy.
 func (s *Store) DeletePolicyV2(ctx context.Context, policy *PolicyMessage) error {
+	if policy == nil {
+		return errors.New("policy is required")
+	}
+	organizationID := policy.OrganizationID
+	if organizationID == "" {
+		organizationID = tenantIDFromContext(ctx)
+	}
+	if contextOrganizationID, ok := common.GetOrganizationIDFromContext(ctx); ok && contextOrganizationID != "" && contextOrganizationID != organizationID {
+		return errors.New("policy organization does not match request tenant")
+	}
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -406,7 +453,8 @@ func (s *Store) DeletePolicyV2(ctx context.Context, policy *PolicyMessage) error
 	defer tx.Rollback()
 
 	if _, err := tx.ExecContext(ctx,
-		`DELETE FROM policy WHERE resource_type = $1 AND resource = $2 AND type = $3`,
+		`DELETE FROM policy WHERE organization_id = $1 AND resource_type = $2 AND resource = $3 AND type = $4`,
+		organizationID,
 		policy.ResourceType,
 		policy.Resource,
 		policy.Type.String(),
@@ -418,7 +466,7 @@ func (s *Store) DeletePolicyV2(ctx context.Context, policy *PolicyMessage) error
 		return err
 	}
 
-	s.policyCache.Remove(getPolicyCacheKey(ctx, policy.ResourceType, policy.Resource, policy.Type))
+	s.policyCache.Remove(getPolicyCacheKey(common.SetOrganizationIDToContext(ctx, organizationID), policy.ResourceType, policy.Resource, policy.Type))
 	return nil
 }
 
@@ -426,6 +474,7 @@ func upsertPolicyV2Impl(ctx context.Context, txn *sql.Tx, create *PolicyMessage)
 	create.UpdatedAt = time.Now()
 	if _, err := txn.ExecContext(ctx, `
 		INSERT INTO policy (
+			organization_id,
 			resource_type,
 			resource,
 			inherit_from_parent,
@@ -434,13 +483,14 @@ func upsertPolicyV2Impl(ctx context.Context, txn *sql.Tx, create *PolicyMessage)
 			enforce,
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		ON CONFLICT(resource_type, resource, type) DO UPDATE SET
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		ON CONFLICT(organization_id, resource_type, resource, type) DO UPDATE SET
 			inherit_from_parent = EXCLUDED.inherit_from_parent,
 			payload = EXCLUDED.payload,
 			enforce = EXCLUDED.enforce,
 			updated_at = EXCLUDED.updated_at
 		`,
+		create.OrganizationID,
 		create.ResourceType.String(),
 		create.Resource,
 		create.InheritFromParent,
@@ -455,7 +505,7 @@ func upsertPolicyV2Impl(ctx context.Context, txn *sql.Tx, create *PolicyMessage)
 }
 
 func (*Store) listPolicyImplV2(ctx context.Context, txn *sql.Tx, find *FindPolicyMessage) ([]*PolicyMessage, error) {
-	where, args := []string{"TRUE"}, []any{}
+	where, args := []string{"organization_id = $1"}, []any{find.OrganizationID}
 	if v := find.ResourceType; v != nil {
 		where, args = append(where, fmt.Sprintf("resource_type = $%d", len(args)+1)), append(args, v.String())
 	}
@@ -471,6 +521,7 @@ func (*Store) listPolicyImplV2(ctx context.Context, txn *sql.Tx, find *FindPolic
 
 	rows, err := txn.QueryContext(ctx, `
 		SELECT
+			organization_id,
 			updated_at,
 			resource_type,
 			resource,
@@ -492,6 +543,7 @@ func (*Store) listPolicyImplV2(ctx context.Context, txn *sql.Tx, find *FindPolic
 		var policyMessage PolicyMessage
 		var resourceTypeString, typeString string
 		if err := rows.Scan(
+			&policyMessage.OrganizationID,
 			&policyMessage.UpdatedAt,
 			&resourceTypeString,
 			&policyMessage.Resource,

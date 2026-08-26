@@ -42,6 +42,9 @@ func (s *MachineStreamService) MachineChannel(
 	if !ok || machine == nil {
 		return connect.NewError(connect.CodeUnauthenticated, nil)
 	}
+	if err := s.store.RequireOrganizationActive(ctx, machine.OrganizationID); err != nil {
+		return connect.NewError(connect.CodePermissionDenied, errors.New("organization runtime is not active"))
+	}
 	// Reject control streams for machines that are not ONLINE (e.g. KICKED by
 	// ForceDisconnectMachine or OFFLINE). A machine may only (re)open its
 	// control stream after a successful ConnectMachine, which flips state to

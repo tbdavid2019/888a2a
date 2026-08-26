@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
+	"github.com/tbdavid2019/888a2a/backend/common"
 	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 )
 
@@ -65,7 +66,7 @@ type UpdateMachineMessage struct {
 }
 
 func (s *Store) GetMachine(ctx context.Context, id int) (*MachineMessage, error) {
-	if v, ok := s.machineIDCache.Get(id); ok && s.enableCache {
+	if v, ok := s.machineIDCache.Get(tenantCacheLookupKey(ctx, "machine", id)); ok && s.enableCache {
 		return v, nil
 	}
 
@@ -81,7 +82,7 @@ func (s *Store) GetMachine(ctx context.Context, id int) (*MachineMessage, error)
 }
 
 func (s *Store) GetMachineByResourceID(ctx context.Context, resourceID string) (*MachineMessage, error) {
-	if v, ok := s.machineResourceIDCache.Get(resourceID); ok && s.enableCache {
+	if v, ok := s.machineResourceIDCache.Get(tenantCacheLookupKey(ctx, "machine", resourceID)); ok && s.enableCache {
 		return v, nil
 	}
 
@@ -149,12 +150,16 @@ func (s *Store) cacheMachine(machine *MachineMessage) {
 	if machine == nil {
 		return
 	}
-	s.machineIDCache.Add(machine.ID, machine)
-	s.machineResourceIDCache.Add(machine.ResourceID, machine)
+	s.machineIDCache.Add(TenantCacheKey(machine.OrganizationID, "machine", fmt.Sprintf("%d", machine.ID)), machine)
+	s.machineResourceIDCache.Add(TenantCacheKey(machine.OrganizationID, "machine", machine.ResourceID), machine)
 }
 
 func listMachineImpl(ctx context.Context, txn *sql.Tx, find *FindMachineMessage) ([]*MachineMessage, error) {
 	where, args := []string{"TRUE"}, []any{}
+	if organizationID, ok := common.GetOrganizationIDFromContext(ctx); ok && organizationID != "" {
+		where = append(where, fmt.Sprintf("machine.organization_id = $%d", len(args)+1))
+		args = append(args, organizationID)
+	}
 	if v := find.ID; v != nil {
 		where, args = append(where, fmt.Sprintf("machine.id = $%d", len(args)+1)), append(args, *v)
 	}
@@ -241,6 +246,12 @@ func listMachineImpl(ctx context.Context, txn *sql.Tx, find *FindMachineMessage)
 }
 
 func (s *Store) CreateMachine(ctx context.Context, create *MachineMessage) (*MachineMessage, error) {
+	if create == nil {
+		return nil, errors.New("machine is required")
+	}
+	if err := s.RequireOrganizationActive(ctx, tenantIDFromContext(ctx)); err != nil {
+		return nil, err
+	}
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -264,13 +275,21 @@ func (s *Store) CreateMachine(ctx context.Context, create *MachineMessage) (*Mac
 	}
 
 	resourceID := uuid.New().String()
+	organizationID := create.OrganizationID
+	if contextOrganizationID, ok := common.GetOrganizationIDFromContext(ctx); ok && create.OrganizationID != "" && create.OrganizationID != contextOrganizationID {
+		return nil, errors.New("machine organization does not match request tenant")
+	}
+	if organizationID == "" {
+		organizationID = tenantIDFromContext(ctx)
+		create.OrganizationID = organizationID
+	}
 
 	var machineID int
 	if err := tx.QueryRowContext(ctx, `
 		INSERT INTO machine (
-			resource_id, name, token_version, info, status, created_by
+			resource_id, name, token_version, info, status, created_by, organization_id
 		)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, created_at
 	`,
 		resourceID,
@@ -279,6 +298,7 @@ func (s *Store) CreateMachine(ctx context.Context, create *MachineMessage) (*Mac
 		infoBytes,
 		statusBytes,
 		create.CreatedBy,
+		organizationID,
 	).Scan(&machineID, &create.CreatedAt); err != nil {
 		return nil, err
 	}
@@ -288,17 +308,17 @@ func (s *Store) CreateMachine(ctx context.Context, create *MachineMessage) (*Mac
 	}
 
 	machine := &MachineMessage{
-		ID:           machineID,
-		ResourceID:   resourceID,
-		Name:         create.Name,
-		TokenVersion: create.TokenVersion,
-		CreatedAt:    create.CreatedAt,
-		Info:         create.Info,
-		Status:       create.Status,
-		CreatedBy:    create.CreatedBy,
+		ID:             machineID,
+		ResourceID:     resourceID,
+		Name:           create.Name,
+		TokenVersion:   create.TokenVersion,
+		CreatedAt:      create.CreatedAt,
+		Info:           create.Info,
+		Status:         create.Status,
+		CreatedBy:      create.CreatedBy,
+		OrganizationID: organizationID,
 	}
-	s.machineIDCache.Add(machine.ID, machine)
-	s.machineResourceIDCache.Add(machine.ResourceID, machine)
+	s.cacheMachine(machine)
 	return machine, nil
 }
 
@@ -309,6 +329,12 @@ func (s *Store) CreateMachine(ctx context.Context, create *MachineMessage) (*Mac
 // generates the resource id so the refresh token JWT can be signed with it
 // before the transaction. Returns the created machine.
 func (s *Store) CreateMachineWithToken(ctx context.Context, resourceID string, create *MachineMessage, token *MachineTokenMessage) (*MachineMessage, error) {
+	if create == nil || token == nil {
+		return nil, errors.New("machine and token are required")
+	}
+	if err := s.RequireOrganizationActive(ctx, tenantIDFromContext(ctx)); err != nil {
+		return nil, err
+	}
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -329,13 +355,21 @@ func (s *Store) CreateMachineWithToken(ctx context.Context, resourceID string, c
 	if err != nil {
 		return nil, err
 	}
+	organizationID := create.OrganizationID
+	if contextOrganizationID, ok := common.GetOrganizationIDFromContext(ctx); ok && create.OrganizationID != "" && create.OrganizationID != contextOrganizationID {
+		return nil, errors.New("machine organization does not match request tenant")
+	}
+	if organizationID == "" {
+		organizationID = tenantIDFromContext(ctx)
+		create.OrganizationID = organizationID
+	}
 
 	var machineID int
 	if err := tx.QueryRowContext(ctx, `
 		INSERT INTO machine (
-			resource_id, name, token_version, info, status, created_by
+			resource_id, name, token_version, info, status, created_by, organization_id
 		)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, created_at
 	`,
 		resourceID,
@@ -344,6 +378,7 @@ func (s *Store) CreateMachineWithToken(ctx context.Context, resourceID string, c
 		infoBytes,
 		statusBytes,
 		create.CreatedBy,
+		organizationID,
 	).Scan(&machineID, &create.CreatedAt); err != nil {
 		return nil, err
 	}
@@ -359,17 +394,17 @@ func (s *Store) CreateMachineWithToken(ctx context.Context, resourceID string, c
 	}
 
 	machine := &MachineMessage{
-		ID:           machineID,
-		ResourceID:   resourceID,
-		Name:         create.Name,
-		TokenVersion: create.TokenVersion,
-		CreatedAt:    create.CreatedAt,
-		Info:         create.Info,
-		Status:       create.Status,
-		CreatedBy:    create.CreatedBy,
+		ID:             machineID,
+		ResourceID:     resourceID,
+		Name:           create.Name,
+		TokenVersion:   create.TokenVersion,
+		CreatedAt:      create.CreatedAt,
+		Info:           create.Info,
+		Status:         create.Status,
+		CreatedBy:      create.CreatedBy,
+		OrganizationID: organizationID,
 	}
-	s.machineIDCache.Add(machine.ID, machine)
-	s.machineResourceIDCache.Add(machine.ResourceID, machine)
+	s.cacheMachine(machine)
 	return machine, nil
 }
 
@@ -415,7 +450,7 @@ func (s *Store) UpdateMachine(ctx context.Context, current *MachineMessage, patc
 		return current, nil
 	}
 
-	args = append(args, current.ID)
+	args = append(args, current.OrganizationID, current.ID)
 
 	tx, err := s.GetDB().BeginTx(ctx, nil)
 	if err != nil {
@@ -426,8 +461,8 @@ func (s *Store) UpdateMachine(ctx context.Context, current *MachineMessage, patc
 	if _, err := tx.ExecContext(ctx, fmt.Sprintf(`
 		UPDATE machine
 		SET `+strings.Join(sets, ", ")+`
-		WHERE id = $%d
-	`, len(args)),
+		WHERE organization_id = $%d AND id = $%d
+	`, len(args)-1, len(args)),
 		args...,
 	); err != nil {
 		return nil, err
@@ -437,15 +472,14 @@ func (s *Store) UpdateMachine(ctx context.Context, current *MachineMessage, patc
 		return nil, err
 	}
 
-	s.machineIDCache.Remove(current.ID)
-	s.machineResourceIDCache.Remove(current.ResourceID)
+	s.machineIDCache.Remove(TenantCacheKey(current.OrganizationID, "machine", fmt.Sprintf("%d", current.ID)))
+	s.machineResourceIDCache.Remove(TenantCacheKey(current.OrganizationID, "machine", current.ResourceID))
 	machine, err := s.GetMachine(ctx, current.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	s.machineIDCache.Add(machine.ID, machine)
-	s.machineResourceIDCache.Add(machine.ResourceID, machine)
+	s.cacheMachine(machine)
 	return machine, nil
 }
 
@@ -474,12 +508,12 @@ func (s *Store) DeleteMachine(ctx context.Context, resourceID string) error {
 func (s *Store) DeleteMachineIfNoAgents(ctx context.Context, resourceID string) (bool, error) {
 	res, err := s.GetDB().ExecContext(ctx, `
 		UPDATE machine SET deleted = TRUE
-		WHERE resource_id = $1 AND deleted = FALSE
+		WHERE organization_id = $2 AND resource_id = $1 AND deleted = FALSE
 			AND NOT EXISTS (
 				SELECT 1 FROM agent
 				WHERE agent.machine_id = machine.id AND agent.deleted = FALSE
 			)
-	`, resourceID)
+	`, resourceID, tenantIDFromContext(ctx))
 	if err != nil {
 		return false, err
 	}
@@ -504,10 +538,15 @@ func (s *Store) CountAgentsByMachine(ctx context.Context, machineIDs []int) (map
 		args = append(args, id)
 		placeholders = append(placeholders, fmt.Sprintf("$%d", i+1))
 	}
+	organizationID := tenantIDFromContext(ctx)
+	args = append([]any{organizationID}, args...)
+	for i := range placeholders {
+		placeholders[i] = fmt.Sprintf("$%d", i+2)
+	}
 	rows, err := s.GetDB().QueryContext(ctx, `
 		SELECT machine_id, COUNT(*)
 		FROM agent
-		WHERE machine_id IN (`+strings.Join(placeholders, ",")+`) AND deleted = FALSE
+		WHERE organization_id = $1 AND machine_id IN (`+strings.Join(placeholders, ",")+`) AND deleted = FALSE
 		GROUP BY machine_id
 	`, args...)
 	if err != nil {
