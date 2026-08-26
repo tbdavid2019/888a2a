@@ -108,13 +108,15 @@ func (s *Store) ClaimOutboxEvents(ctx context.Context, workerID string, limit in
 		WITH claimed AS (
 			SELECT event_id
 			FROM a2a888_outbox_event
-			WHERE status = 'PENDING' AND available_at <= now()
+			WHERE available_at <= now()
+			  AND (status = 'PENDING' OR (status = 'CLAIMED' AND claim_expires_at < now()))
 			ORDER BY created_at, event_id
 			FOR UPDATE SKIP LOCKED
 			LIMIT $2
 		)
 		UPDATE a2a888_outbox_event AS e
-		SET status = 'CLAIMED', worker_id = $1, claimed_at = now(), updated_at = now()
+		SET status = 'CLAIMED', worker_id = $1, claimed_at = now(),
+			claim_expires_at = now() + interval '1 minute', updated_at = now()
 		FROM claimed
 		WHERE e.event_id = claimed.event_id
 		RETURNING e.event_id, e.organization_id, e.aggregate_type, e.aggregate_id,
@@ -148,7 +150,8 @@ func (s *Store) ClaimOutboxEvents(ctx context.Context, workerID string, limit in
 func (s *Store) AckOutboxEvent(ctx context.Context, workerID, eventID string) error {
 	result, err := s.GetDB().ExecContext(ctx, `
 		UPDATE a2a888_outbox_event
-		SET status = 'DELIVERED', delivered_at = now(), updated_at = now(), worker_id = ''
+		SET status = 'DELIVERED', delivered_at = now(), updated_at = now(),
+			worker_id = '', claim_expires_at = NULL
 		WHERE event_id = $1 AND worker_id = $2 AND status = 'CLAIMED'
 	`, eventID, workerID)
 	if err != nil {
@@ -174,7 +177,7 @@ func (s *Store) RetryOutboxEvent(ctx context.Context, workerID, eventID, lastErr
 		UPDATE a2a888_outbox_event
 		SET attempts = attempts + 1,
 			status = CASE WHEN attempts + 1 >= max_attempts THEN 'DEAD_LETTER' ELSE 'PENDING' END,
-			last_error = $3, available_at = $4, worker_id = '', updated_at = now()
+			last_error = $3, available_at = $4, worker_id = '', claim_expires_at = NULL, updated_at = now()
 		WHERE event_id = $1 AND worker_id = $2 AND status = 'CLAIMED'
 	`, eventID, workerID, lastError, availableAt)
 	if err != nil {

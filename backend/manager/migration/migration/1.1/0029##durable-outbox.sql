@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS a2a888_outbox_event (
     available_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     worker_id TEXT NOT NULL DEFAULT '',
     claimed_at TIMESTAMPTZ,
+    claim_expires_at TIMESTAMPTZ,
     delivered_at TIMESTAMPTZ,
     last_error TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

@@ -439,6 +439,7 @@ func TestDurableOutboxSchemaPresent(t *testing.T) {
 		"organization_id TEXT NOT NULL REFERENCES organizations(id)",
 		"idempotency_key TEXT NOT NULL DEFAULT ''",
 		"status TEXT NOT NULL DEFAULT 'PENDING'",
+		"claim_expires_at TIMESTAMPTZ",
 		"uq_a2a888_outbox_event_idempotency",
 		"idx_a2a888_outbox_event_claimable",
 	} {
