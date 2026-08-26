@@ -88,6 +88,7 @@ Evidence notes (2026-08-26): Task 4.2 has an internal-only `WuKongIMAdapter` wit
 Task 4.6 has tenant-bound per-device user cursors and per-Agent cursors with monotonic acknowledgements and sequence replay coverage. It is proven by GitHub Actions run `32946209448`, where the PostgreSQL message cursor replay gate passed independent device cursors, monotonic user/Agent acknowledgements, tenant-bound cursor lookup, and ordered offline message recovery.
 Task 4.5 is proven by GitHub Actions run `32947569098`, where the PostgreSQL MessagePlane dual projection gate passed canonical/projection parity for text, attachments, mentions, thread roots, reactions, tenant-bound projection cursors, and idempotent upgrade backfill.
 Tasks 4.7 and 4.8 are proven by GitHub Actions run `32948484188`, where the moderation/capability contract gate passed bounded author edit/recall windows, moderator-only redaction, legal-hold visibility, audit-safe payload checks, and explicit unsupported states/errors for presence, typing, delivery receipts, and read receipts.
+Task 4.9 has tenant-scoped MessagePlane reconciliation that repairs missing/divergent canonical projections and memberships while quarantining unknown memberships with audit records. Its PostgreSQL reconciliation gate is wired as `TestPostgresPlaneReconcileRepairsDriftAndQuarantinesUnknownMembership`; the checkbox remains pending until the gate completes on CI.
 
 ## 5. Native Web Collaboration and Web Widget
 

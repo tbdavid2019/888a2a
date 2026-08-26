@@ -127,3 +127,35 @@ func TestPostgresPlaneDualProjectionParity(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, message.MessageSeq, projectionCursor.MessageSeq)
 }
+
+func TestPostgresPlaneReconcileRepairsDriftAndQuarantinesUnknownMembership(t *testing.T) {
+	db := requireMessagePlaneDatabase(t)
+	plane, err := NewPostgresPlane(db)
+	require.NoError(t, err)
+	ctx := common.SetOrganizationIDToContext(context.Background(), "default")
+	message, err := plane.Append(ctx, MessageInput{
+		OrganizationID: "default", ConversationID: "conversation-reconcile", ClientMessageNo: "client-reconcile", SenderID: "user-1", Payload: []byte(`{"content":"repair me"}`),
+	})
+	require.NoError(t, err)
+	_, err = db.ExecContext(ctx, `DELETE FROM a2a888_message_projection WHERE organization_id = $1 AND message_id = $2`, "default", message.MessageID)
+	require.NoError(t, err)
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO a2a888_message_membership (organization_id, conversation_id, principal_id, role)
+		VALUES ('default', 'conversation-reconcile', 'stale-user', 'member')
+	`)
+	require.NoError(t, err)
+
+	report, err := plane.ReconcileConversation(ctx, "default", "conversation-reconcile", []MembershipProjection{{OrganizationID: "default", ConversationID: "conversation-reconcile", PrincipalID: "current-user", Role: "owner"}})
+	require.NoError(t, err)
+	require.Equal(t, 2, report.Repaired)
+	require.Equal(t, 1, report.Quarantined)
+	var content string
+	require.NoError(t, db.QueryRowContext(ctx, `SELECT content FROM a2a888_message_projection WHERE organization_id = 'default' AND message_id = $1`, message.MessageID).Scan(&content))
+	require.Equal(t, "repair me", content)
+	var repairedRole string
+	require.NoError(t, db.QueryRowContext(ctx, `SELECT role FROM a2a888_message_membership WHERE organization_id = 'default' AND conversation_id = 'conversation-reconcile' AND principal_id = 'current-user'`).Scan(&repairedRole))
+	require.Equal(t, "owner", repairedRole)
+	var quarantined int
+	require.NoError(t, db.QueryRowContext(ctx, `SELECT count(*) FROM a2a888_message_reconciliation WHERE organization_id = 'default' AND conversation_id = 'conversation-reconcile' AND action = 'QUARANTINED'`).Scan(&quarantined))
+	require.Equal(t, 1, quarantined)
+}

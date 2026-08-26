@@ -110,23 +110,14 @@ func (p *PostgresPlane) Append(ctx context.Context, input MessageInput) (Message
 	`, input.OrganizationID, input.ConversationID, messageID, input.ClientMessageNo, next, input.SenderID, payload); err != nil {
 		return Message{}, errors.Wrap(err, "persist message")
 	}
-	projection, err := decodeProjectionPayload(payload)
-	if err != nil {
-		return Message{}, err
-	}
-	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO a2a888_message_projection (
-			organization_id, message_id, conversation_id, client_msg_no, message_seq,
-			sender_id, content, attachments, mentions, thread_root_id, reactions
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULLIF($10, ''), $11)
-	`, input.OrganizationID, messageID, input.ConversationID, input.ClientMessageNo, next,
-		input.SenderID, projection.Content, projection.Attachments, projection.Mentions, projection.ThreadRootID, projection.Reactions); err != nil {
+	message := Message{OrganizationID: input.OrganizationID, ConversationID: input.ConversationID, MessageID: messageID.String(), ClientMessageNo: input.ClientMessageNo, MessageSeq: next, SenderID: input.SenderID, Payload: payload}
+	if err := projectMessageTx(ctx, tx, message); err != nil {
 		return Message{}, errors.Wrap(err, "persist message projection")
 	}
 	if err := tx.Commit(); err != nil {
 		return Message{}, errors.Wrap(err, "commit message append")
 	}
-	return Message{OrganizationID: input.OrganizationID, ConversationID: input.ConversationID, MessageID: messageID.String(), ClientMessageNo: input.ClientMessageNo, MessageSeq: next, SenderID: input.SenderID, Payload: append([]byte(nil), payload...)}, nil
+	return message, nil
 }
 
 // History returns messages strictly after a tenant-bound cursor.
@@ -188,6 +179,122 @@ func (p *PostgresPlane) ProjectMembership(ctx context.Context, projection Member
 	return errors.Wrap(err, "project message membership")
 }
 
+// ReconcileConversation repairs missing or divergent message projections and
+// channel memberships for one tenant-bound conversation. Unknown memberships
+// are quarantined with an audit record instead of being deleted blindly.
+func (p *PostgresPlane) ReconcileConversation(ctx context.Context, organizationID, conversationID string, expected []MembershipProjection) (ReconciliationReport, error) {
+	if err := requirePlaneTenant(ctx, organizationID); err != nil {
+		return ReconciliationReport{}, err
+	}
+	if strings.TrimSpace(conversationID) == "" {
+		return ReconciliationReport{}, errors.New("conversation_id is required")
+	}
+	for _, member := range expected {
+		if member.OrganizationID != organizationID || member.ConversationID != conversationID || member.PrincipalID == "" || member.Role == "" {
+			return ReconciliationReport{}, errors.New("membership projection does not match reconciliation tenant")
+		}
+	}
+	tx, err := p.db.BeginTx(ctx, nil)
+	if err != nil {
+		return ReconciliationReport{}, errors.Wrap(err, "begin message reconciliation")
+	}
+	defer tx.Rollback()
+	report := ReconciliationReport{}
+	actual := make(map[string]string)
+	rows, err := tx.QueryContext(ctx, `
+		SELECT principal_id, role
+		FROM a2a888_message_membership
+		WHERE organization_id = $1 AND conversation_id = $2
+	`, organizationID, conversationID)
+	if err != nil {
+		return report, errors.Wrap(err, "query message memberships")
+	}
+	for rows.Next() {
+		var principalID, role string
+		if err := rows.Scan(&principalID, &role); err != nil {
+			_ = rows.Close()
+			return report, errors.Wrap(err, "scan message membership")
+		}
+		actual[principalID] = role
+	}
+	if err := rows.Close(); err != nil {
+		return report, errors.Wrap(err, "close message memberships")
+	}
+	expectedIDs := make(map[string]bool, len(expected))
+	for _, member := range expected {
+		expectedIDs[member.PrincipalID] = true
+		if role, ok := actual[member.PrincipalID]; ok && role == member.Role {
+			continue
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO a2a888_message_membership (organization_id, conversation_id, principal_id, role)
+			VALUES ($1, $2, $3, $4)
+			ON CONFLICT (organization_id, conversation_id, principal_id)
+			DO UPDATE SET role = EXCLUDED.role, updated_at = now()
+		`, organizationID, conversationID, member.PrincipalID, member.Role); err != nil {
+			return report, errors.Wrap(err, "repair message membership")
+		}
+		if err := recordReconciliationTx(ctx, tx, organizationID, conversationID, "MEMBERSHIP", member.PrincipalID, "REPAIRED", "missing or divergent membership"); err != nil {
+			return report, err
+		}
+		report.Repaired++
+	}
+	for principalID := range actual {
+		if expectedIDs[principalID] {
+			continue
+		}
+		if err := recordReconciliationTx(ctx, tx, organizationID, conversationID, "MEMBERSHIP", principalID, "QUARANTINED", "membership is not present in authoritative projection"); err != nil {
+			return report, err
+		}
+		report.Quarantined++
+	}
+	messageRows, err := tx.QueryContext(ctx, `
+		SELECT message_id, conversation_id, client_msg_no, message_seq, sender_id, payload
+		FROM a2a888_message
+		WHERE organization_id = $1 AND conversation_id = $2
+		ORDER BY message_seq ASC
+	`, organizationID, conversationID)
+	if err != nil {
+		return report, errors.Wrap(err, "query canonical messages")
+	}
+	for messageRows.Next() {
+		var message Message
+		if err := messageRows.Scan(&message.MessageID, &message.ConversationID, &message.ClientMessageNo, &message.MessageSeq, &message.SenderID, &message.Payload); err != nil {
+			_ = messageRows.Close()
+			return report, errors.Wrap(err, "scan canonical message")
+		}
+		message.OrganizationID = organizationID
+		matches, err := projectionMatchesTx(ctx, tx, message)
+		if err != nil {
+			_ = messageRows.Close()
+			return report, err
+		}
+		if matches {
+			continue
+		}
+		if err := projectMessageTx(ctx, tx, message); err != nil {
+			_ = messageRows.Close()
+			return report, errors.Wrap(err, "repair message projection")
+		}
+		if err := recordReconciliationTx(ctx, tx, organizationID, conversationID, "MESSAGE", message.MessageID, "REPAIRED", "missing or divergent message projection"); err != nil {
+			_ = messageRows.Close()
+			return report, err
+		}
+		report.Repaired++
+	}
+	if err := messageRows.Err(); err != nil {
+		_ = messageRows.Close()
+		return report, errors.Wrap(err, "iterate canonical messages")
+	}
+	if err := messageRows.Close(); err != nil {
+		return report, errors.Wrap(err, "close canonical messages")
+	}
+	if err := tx.Commit(); err != nil {
+		return report, errors.Wrap(err, "commit message reconciliation")
+	}
+	return report, nil
+}
+
 // AdvanceProjectionCursor advances a durable consumer cursor monotonically.
 // ConsumerType is normally "device" or "agent"; organization and
 // conversation are always part of the key so replay cannot cross tenants.
@@ -223,6 +330,11 @@ func (p *PostgresPlane) Health(ctx context.Context) (Health, error) {
 
 var _ MessagePlane = (*PostgresPlane)(nil)
 
+type ReconciliationReport struct {
+	Repaired    int
+	Quarantined int
+}
+
 type projectionPayload struct {
 	Content      string          `json:"content"`
 	Attachments  json.RawMessage `json:"attachments"`
@@ -246,4 +358,69 @@ func decodeProjectionPayload(payload []byte) (projectionPayload, error) {
 		projection.Reactions = json.RawMessage(`[]`)
 	}
 	return projection, nil
+}
+
+func projectMessageTx(ctx context.Context, tx *sql.Tx, message Message) error {
+	projection, err := decodeProjectionPayload(message.Payload)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `
+		INSERT INTO a2a888_message_projection (
+			organization_id, message_id, conversation_id, client_msg_no, message_seq,
+			sender_id, content, attachments, mentions, thread_root_id, reactions
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULLIF($10, ''), $11)
+		ON CONFLICT (organization_id, message_id) DO UPDATE SET
+			conversation_id = EXCLUDED.conversation_id,
+			client_msg_no = EXCLUDED.client_msg_no,
+			message_seq = EXCLUDED.message_seq,
+			sender_id = EXCLUDED.sender_id,
+			content = EXCLUDED.content,
+			attachments = EXCLUDED.attachments,
+			mentions = EXCLUDED.mentions,
+			thread_root_id = EXCLUDED.thread_root_id,
+			reactions = EXCLUDED.reactions
+	`, message.OrganizationID, message.MessageID, message.ConversationID, message.ClientMessageNo, message.MessageSeq,
+		message.SenderID, projection.Content, projection.Attachments, projection.Mentions, projection.ThreadRootID, projection.Reactions)
+	return err
+}
+
+func projectionMatchesTx(ctx context.Context, tx *sql.Tx, message Message) (bool, error) {
+	projection, err := decodeProjectionPayload(message.Payload)
+	if err != nil {
+		return false, err
+	}
+	var content, attachments, mentions, threadRoot, reactions string
+	err = tx.QueryRowContext(ctx, `
+		SELECT content, attachments::text, mentions::text, COALESCE(thread_root_id, ''), reactions::text
+		FROM a2a888_message_projection
+		WHERE organization_id = $1 AND message_id = $2
+	`, message.OrganizationID, message.MessageID).Scan(&content, &attachments, &mentions, &threadRoot, &reactions)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, errors.Wrap(err, "query message projection")
+	}
+	return content == projection.Content && canonicalJSON([]byte(attachments)) == canonicalJSON(projection.Attachments) && canonicalJSON([]byte(mentions)) == canonicalJSON(projection.Mentions) && threadRoot == projection.ThreadRootID && canonicalJSON([]byte(reactions)) == canonicalJSON(projection.Reactions), nil
+}
+
+func recordReconciliationTx(ctx context.Context, tx *sql.Tx, organizationID, conversationID, resourceType, resourceID, action, detail string) error {
+	_, err := tx.ExecContext(ctx, `
+		INSERT INTO a2a888_message_reconciliation (organization_id, conversation_id, resource_type, resource_id, action, detail)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, organizationID, conversationID, resourceType, resourceID, action, detail)
+	return errors.Wrap(err, "record message reconciliation")
+}
+
+func canonicalJSON(value []byte) string {
+	var decoded any
+	if err := json.Unmarshal(value, &decoded); err != nil {
+		return string(value)
+	}
+	encoded, err := json.Marshal(decoded)
+	if err != nil {
+		return string(value)
+	}
+	return string(encoded)
 }
