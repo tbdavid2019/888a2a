@@ -469,3 +469,22 @@ func TestDurableConnectorInboxSchemaPresent(t *testing.T) {
 		}
 	}
 }
+
+func TestOutboxReconciliationSchemaPresent(t *testing.T) {
+	latest := latestSQL(t)
+	incBytes, err := os.ReadFile("migration/1.1/0031##outbox-reconciliation.sql")
+	if err != nil {
+		t.Fatalf("read 0031##outbox-reconciliation.sql: %v", err)
+	}
+	incremental := string(incBytes)
+	for _, want := range []string{
+		"CREATE TABLE IF NOT EXISTS a2a888_outbox_reconciliation",
+		"event_id TEXT NOT NULL REFERENCES a2a888_outbox_event(event_id)",
+		"action IN ('REPLAY', 'RECONCILE')",
+		"idx_a2a888_outbox_reconciliation_tenant",
+	} {
+		if !strings.Contains(latest, want) || !strings.Contains(incremental, want) {
+			t.Errorf("outbox reconciliation schema missing %q", want)
+		}
+	}
+}

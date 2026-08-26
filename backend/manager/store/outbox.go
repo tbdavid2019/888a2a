@@ -17,9 +17,10 @@ const (
 )
 
 var (
-	ErrInvalidOutboxEvent = errors.New("invalid outbox event")
-	ErrOutboxDuplicate    = errors.New("outbox event already exists")
-	ErrOutboxNotClaimed   = errors.New("outbox event is not claimed by worker")
+	ErrInvalidOutboxEvent  = errors.New("invalid outbox event")
+	ErrOutboxDuplicate     = errors.New("outbox event already exists")
+	ErrOutboxNotClaimed    = errors.New("outbox event is not claimed by worker")
+	ErrOutboxNotDeadLetter = errors.New("outbox event is not dead-lettered")
 )
 
 // DurableEventEnvelope is the stable event contract shared by outbox writers
@@ -185,6 +186,45 @@ func (s *Store) RetryOutboxEvent(ctx context.Context, workerID, eventID, lastErr
 	}
 	if rows == 0 {
 		return ErrOutboxNotClaimed
+	}
+	return nil
+}
+
+// ReplayDeadLetterOutboxEvent requeues one tenant-owned dead-letter event and
+// records the operator action for reconciliation and audit consumers.
+func (s *Store) ReplayDeadLetterOutboxEvent(ctx context.Context, organizationID, eventID, actorID string) error {
+	if organizationID == "" || eventID == "" || actorID == "" {
+		return ErrInvalidOutboxEvent
+	}
+	tx, err := s.GetDB().BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "begin outbox replay")
+	}
+	defer tx.Rollback()
+	result, err := tx.ExecContext(ctx, `
+		UPDATE a2a888_outbox_event
+		SET status = 'PENDING', attempts = 0, last_error = '', available_at = now(),
+			worker_id = '', claimed_at = NULL, updated_at = now()
+		WHERE organization_id = $1 AND event_id = $2 AND status = 'DEAD_LETTER'
+	`, organizationID, eventID)
+	if err != nil {
+		return errors.Wrap(err, "requeue dead-letter outbox event")
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "check dead-letter replay result")
+	}
+	if rows == 0 {
+		return ErrOutboxNotDeadLetter
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO a2a888_outbox_reconciliation (organization_id, event_id, actor_id, action)
+		VALUES ($1, $2, $3, 'REPLAY')
+	`, organizationID, eventID, actorID); err != nil {
+		return errors.Wrap(err, "record outbox replay")
+	}
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "commit outbox replay")
 	}
 	return nil
 }
