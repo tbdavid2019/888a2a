@@ -15,6 +15,14 @@ The initial SLO dimensions are:
 - A2A task completion, authorization-required, retry, and cancellation rates.
 - Provider preparation failures and approval wait duration.
 
-The metrics backend and dashboard deployment are environment-specific. The
-application contract is implemented in `backend/observability/context.go`;
-dashboard provisioning remains a production deployment task.
+The Manager now propagates a bounded `X-Correlation-ID` (or generates one),
+adds it to the response header, and carries it with the tenant context into
+Connect handlers and audit logs. Durable outbox and A2A trace records retain
+their own correlation fields. The metrics backend and dashboard deployment
+remain environment-specific production tasks; do not use untrusted tenant
+values as Prometheus labels.
+
+For a request-level trace, send `X-Correlation-ID: <short-id>` and search the
+structured Manager logs, audit records, outbox events, and A2A trace events for
+that ID. Credentials, raw payloads, and model thoughts must not be added to
+the correlation metadata.

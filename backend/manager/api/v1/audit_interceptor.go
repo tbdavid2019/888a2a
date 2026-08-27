@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"math/rand"
+	"net/http"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -13,6 +15,7 @@ import (
 	"github.com/tbdavid2019/888a2a/backend/common"
 	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 	"github.com/tbdavid2019/888a2a/backend/manager/store"
+	"github.com/tbdavid2019/888a2a/backend/observability"
 )
 
 type AuditInterceptor struct {
@@ -55,14 +58,16 @@ func (a *AuditInterceptor) recordAudit(ctx context.Context, procedure string, er
 
 	a.buffer.Record(auditLog)
 
-	slog.Info("audit",
-		"method", auditLog.Method,
-		"actor_type", auditLog.ActorType,
-		"actor_id", auditLog.ActorID,
-		"source_ip", auditLog.SourceIP,
-		"status", auditLog.Status,
-		"error", auditLog.Error,
-		"timestamp", auditLog.CreatedAt.Format(time.RFC3339),
+	slog.LogAttrs(ctx, slog.LevelInfo, "audit",
+		slog.String("organization_id", auditLog.OrganizationID),
+		slog.String("correlation_id", observability.CorrelationID(ctx)),
+		slog.String("method", auditLog.Method),
+		slog.String("actor_type", auditLog.ActorType),
+		slog.String("actor_id", auditLog.ActorID),
+		slog.String("source_ip", auditLog.SourceIP),
+		slog.String("status", auditLog.Status),
+		slog.String("error", auditLog.Error),
+		slog.String("timestamp", auditLog.CreatedAt.Format(time.RFC3339)),
 	)
 }
 
@@ -71,6 +76,19 @@ func auditOrganizationID(ctx context.Context) string {
 		return id
 	}
 	return "default"
+}
+
+// withObservabilityContext binds a bounded correlation ID and the resolved
+// tenant to the context passed to every authenticated handler. The incoming
+// ID is only accepted when it is a short printable token; otherwise a fresh
+// ID prevents log injection and unbounded label values.
+func withObservabilityContext(ctx context.Context, header http.Header) context.Context {
+	correlationID := strings.TrimSpace(header.Get("X-Correlation-ID"))
+	if correlationID == "" || len(correlationID) > 128 || strings.ContainsAny(correlationID, "\r\n") {
+		correlationID = observability.NewCorrelationID()
+	}
+	ctx = observability.WithCorrelationID(ctx, correlationID)
+	return observability.WithTenant(ctx, auditOrganizationID(ctx))
 }
 
 func auditPrincipalID(ctx context.Context, requester bool) string {
@@ -86,11 +104,15 @@ func auditPrincipalID(ctx context.Context, requester bool) string {
 
 func (a *AuditInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		ctx = withObservabilityContext(ctx, req.Header())
 		var serviceData *anypb.Any
 		wrappedCtx := common.WithSetServiceData(ctx, func(a *anypb.Any) {
 			serviceData = a
 		})
 		resp, err := next(wrappedCtx, req)
+		if resp != nil {
+			resp.Header().Set("X-Correlation-ID", observability.CorrelationID(ctx))
+		}
 
 		authCtx, ok := common.GetAuthContextFromContext(ctx)
 		if !ok || !authCtx.Audit {
@@ -119,6 +141,7 @@ func (*AuditInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) c
 
 func (a *AuditInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
 	return func(ctx context.Context, conn connect.StreamingHandlerConn) error {
+		ctx = withObservabilityContext(ctx, conn.RequestHeader())
 		err := next(ctx, conn)
 
 		authCtx, ok := common.GetAuthContextFromContext(ctx)

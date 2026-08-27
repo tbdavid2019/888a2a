@@ -18,6 +18,7 @@
 ### Added
 
 - Added PostgreSQL backup/restore/verification tooling, a disaster-recovery guide, and an opt-in Message Plane hot-channel load gate.
+- Added tenant-safe correlation ID propagation through Connect handlers, response headers, and structured audit logs.
 
 
 All notable changes to 888a2a are documented in this file.
