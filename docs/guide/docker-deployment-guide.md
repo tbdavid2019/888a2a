@@ -33,6 +33,11 @@ cp docker-compose.example.yml docker-compose.yml
 
 ### 步驟 2：啟動所有服務 (PostgreSQL + Manager + Machine)
 ```bash
+# 先建立只存在於本機的密碼檔，勿提交至 Git
+printf 'A2A888_DB_PASSWORD=%s\n' "$(openssl rand -hex 24)" > .env
+DB_PASSWORD="$(sed -n 's/^A2A888_DB_PASSWORD=//p' .env)"
+printf 'A2A888_PG_URL=postgres://dev:%s@db:5432/888a2a?sslmode=disable\n' "$DB_PASSWORD" >> .env
+chmod 600 .env
 docker compose up -d
 ```
 
@@ -63,7 +68,7 @@ NAME                IMAGE                               COMMAND                 
 
 | 環境變數 | 說明 | 預設值 |
 | :--- | :--- | :--- |
-| `A2A888_PG_URL` | PostgreSQL 資料庫連線字串 | `postgres://dev:devpassword@db:5432/888a2a?sslmode=disable` |
+| `A2A888_PG_URL` | PostgreSQL 資料庫連線字串 | 由 `.env` 設定，必須包含隨機密碼 |
 | `PORT` | Manager 監聽埠號 | `8181` |
 
 ### Machine (Agent 執行環境主機)

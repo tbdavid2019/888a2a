@@ -2,6 +2,9 @@
 .reasonix
 reasonix.toml
 .mcp.json
+.env
+.env.*
+!.env.example
 build/
 backend/manager/server/dist/
 backend/manager/server/embedded_machine/

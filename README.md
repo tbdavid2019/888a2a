@@ -70,6 +70,11 @@ For servers without Go or Node.js, run 888a2a directly using Docker Compose:
 # Clone and start all services (PostgreSQL + Manager + Machine)
 git clone https://github.com/tbdavid2019/888a2a.git
 cd 888a2a
+# Generate a private database password; keep this file out of Git
+printf 'A2A888_DB_PASSWORD=%s\n' "$(openssl rand -hex 24)" > .env
+DB_PASSWORD="$(sed -n 's/^A2A888_DB_PASSWORD=//p' .env)"
+printf 'A2A888_PG_URL=postgres://dev:%s@db:5432/888a2a?sslmode=disable\n' "$DB_PASSWORD" >> .env
+chmod 600 .env
 docker compose up -d
 ```
 

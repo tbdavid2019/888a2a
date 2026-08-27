@@ -53,6 +53,11 @@ Bot、外部 A2A Agent，以及各種全通路對話入口。
 # 取得程式庫並啟動所有服務 (PostgreSQL + Manager + Machine)
 git clone https://github.com/tbdavid2019/888a2a.git
 cd 888a2a
+# 產生只保留在本機的資料庫密碼，勿提交 .env
+printf 'A2A888_DB_PASSWORD=%s\n' "$(openssl rand -hex 24)" > .env
+DB_PASSWORD="$(sed -n 's/^A2A888_DB_PASSWORD=//p' .env)"
+printf 'A2A888_PG_URL=postgres://dev:%s@db:5432/888a2a?sslmode=disable\n' "$DB_PASSWORD" >> .env
+chmod 600 .env
 docker compose up -d
 ```
 

@@ -6,11 +6,9 @@ services:
     environment:
       POSTGRES_DB: 888a2a
       POSTGRES_USER: dev
-      POSTGRES_PASSWORD: devpassword
+      POSTGRES_PASSWORD: ${A2A888_DB_PASSWORD:?A2A888_DB_PASSWORD must be set}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U dev -d 888a2a"]
       interval: 5s
@@ -30,7 +28,7 @@ services:
     ports:
       - "8181:8181"
     environment:
-      A2A888_PG_URL: "postgres://dev:devpassword@db:5432/888a2a?sslmode=disable"
+      A2A888_PG_URL: ${A2A888_PG_URL:?A2A888_PG_URL must be set}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8181/healthz"]
       interval: 10s

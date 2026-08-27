@@ -1,5 +1,16 @@
 # Changelog
 
+## [2026-08-27]
+
+### Security
+
+- Docker Compose now requires a private database password from `.env` and keeps PostgreSQL off the host network.
+
+### Documentation
+
+- Added `.env.example` and updated the server quick-start instructions for the password-protected Compose deployment.
+
+
 All notable changes to 888a2a are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
