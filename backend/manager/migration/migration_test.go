@@ -67,6 +67,22 @@ func TestUsageEntitlementsMigrationPresent(t *testing.T) {
 	if !strings.Contains(latest, "CREATE TABLE IF NOT EXISTS a2a888_quota_decision") || !strings.Contains(string(quotaBytes), "CREATE TABLE IF NOT EXISTS a2a888_quota_decision") {
 		t.Error("usage schema is missing durable quota decision DDL")
 	}
+	credentialBytes, err := os.ReadFile("migration/1.1/0044##connector-credentials.sql")
+	if err != nil {
+		t.Fatalf("read connector credential migration: %v", err)
+	}
+	if !strings.Contains(latest, "CREATE TABLE IF NOT EXISTS a2a888_connector_credential") || !strings.Contains(string(credentialBytes), "CREATE TABLE IF NOT EXISTS a2a888_connector_credential") {
+		t.Error("usage schema is missing encrypted connector credential DDL")
+	}
+	identityBytes, err := os.ReadFile("migration/1.1/0045##connector-identity-mappings.sql")
+	if err != nil {
+		t.Fatalf("read connector identity migration: %v", err)
+	}
+	for _, want := range []string{"CREATE TABLE IF NOT EXISTS a2a888_connector_identity_map", "CREATE TABLE IF NOT EXISTS a2a888_connector_conversation_map"} {
+		if !strings.Contains(latest, want) || !strings.Contains(string(identityBytes), want) {
+			t.Errorf("connector identity schema is missing %q", want)
+		}
+	}
 }
 
 // TestMessagePlaneIdentityMigrationPresent guards the additive MessagePlane
