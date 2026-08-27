@@ -79,7 +79,7 @@ func (s *MachineService) RefreshMachineProviders(ctx context.Context, req *conne
 	replyCh := s.dispatcher.RegisterPendingDiscover(requestID)
 	defer s.dispatcher.CancelPendingDiscover(requestID)
 
-	if err := s.dispatcher.SendDiscoverProvidersToMachine(machine.ID, requestID); err != nil {
+	if err := s.dispatcher.SendDiscoverProvidersToMachineWithOptions(machine.ID, requestID, req.Msg.GetProviderId(), req.Msg.GetForcePreparation()); err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.Wrap(err, "failed to request provider discovery"))
 	}
 

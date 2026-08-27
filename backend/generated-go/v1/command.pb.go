@@ -9966,10 +9966,12 @@ func (x *AgentReady) GetAgentName() string {
 // LLM agent providers and their models. The daemon replies with
 // AgentStreamMessage.providers_discovered.
 type DiscoverProviders struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RequestId     string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"` // correlation id for the pending unary RefreshAgentProviders call
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	RequestId        string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`                       // correlation id for the pending unary RefreshAgentProviders call
+	ProviderId       string                 `protobuf:"bytes,2,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`                    // empty means all providers; used by operator repair/update actions
+	ForcePreparation bool                   `protobuf:"varint,3,opt,name=force_preparation,json=forcePreparation,proto3" json:"force_preparation,omitempty"` // rerun pinned runtime preparation for the selected provider
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *DiscoverProviders) Reset() {
@@ -10007,6 +10009,20 @@ func (x *DiscoverProviders) GetRequestId() string {
 		return x.RequestId
 	}
 	return ""
+}
+
+func (x *DiscoverProviders) GetProviderId() string {
+	if x != nil {
+		return x.ProviderId
+	}
+	return ""
+}
+
+func (x *DiscoverProviders) GetForcePreparation() bool {
+	if x != nil {
+		return x.ForcePreparation
+	}
+	return false
 }
 
 // ProvidersDiscovered carries the freshly discovered provider list back to the
@@ -12340,10 +12356,13 @@ const file_v1_command_proto_rawDesc = "" +
 	"lastAckSeq\x12$\n" +
 	"\x0elast_event_seq\x18\x04 \x01(\x05R\flastEventSeq\x12\x1d\n" +
 	"\n" +
-	"agent_name\x18\x05 \x01(\tR\tagentName\"2\n" +
+	"agent_name\x18\x05 \x01(\tR\tagentName\"\x80\x01\n" +
 	"\x11DiscoverProviders\x12\x1d\n" +
 	"\n" +
-	"request_id\x18\x01 \x01(\tR\trequestId\"p\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12\x1f\n" +
+	"\vprovider_id\x18\x02 \x01(\tR\n" +
+	"providerId\x12+\n" +
+	"\x11force_preparation\x18\x03 \x01(\bR\x10forcePreparation\"p\n" +
 	"\x13ProvidersDiscovered\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12:\n" +

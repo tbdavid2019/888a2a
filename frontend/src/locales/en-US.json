@@ -673,6 +673,10 @@
       "section-token": "Token & Connection"
     },
     "providers": "Available Providers",
+    "provider-preparation-failed": "Failed to prepare provider",
+    "provider-prepare": "Prepare",
+    "provider-repair": "Repair",
+    "provider-update": "Update",
     "providers-refresh-failed": "Failed to refresh providers",
     "refresh-providers": "Refresh",
     "revoke-token": "Revoke Token",

@@ -157,7 +157,7 @@ func (c *MachineClient) runControlStream(ctx context.Context, _ *daemonsrv.Serve
 				// tens of seconds, and running it inline would block the receive
 				// pump, delaying AgentAssignment / RemoveAgent / AgentConfigUpdate
 				// for the whole probe window.
-				go c.handleDiscoverProviders(ctx, sendStream, m.DiscoverProviders.GetRequestId())
+				go c.handleDiscoverProviders(ctx, sendStream, m.DiscoverProviders)
 
 			case *v1pb.ManagerMachineStreamMessage_MachineWorkspaceScanRequest:
 				// Scanning the workspace root can take a while on a big disk;
@@ -300,19 +300,22 @@ func (c *MachineClient) hotReloadAgentConfig(update *v1pb.AgentConfigUpdate) {
 // provider list, correlated by the manager's request_id. It runs on its own
 // goroutine from the receive pump; `send` is the shared, mutex-guarded stream
 // sender so the reply does not race the ping loop's sends.
-func (c *MachineClient) handleDiscoverProviders(ctx context.Context, send func(*v1pb.MachineStreamMessage) error, requestID string) {
+func (c *MachineClient) handleDiscoverProviders(ctx context.Context, send func(*v1pb.MachineStreamMessage) error, request *v1pb.DiscoverProviders) {
+	if request == nil {
+		return
+	}
 	probeCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-	discovered := c.refreshProviders(probeCtx)
+	discovered := c.refreshProvidersWithOptions(probeCtx, request.GetProviderId(), request.GetForcePreparation())
 	cancel()
 	if err := send(&v1pb.MachineStreamMessage{
 		Message: &v1pb.MachineStreamMessage_ProvidersDiscovered{
 			ProvidersDiscovered: &v1pb.ProvidersDiscovered{
-				RequestId: requestID,
+				RequestId: request.GetRequestId(),
 				Providers: discoveredToProto(discovered, time.Now()),
 			},
 		},
 	}); err != nil {
-		slog.Error("failed to send providers_discovered", "requestID", requestID, "error", err)
+		slog.Error("failed to send providers_discovered", "requestID", request.GetRequestId(), "error", err)
 	}
 }
 

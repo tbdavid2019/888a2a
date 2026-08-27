@@ -446,6 +446,38 @@ describe("MachineProfilePage", () => {
     });
   });
 
+  it("shows provider repair state and forces runtime preparation", async () => {
+    mock.getMachine.mockResolvedValue(
+      machine({
+        info: {
+          ...machine().info,
+          availableProviders: [
+            {
+              ...machine().info?.availableProviders?.[0],
+              runtimeStatus: "BROKEN",
+              failureMessage: "runtime verification failed",
+              packageVersion: "1.2.3",
+            },
+          ],
+        } as unknown as MachineInfo,
+      })
+    );
+    renderPage();
+
+    expect(
+      await screen.findByText("runtime verification failed")
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "machine.provider-repair" })
+    );
+    await waitFor(() => {
+      expect(mock.refreshMachineProviders).toHaveBeenCalledWith("machines/m1", {
+        providerId: "opencode",
+        forcePreparation: true,
+      });
+    });
+  });
+
   it("shows the no-providers hint and the refresh error", async () => {
     mock.getMachine.mockResolvedValue(
       machine({

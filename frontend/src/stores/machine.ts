@@ -110,9 +110,16 @@ export const createMachineSlice: AppSliceCreator<MachineSlice> = (
     );
   },
 
-  async refreshMachineProviders(name: string): Promise<AgentProviderInfo[]> {
+  async refreshMachineProviders(
+    name: string,
+    options?: { providerId?: string; forcePreparation?: boolean }
+  ): Promise<AgentProviderInfo[]> {
     const res = await machineServiceClient.refreshMachineProviders(
-      create(RefreshMachineProvidersRequestSchema, { name })
+      create(RefreshMachineProvidersRequestSchema, {
+        name,
+        providerId: options?.providerId ?? "",
+        forcePreparation: options?.forcePreparation ?? false,
+      })
     );
     return res.providers;
   },

@@ -673,6 +673,10 @@
       "section-token": "令牌与连接"
     },
     "providers": "可用 Provider",
+    "provider-preparation-failed": "准备 Provider 失败",
+    "provider-prepare": "准备",
+    "provider-repair": "修复",
+    "provider-update": "更新",
     "providers-refresh-failed": "刷新 Provider 失败",
     "refresh-providers": "刷新",
     "revoke-token": "吊销令牌",

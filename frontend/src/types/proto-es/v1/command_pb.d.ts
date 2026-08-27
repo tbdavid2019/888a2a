@@ -4541,6 +4541,20 @@ export declare type DiscoverProviders = Message<"laelia.v1.DiscoverProviders"> &
    * @generated from field: string request_id = 1;
    */
   requestId: string;
+
+  /**
+   * empty means all providers; used by operator repair/update actions
+   *
+   * @generated from field: string provider_id = 2;
+   */
+  providerId: string;
+
+  /**
+   * rerun pinned runtime preparation for the selected provider
+   *
+   * @generated from field: bool force_preparation = 3;
+   */
+  forcePreparation: boolean;
 };
 
 /**

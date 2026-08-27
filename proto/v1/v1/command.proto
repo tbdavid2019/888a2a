@@ -2065,6 +2065,8 @@ message AgentReady {
 // AgentStreamMessage.providers_discovered.
 message DiscoverProviders {
   string request_id = 1; // correlation id for the pending unary RefreshAgentProviders call
+  string provider_id = 2; // empty means all providers; used by operator repair/update actions
+  bool force_preparation = 3; // rerun pinned runtime preparation for the selected provider
 }
 
 // ProvidersDiscovered carries the freshly discovered provider list back to the

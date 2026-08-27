@@ -193,6 +193,22 @@ export declare type RefreshMachineProvidersRequest = Message<"laelia.v1.RefreshM
    * @generated from field: string name = 1;
    */
   name: string;
+
+  /**
+   * When true, the machine re-runs preparation for the selected provider
+   * instead of only reporting the existing cache state.
+   *
+   * @generated from field: bool force_preparation = 2;
+   */
+  forcePreparation: boolean;
+
+  /**
+   * Empty means all providers. A non-empty value limits preparation to this
+   * provider while the response still reports the complete discovery list.
+   *
+   * @generated from field: string provider_id = 3;
+   */
+  providerId: string;
 };
 
 /**

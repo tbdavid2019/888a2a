@@ -601,8 +601,12 @@ func (c *MachineClient) collectMachineInfo() *v1pb.MachineInfo {
 // returned slice lets the MachineChannel reply to DiscoverProviders with the
 // fresh list in one probe.
 func (c *MachineClient) refreshProviders(ctx context.Context) []provider.Discovered {
+	return c.refreshProvidersWithOptions(ctx, "", false)
+}
+
+func (c *MachineClient) refreshProvidersWithOptions(ctx context.Context, providerID string, forcePreparation bool) []provider.Discovered {
 	discovered := provider.Default().Discover(ctx)
-	discovered = c.prepareDiscoveredProviders(ctx, discovered)
+	discovered = c.prepareDiscoveredProviders(ctx, discovered, providerID, forcePreparation)
 	c.mu.Lock()
 	c.discoveredProviders = discovered
 	c.discoveredAt = time.Now()
@@ -619,19 +623,30 @@ func (c *MachineClient) refreshProviders(ctx context.Context) []provider.Discove
 	return discovered
 }
 
-func (c *MachineClient) prepareDiscoveredProviders(ctx context.Context, discovered []provider.Discovered) []provider.Discovered {
+func (c *MachineClient) prepareDiscoveredProviders(ctx context.Context, discovered []provider.Discovered, providerID string, forcePreparation bool) []provider.Discovered {
 	if c.runtimePreparer == nil {
 		return discovered
 	}
 	for i := range discovered {
-		if discovered[i].RuntimeStatus == "UPDATE_AVAILABLE" {
+		if providerID != "" && discovered[i].ProviderID != providerID {
+			continue
+		}
+		if discovered[i].RuntimeStatus == "UPDATE_AVAILABLE" && !forcePreparation {
 			continue
 		}
 		manifest, ok := provider.Default().LookupManifest(discovered[i].ProviderID)
 		if !ok || manifest.GetRuntimeKind() != a2a888pb.RuntimeKind_NPM_PACKAGE {
 			continue
 		}
-		prepared, err := c.runtimePreparer.Prepare(ctx, manifest, agentruntime.CurrentPlatform())
+		var (
+			prepared *a2a888pb.PreparedRuntime
+			err      error
+		)
+		if forcePreparation {
+			prepared, err = c.runtimePreparer.RetryPreparation(ctx, manifest, agentruntime.CurrentPlatform())
+		} else {
+			prepared, err = c.runtimePreparer.Prepare(ctx, manifest, agentruntime.CurrentPlatform())
+		}
 		if err != nil || prepared == nil {
 			if err != nil {
 				discovered[i].RuntimeStatus = "BROKEN"

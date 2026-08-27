@@ -318,7 +318,10 @@ export interface MachineSlice {
   deleteMachine: (name: string) => Promise<void>;
   revokeMachineToken: (name: string, reason?: string) => Promise<void>;
   forceDisconnectMachine: (name: string, reason?: string) => Promise<void>;
-  refreshMachineProviders: (name: string) => Promise<AgentProviderInfo[]>;
+  refreshMachineProviders: (
+    name: string,
+    options?: { providerId?: string; forcePreparation?: boolean }
+  ) => Promise<AgentProviderInfo[]>;
   upgradeMachine: (name: string, reason?: string) => Promise<void>;
   listMachineAgents: (name: string) => Promise<AgentSummary[]>;
 }

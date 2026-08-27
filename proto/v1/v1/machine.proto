@@ -226,6 +226,12 @@ message RefreshMachineProvidersRequest {
     (google.api.field_behavior) = REQUIRED,
     (google.api.resource_reference) = {type: "laelia/Machine"}
   ];
+  // When true, the machine re-runs preparation for the selected provider
+  // instead of only reporting the existing cache state.
+  bool force_preparation = 2;
+  // Empty means all providers. A non-empty value limits preparation to this
+  // provider while the response still reports the complete discovery list.
+  string provider_id = 3;
 }
 
 message RefreshMachineProvidersResponse {

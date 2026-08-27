@@ -141,6 +141,7 @@ export function MachineProfilePage() {
   // Provider refresh state.
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState("");
+  const [providerAction, setProviderAction] = useState("");
 
   // Self-upgrade state: the trigger is local, the progress comes from
   // machine.upgradeStatus refreshed by polling while an upgrade runs.
@@ -461,6 +462,26 @@ export function MachineProfilePage() {
       );
     } finally {
       setRefreshing(false);
+    }
+  }
+
+  async function handleProviderPreparation(providerId: string) {
+    setProviderAction(providerId);
+    setRefreshError("");
+    try {
+      await useAppStore.getState().refreshMachineProviders(machineName, {
+        providerId,
+        forcePreparation: true,
+      });
+      await reload();
+    } catch (err) {
+      setRefreshError(
+        err instanceof Error
+          ? err.message
+          : t("machine.provider-preparation-failed")
+      );
+    } finally {
+      setProviderAction("");
     }
   }
 
@@ -1068,38 +1089,76 @@ export function MachineProfilePage() {
               ) : (
                 <ul className="flex flex-col gap-2">
                   {availableProviders.map((p) => {
+                    const status = p.runtimeStatus || "DETECTED";
                     const isUnusable =
-                      p.runtimeStatus === "QUARANTINED" ||
-                      p.runtimeStatus === "BROKEN" ||
-                      p.runtimeStatus === "DETECTED" ||
-                      p.runtimeStatus === "UPDATE_AVAILABLE";
+                      status === "QUARANTINED" ||
+                      status === "BROKEN" ||
+                      status === "DETECTED" ||
+                      status === "UPDATE_AVAILABLE";
+                    const needsPreparation =
+                      status === "QUARANTINED" ||
+                      status === "BROKEN" ||
+                      status === "DETECTED" ||
+                      status === "UPDATE_AVAILABLE";
+                    const actionLabel =
+                      status === "UPDATE_AVAILABLE"
+                        ? t("machine.provider-update")
+                        : status === "QUARANTINED" || status === "BROKEN"
+                          ? t("machine.provider-repair")
+                          : t("machine.provider-prepare");
                     return (
                       <li
                         key={p.providerId}
-                        className="flex items-center justify-between gap-2 text-sm text-main"
+                        className="flex flex-col gap-1.5 text-sm text-main"
                       >
-                        <span className="font-medium">
-                          {providerDisplayName(p)}
-                        </span>
-                        <div className="flex items-center gap-1.5 text-xs">
-                          {p.compatibilityLevel && (
-                            <span className="rounded bg-control-subtle px-1.5 py-0.5 text-[10px] font-medium text-main">
-                              {p.compatibilityLevel}
-                            </span>
-                          )}
-                          <span
-                            className={cn(
-                              "rounded px-1.5 py-0.5 text-[10px] font-medium",
-                              p.runtimeStatus === "READY"
-                                ? "bg-green-500/10 text-green-600 dark:text-green-400"
-                                : isUnusable
-                                  ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                                  : "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
-                            )}
-                          >
-                            {p.runtimeStatus || "DETECTED"}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium">
+                            {providerDisplayName(p)}
                           </span>
+                          <div className="flex items-center gap-1.5 text-xs">
+                            {p.compatibilityLevel && (
+                              <span className="rounded bg-control-subtle px-1.5 py-0.5 text-[10px] font-medium text-main">
+                                {p.compatibilityLevel}
+                              </span>
+                            )}
+                            <span
+                              className={cn(
+                                "rounded px-1.5 py-0.5 text-[10px] font-medium",
+                                status === "READY"
+                                  ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                                  : isUnusable
+                                    ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                                    : "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+                              )}
+                            >
+                              {status}
+                            </span>
+                          </div>
                         </div>
+                        {p.failureMessage && (
+                          <p className="text-xs text-control-light break-words">
+                            {p.failureMessage}
+                          </p>
+                        )}
+                        {needsPreparation && canManage && (
+                          <div className="flex justify-end">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={providerAction !== ""}
+                              onClick={() =>
+                                void handleProviderPreparation(p.providerId)
+                              }
+                            >
+                              {providerAction === p.providerId ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                              ) : null}
+                              {providerAction === p.providerId
+                                ? t("common.loading")
+                                : actionLabel}
+                            </Button>
+                          </div>
+                        )}
                       </li>
                     );
                   })}
