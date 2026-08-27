@@ -10,6 +10,10 @@
 
 - Added `.env.example` and updated the server quick-start instructions for the password-protected Compose deployment.
 
+### Fixed
+
+- Docker machine-image builds now prepare the pinned Pi runtime before compiling embedded release binaries.
+
 
 All notable changes to 888a2a are documented in this file.
 

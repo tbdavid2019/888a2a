@@ -37,6 +37,11 @@ for entry in "${TARGETS[@]}"; do
   read -r goos goarch target <<< "${entry}"
   echo "  building ${target} (${goos}/${goarch})..."
 
+  # Release-tagged machine binaries embed the complete Pi distribution. Docker
+  # builds intentionally exclude embedded/dist-* from the context, so prepare
+  # the matching distribution here before compiling each target.
+  GOOS="${goos}" GOARCH="${goarch}" ./scripts/build-pi.sh
+
   bin_name="888a2a-machine-${target}"
   legacy_prefix="lae""lia-"
   legacy_bin_name="${legacy_prefix}machine-${target}"
