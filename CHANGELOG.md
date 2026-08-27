@@ -20,6 +20,10 @@
 - Added PostgreSQL backup/restore/verification tooling, a disaster-recovery guide, and an opt-in Message Plane hot-channel load gate.
 - Added tenant-safe correlation ID propagation through Connect handlers, response headers, and structured audit logs.
 
+### Fixed
+
+- Backup and restore tooling now works on Docker-only hosts by using the Compose database container when PostgreSQL client binaries are unavailable.
+
 
 All notable changes to 888a2a are documented in this file.
 
