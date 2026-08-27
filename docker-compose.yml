@@ -53,10 +53,42 @@ services:
       - machinedata:/data
       - codexhome:/home/a2a888/.codex
 
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: 888a2a-prometheus
+    restart: unless-stopped
+    profiles: [observability]
+    depends_on:
+      manager:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./deploy/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheusdata:/prometheus
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    container_name: 888a2a-grafana
+    restart: unless-stopped
+    profiles: [observability]
+    depends_on:
+      - prometheus
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - grafanadata:/var/lib/grafana
+      - ./deploy/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+
 volumes:
   pgdata:
     driver: local
   machinedata:
     driver: local
   codexhome:
+    driver: local
+  prometheusdata:
+    driver: local
+  grafanadata:
     driver: local

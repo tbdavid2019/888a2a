@@ -1,0 +1,32 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "a2a888-prometheus"},
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "targets": [{"expr": "sum by (surface, status) (rate(a2a888_operation_requests_total[5m]))", "legendFormat": "{{surface}} / {{status}}", "refId": "A"}],
+      "title": "Operation rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "a2a888-prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le, surface) (rate(a2a888_operation_duration_seconds_bucket[5m])))", "legendFormat": "{{surface}} p95", "refId": "A"}],
+      "title": "Operation latency p95",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["888a2a", "slo"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "title": "888a2a Operation SLO",
+  "uid": "a2a888-operation-slo",
+  "version": 1
+}

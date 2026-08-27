@@ -1,0 +1,10 @@
+apiVersion: 1
+
+datasources:
+  - name: 888a2a Prometheus
+    type: prometheus
+    access: proxy
+    uid: a2a888-prometheus
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false

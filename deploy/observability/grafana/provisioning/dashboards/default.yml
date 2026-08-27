@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 888a2a
+    orgId: 1
+    folder: 888a2a
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards

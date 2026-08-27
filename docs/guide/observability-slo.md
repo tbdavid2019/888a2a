@@ -35,3 +35,19 @@ latency histograms:
 
 Configure Prometheus and Grafana retention according to the deployment's
 privacy policy. Do not expose `/metrics` to public clients.
+
+## Optional Docker observability stack
+
+The repository includes a pinned, optional Prometheus/Grafana profile. It
+scrapes the Manager over the private Compose network and binds the dashboards
+to loopback only:
+
+```bash
+docker compose --env-file .env --profile observability up -d
+```
+
+Prometheus is available on `127.0.0.1:9090` and Grafana on
+`127.0.0.1:3000`. Put an authenticated reverse proxy in front of either
+endpoint before remote access. The dashboard is a starter SLO view; external
+connector traces and production alert routing still require environment
+specific configuration and acceptance.

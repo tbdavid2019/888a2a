@@ -9,6 +9,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Added
 
+- Added an optional pinned Prometheus/Grafana Docker profile with a private-network scrape config and operation SLO dashboard.
 - Added verified Provider runtime history and an integrity-checked rollback path from the Machine operator UI.
 - Added PostgreSQL backup/restore/verification tooling, a disaster-recovery guide, and an opt-in Message Plane hot-channel load gate.
 - Added tenant-safe correlation ID propagation through Connect handlers, response headers, and structured audit logs.
