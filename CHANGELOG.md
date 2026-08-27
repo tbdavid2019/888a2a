@@ -44,6 +44,7 @@ This project records changes by calendar date and does not maintain release vers
 - Added the dated security review covering tenant isolation, webhook signatures, vault binding, runtime sandbox, approval binding, and explicit release blockers.
 - Hardened the reminder detail test to await its asynchronous thread-opening effect under the full parallel frontend suite.
 - Added a tenant-safe observability context contract for organization/correlation fields and an initial SLO/runbook document; dashboard provisioning remains environment-specific.
+- Added transactional connector raw-payload retention redaction with tenant-scoped legal holds and auditable retention outcomes; full cross-store retention remains open.
 - Added the human-facing A2A task graph/trace view with collapsible delegation descendants, status, requester/delegate, artifacts, approvals, budget, and failure details.
 - Accepted the runtime approval architecture spike after fake ACP allow/deny/expiry/changed-intent tests and durable wait/resume evidence passed.
 - Accepted the canonical connector envelope prototype after LINE, Slack, and Web Widget duplicate/out-of-order fixtures converged deterministically.

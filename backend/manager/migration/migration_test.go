@@ -89,6 +89,15 @@ func TestUsageEntitlementsMigrationPresent(t *testing.T) {
 	if !strings.Contains(latest, "CREATE TABLE IF NOT EXISTS a2a888_connector_installation") {
 		t.Error("connector schema is missing installation status")
 	}
+	retentionBytes, err := os.ReadFile("migration/1.1/0048##retention-and-legal-hold.sql")
+	if err != nil {
+		t.Fatalf("read retention migration: %v", err)
+	}
+	for _, want := range []string{"CREATE TABLE IF NOT EXISTS a2a888_retention_hold", "CREATE TABLE IF NOT EXISTS a2a888_retention_outcome"} {
+		if !strings.Contains(latest, want) || !strings.Contains(string(retentionBytes), want) {
+			t.Errorf("retention schema is missing %q", want)
+		}
+	}
 }
 
 // TestMessagePlaneIdentityMigrationPresent guards the additive MessagePlane
