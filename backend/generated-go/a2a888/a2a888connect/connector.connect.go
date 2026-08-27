@@ -36,11 +36,19 @@ const (
 	// ConnectorServiceListConnectorInstallationsProcedure is the fully-qualified name of the
 	// ConnectorService's ListConnectorInstallations RPC.
 	ConnectorServiceListConnectorInstallationsProcedure = "/a2a888.v1.ConnectorService/ListConnectorInstallations"
+	// ConnectorServiceInstallConnectorProcedure is the fully-qualified name of the ConnectorService's
+	// InstallConnector RPC.
+	ConnectorServiceInstallConnectorProcedure = "/a2a888.v1.ConnectorService/InstallConnector"
+	// ConnectorServiceUninstallConnectorProcedure is the fully-qualified name of the ConnectorService's
+	// UninstallConnector RPC.
+	ConnectorServiceUninstallConnectorProcedure = "/a2a888.v1.ConnectorService/UninstallConnector"
 )
 
 // ConnectorServiceClient is a client for the a2a888.v1.ConnectorService service.
 type ConnectorServiceClient interface {
 	ListConnectorInstallations(context.Context, *connect.Request[a2a888.ListConnectorInstallationsRequest]) (*connect.Response[a2a888.ListConnectorInstallationsResponse], error)
+	InstallConnector(context.Context, *connect.Request[a2a888.InstallConnectorRequest]) (*connect.Response[a2a888.ConnectorInstallation], error)
+	UninstallConnector(context.Context, *connect.Request[a2a888.UninstallConnectorRequest]) (*connect.Response[a2a888.UninstallConnectorResponse], error)
 }
 
 // NewConnectorServiceClient constructs a client for the a2a888.v1.ConnectorService service. By
@@ -60,12 +68,26 @@ func NewConnectorServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(connectorServiceMethods.ByName("ListConnectorInstallations")),
 			connect.WithClientOptions(opts...),
 		),
+		installConnector: connect.NewClient[a2a888.InstallConnectorRequest, a2a888.ConnectorInstallation](
+			httpClient,
+			baseURL+ConnectorServiceInstallConnectorProcedure,
+			connect.WithSchema(connectorServiceMethods.ByName("InstallConnector")),
+			connect.WithClientOptions(opts...),
+		),
+		uninstallConnector: connect.NewClient[a2a888.UninstallConnectorRequest, a2a888.UninstallConnectorResponse](
+			httpClient,
+			baseURL+ConnectorServiceUninstallConnectorProcedure,
+			connect.WithSchema(connectorServiceMethods.ByName("UninstallConnector")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // connectorServiceClient implements ConnectorServiceClient.
 type connectorServiceClient struct {
 	listConnectorInstallations *connect.Client[a2a888.ListConnectorInstallationsRequest, a2a888.ListConnectorInstallationsResponse]
+	installConnector           *connect.Client[a2a888.InstallConnectorRequest, a2a888.ConnectorInstallation]
+	uninstallConnector         *connect.Client[a2a888.UninstallConnectorRequest, a2a888.UninstallConnectorResponse]
 }
 
 // ListConnectorInstallations calls a2a888.v1.ConnectorService.ListConnectorInstallations.
@@ -73,9 +95,21 @@ func (c *connectorServiceClient) ListConnectorInstallations(ctx context.Context,
 	return c.listConnectorInstallations.CallUnary(ctx, req)
 }
 
+// InstallConnector calls a2a888.v1.ConnectorService.InstallConnector.
+func (c *connectorServiceClient) InstallConnector(ctx context.Context, req *connect.Request[a2a888.InstallConnectorRequest]) (*connect.Response[a2a888.ConnectorInstallation], error) {
+	return c.installConnector.CallUnary(ctx, req)
+}
+
+// UninstallConnector calls a2a888.v1.ConnectorService.UninstallConnector.
+func (c *connectorServiceClient) UninstallConnector(ctx context.Context, req *connect.Request[a2a888.UninstallConnectorRequest]) (*connect.Response[a2a888.UninstallConnectorResponse], error) {
+	return c.uninstallConnector.CallUnary(ctx, req)
+}
+
 // ConnectorServiceHandler is an implementation of the a2a888.v1.ConnectorService service.
 type ConnectorServiceHandler interface {
 	ListConnectorInstallations(context.Context, *connect.Request[a2a888.ListConnectorInstallationsRequest]) (*connect.Response[a2a888.ListConnectorInstallationsResponse], error)
+	InstallConnector(context.Context, *connect.Request[a2a888.InstallConnectorRequest]) (*connect.Response[a2a888.ConnectorInstallation], error)
+	UninstallConnector(context.Context, *connect.Request[a2a888.UninstallConnectorRequest]) (*connect.Response[a2a888.UninstallConnectorResponse], error)
 }
 
 // NewConnectorServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -91,10 +125,26 @@ func NewConnectorServiceHandler(svc ConnectorServiceHandler, opts ...connect.Han
 		connect.WithSchema(connectorServiceMethods.ByName("ListConnectorInstallations")),
 		connect.WithHandlerOptions(opts...),
 	)
+	connectorServiceInstallConnectorHandler := connect.NewUnaryHandler(
+		ConnectorServiceInstallConnectorProcedure,
+		svc.InstallConnector,
+		connect.WithSchema(connectorServiceMethods.ByName("InstallConnector")),
+		connect.WithHandlerOptions(opts...),
+	)
+	connectorServiceUninstallConnectorHandler := connect.NewUnaryHandler(
+		ConnectorServiceUninstallConnectorProcedure,
+		svc.UninstallConnector,
+		connect.WithSchema(connectorServiceMethods.ByName("UninstallConnector")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/a2a888.v1.ConnectorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ConnectorServiceListConnectorInstallationsProcedure:
 			connectorServiceListConnectorInstallationsHandler.ServeHTTP(w, r)
+		case ConnectorServiceInstallConnectorProcedure:
+			connectorServiceInstallConnectorHandler.ServeHTTP(w, r)
+		case ConnectorServiceUninstallConnectorProcedure:
+			connectorServiceUninstallConnectorHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -106,4 +156,12 @@ type UnimplementedConnectorServiceHandler struct{}
 
 func (UnimplementedConnectorServiceHandler) ListConnectorInstallations(context.Context, *connect.Request[a2a888.ListConnectorInstallationsRequest]) (*connect.Response[a2a888.ListConnectorInstallationsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("a2a888.v1.ConnectorService.ListConnectorInstallations is not implemented"))
+}
+
+func (UnimplementedConnectorServiceHandler) InstallConnector(context.Context, *connect.Request[a2a888.InstallConnectorRequest]) (*connect.Response[a2a888.ConnectorInstallation], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("a2a888.v1.ConnectorService.InstallConnector is not implemented"))
+}
+
+func (UnimplementedConnectorServiceHandler) UninstallConnector(context.Context, *connect.Request[a2a888.UninstallConnectorRequest]) (*connect.Response[a2a888.UninstallConnectorResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("a2a888.v1.ConnectorService.UninstallConnector is not implemented"))
 }

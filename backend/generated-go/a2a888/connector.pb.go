@@ -289,6 +289,146 @@ func (x *ListConnectorInstallationsResponse) GetInstallations() []*ConnectorInst
 	return nil
 }
 
+type InstallConnectorRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Installation  *ConnectorInstallation `protobuf:"bytes,1,opt,name=installation,proto3" json:"installation,omitempty"`
+	Credential    []byte                 `protobuf:"bytes,2,opt,name=credential,proto3" json:"credential,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstallConnectorRequest) Reset() {
+	*x = InstallConnectorRequest{}
+	mi := &file_a2a888_connector_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstallConnectorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstallConnectorRequest) ProtoMessage() {}
+
+func (x *InstallConnectorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_a2a888_connector_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstallConnectorRequest.ProtoReflect.Descriptor instead.
+func (*InstallConnectorRequest) Descriptor() ([]byte, []int) {
+	return file_a2a888_connector_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *InstallConnectorRequest) GetInstallation() *ConnectorInstallation {
+	if x != nil {
+		return x.Installation
+	}
+	return nil
+}
+
+func (x *InstallConnectorRequest) GetCredential() []byte {
+	if x != nil {
+		return x.Credential
+	}
+	return nil
+}
+
+type UninstallConnectorRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	OrganizationId string                 `protobuf:"bytes,1,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	InstallationId string                 `protobuf:"bytes,2,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *UninstallConnectorRequest) Reset() {
+	*x = UninstallConnectorRequest{}
+	mi := &file_a2a888_connector_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UninstallConnectorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UninstallConnectorRequest) ProtoMessage() {}
+
+func (x *UninstallConnectorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_a2a888_connector_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UninstallConnectorRequest.ProtoReflect.Descriptor instead.
+func (*UninstallConnectorRequest) Descriptor() ([]byte, []int) {
+	return file_a2a888_connector_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *UninstallConnectorRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *UninstallConnectorRequest) GetInstallationId() string {
+	if x != nil {
+		return x.InstallationId
+	}
+	return ""
+}
+
+type UninstallConnectorResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UninstallConnectorResponse) Reset() {
+	*x = UninstallConnectorResponse{}
+	mi := &file_a2a888_connector_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UninstallConnectorResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UninstallConnectorResponse) ProtoMessage() {}
+
+func (x *UninstallConnectorResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_a2a888_connector_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UninstallConnectorResponse.ProtoReflect.Descriptor instead.
+func (*UninstallConnectorResponse) Descriptor() ([]byte, []int) {
+	return file_a2a888_connector_proto_rawDescGZIP(), []int{5}
+}
+
 var File_a2a888_connector_proto protoreflect.FileDescriptor
 
 const file_a2a888_connector_proto_rawDesc = "" +
@@ -312,15 +452,26 @@ const file_a2a888_connector_proto_rawDesc = "" +
 	"!ListConnectorInstallationsRequest\x12'\n" +
 	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\"l\n" +
 	"\"ListConnectorInstallationsResponse\x12F\n" +
-	"\rinstallations\x18\x01 \x03(\v2 .a2a888.v1.ConnectorInstallationR\rinstallations*\xac\x01\n" +
+	"\rinstallations\x18\x01 \x03(\v2 .a2a888.v1.ConnectorInstallationR\rinstallations\"\x7f\n" +
+	"\x17InstallConnectorRequest\x12D\n" +
+	"\finstallation\x18\x01 \x01(\v2 .a2a888.v1.ConnectorInstallationR\finstallation\x12\x1e\n" +
+	"\n" +
+	"credential\x18\x02 \x01(\fR\n" +
+	"credential\"m\n" +
+	"\x19UninstallConnectorRequest\x12'\n" +
+	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\x12'\n" +
+	"\x0finstallation_id\x18\x02 \x01(\tR\x0einstallationId\"\x1c\n" +
+	"\x1aUninstallConnectorResponse*\xac\x01\n" +
 	"\x0fConnectorHealth\x12 \n" +
 	"\x1cCONNECTOR_HEALTH_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18CONNECTOR_HEALTH_HEALTHY\x10\x01\x12\x1d\n" +
 	"\x19CONNECTOR_HEALTH_DEGRADED\x10\x02\x12\x1b\n" +
 	"\x17CONNECTOR_HEALTH_FAILED\x10\x03\x12\x1d\n" +
-	"\x19CONNECTOR_HEALTH_DISABLED\x10\x042\x8d\x01\n" +
+	"\x19CONNECTOR_HEALTH_DISABLED\x10\x042\xca\x02\n" +
 	"\x10ConnectorService\x12y\n" +
-	"\x1aListConnectorInstallations\x12,.a2a888.v1.ListConnectorInstallationsRequest\x1a-.a2a888.v1.ListConnectorInstallationsResponseB;Z9github.com/tbdavid2019/888a2a/backend/generated-go/a2a888b\x06proto3"
+	"\x1aListConnectorInstallations\x12,.a2a888.v1.ListConnectorInstallationsRequest\x1a-.a2a888.v1.ListConnectorInstallationsResponse\x12X\n" +
+	"\x10InstallConnector\x12\".a2a888.v1.InstallConnectorRequest\x1a .a2a888.v1.ConnectorInstallation\x12a\n" +
+	"\x12UninstallConnector\x12$.a2a888.v1.UninstallConnectorRequest\x1a%.a2a888.v1.UninstallConnectorResponseB;Z9github.com/tbdavid2019/888a2a/backend/generated-go/a2a888b\x06proto3"
 
 var (
 	file_a2a888_connector_proto_rawDescOnce sync.Once
@@ -335,25 +486,33 @@ func file_a2a888_connector_proto_rawDescGZIP() []byte {
 }
 
 var file_a2a888_connector_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_a2a888_connector_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_a2a888_connector_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_a2a888_connector_proto_goTypes = []any{
 	(ConnectorHealth)(0),                       // 0: a2a888.v1.ConnectorHealth
 	(*ConnectorInstallation)(nil),              // 1: a2a888.v1.ConnectorInstallation
 	(*ListConnectorInstallationsRequest)(nil),  // 2: a2a888.v1.ListConnectorInstallationsRequest
 	(*ListConnectorInstallationsResponse)(nil), // 3: a2a888.v1.ListConnectorInstallationsResponse
-	(*timestamppb.Timestamp)(nil),              // 4: google.protobuf.Timestamp
+	(*InstallConnectorRequest)(nil),            // 4: a2a888.v1.InstallConnectorRequest
+	(*UninstallConnectorRequest)(nil),          // 5: a2a888.v1.UninstallConnectorRequest
+	(*UninstallConnectorResponse)(nil),         // 6: a2a888.v1.UninstallConnectorResponse
+	(*timestamppb.Timestamp)(nil),              // 7: google.protobuf.Timestamp
 }
 var file_a2a888_connector_proto_depIdxs = []int32{
 	0, // 0: a2a888.v1.ConnectorInstallation.health:type_name -> a2a888.v1.ConnectorHealth
-	4, // 1: a2a888.v1.ConnectorInstallation.updated_at:type_name -> google.protobuf.Timestamp
+	7, // 1: a2a888.v1.ConnectorInstallation.updated_at:type_name -> google.protobuf.Timestamp
 	1, // 2: a2a888.v1.ListConnectorInstallationsResponse.installations:type_name -> a2a888.v1.ConnectorInstallation
-	2, // 3: a2a888.v1.ConnectorService.ListConnectorInstallations:input_type -> a2a888.v1.ListConnectorInstallationsRequest
-	3, // 4: a2a888.v1.ConnectorService.ListConnectorInstallations:output_type -> a2a888.v1.ListConnectorInstallationsResponse
-	4, // [4:5] is the sub-list for method output_type
-	3, // [3:4] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	1, // 3: a2a888.v1.InstallConnectorRequest.installation:type_name -> a2a888.v1.ConnectorInstallation
+	2, // 4: a2a888.v1.ConnectorService.ListConnectorInstallations:input_type -> a2a888.v1.ListConnectorInstallationsRequest
+	4, // 5: a2a888.v1.ConnectorService.InstallConnector:input_type -> a2a888.v1.InstallConnectorRequest
+	5, // 6: a2a888.v1.ConnectorService.UninstallConnector:input_type -> a2a888.v1.UninstallConnectorRequest
+	3, // 7: a2a888.v1.ConnectorService.ListConnectorInstallations:output_type -> a2a888.v1.ListConnectorInstallationsResponse
+	1, // 8: a2a888.v1.ConnectorService.InstallConnector:output_type -> a2a888.v1.ConnectorInstallation
+	6, // 9: a2a888.v1.ConnectorService.UninstallConnector:output_type -> a2a888.v1.UninstallConnectorResponse
+	7, // [7:10] is the sub-list for method output_type
+	4, // [4:7] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_a2a888_connector_proto_init() }
@@ -367,7 +526,7 @@ func file_a2a888_connector_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_a2a888_connector_proto_rawDesc), len(file_a2a888_connector_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   3,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

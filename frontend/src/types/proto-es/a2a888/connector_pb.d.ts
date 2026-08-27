@@ -110,6 +110,60 @@ export declare type ListConnectorInstallationsResponse = Message<"a2a888.v1.List
 export declare const ListConnectorInstallationsResponseSchema: GenMessage<ListConnectorInstallationsResponse>;
 
 /**
+ * @generated from message a2a888.v1.InstallConnectorRequest
+ */
+export declare type InstallConnectorRequest = Message<"a2a888.v1.InstallConnectorRequest"> & {
+  /**
+   * @generated from field: a2a888.v1.ConnectorInstallation installation = 1;
+   */
+  installation?: ConnectorInstallation | undefined;
+
+  /**
+   * @generated from field: bytes credential = 2;
+   */
+  credential: Uint8Array;
+};
+
+/**
+ * Describes the message a2a888.v1.InstallConnectorRequest.
+ * Use `create(InstallConnectorRequestSchema)` to create a new message.
+ */
+export declare const InstallConnectorRequestSchema: GenMessage<InstallConnectorRequest>;
+
+/**
+ * @generated from message a2a888.v1.UninstallConnectorRequest
+ */
+export declare type UninstallConnectorRequest = Message<"a2a888.v1.UninstallConnectorRequest"> & {
+  /**
+   * @generated from field: string organization_id = 1;
+   */
+  organizationId: string;
+
+  /**
+   * @generated from field: string installation_id = 2;
+   */
+  installationId: string;
+};
+
+/**
+ * Describes the message a2a888.v1.UninstallConnectorRequest.
+ * Use `create(UninstallConnectorRequestSchema)` to create a new message.
+ */
+export declare const UninstallConnectorRequestSchema: GenMessage<UninstallConnectorRequest>;
+
+/**
+ * @generated from message a2a888.v1.UninstallConnectorResponse
+ */
+export declare type UninstallConnectorResponse = Message<"a2a888.v1.UninstallConnectorResponse"> & {
+};
+
+/**
+ * Describes the message a2a888.v1.UninstallConnectorResponse.
+ * Use `create(UninstallConnectorResponseSchema)` to create a new message.
+ */
+export declare const UninstallConnectorResponseSchema: GenMessage<UninstallConnectorResponse>;
+
+/**
  * @generated from enum a2a888.v1.ConnectorHealth
  */
 export enum ConnectorHealth {
@@ -155,5 +209,21 @@ export declare const ConnectorService: GenService<{
     methodKind: "unary";
     input: typeof ListConnectorInstallationsRequestSchema;
     output: typeof ListConnectorInstallationsResponseSchema;
+  },
+  /**
+   * @generated from rpc a2a888.v1.ConnectorService.InstallConnector
+   */
+  installConnector: {
+    methodKind: "unary";
+    input: typeof InstallConnectorRequestSchema;
+    output: typeof ConnectorInstallationSchema;
+  },
+  /**
+   * @generated from rpc a2a888.v1.ConnectorService.UninstallConnector
+   */
+  uninstallConnector: {
+    methodKind: "unary";
+    input: typeof UninstallConnectorRequestSchema;
+    output: typeof UninstallConnectorResponseSchema;
   },
 }>;

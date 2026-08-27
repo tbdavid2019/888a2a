@@ -2,6 +2,7 @@ package connectorvault
 
 import (
 	"bytes"
+	"context"
 	"testing"
 )
 
@@ -32,10 +33,10 @@ func TestNewRejectsInvalidKey(t *testing.T) {
 
 func TestRevokeRequiresTenantScopedIdentity(t *testing.T) {
 	vault := &Vault{}
-	if err := vault.Revoke(nil, "", "install-a"); err == nil {
+	if err := vault.Revoke(context.Background(), "", "install-a"); err == nil {
 		t.Fatal("credential revocation without tenant was accepted")
 	}
-	if err := vault.Revoke(nil, "org-a", ""); err == nil {
+	if err := vault.Revoke(context.Background(), "org-a", ""); err == nil {
 		t.Fatal("credential revocation without installation was accepted")
 	}
 }

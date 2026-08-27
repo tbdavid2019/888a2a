@@ -36,6 +36,20 @@ message ListConnectorInstallationsResponse {
   repeated ConnectorInstallation installations = 1;
 }
 
+message InstallConnectorRequest {
+  ConnectorInstallation installation = 1;
+  bytes credential = 2;
+}
+
+message UninstallConnectorRequest {
+  string organization_id = 1;
+  string installation_id = 2;
+}
+
+message UninstallConnectorResponse {}
+
 service ConnectorService {
   rpc ListConnectorInstallations(ListConnectorInstallationsRequest) returns (ListConnectorInstallationsResponse);
+  rpc InstallConnector(InstallConnectorRequest) returns (ConnectorInstallation);
+  rpc UninstallConnector(UninstallConnectorRequest) returns (UninstallConnectorResponse);
 }

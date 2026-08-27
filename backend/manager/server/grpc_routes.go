@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
 	"log/slog"
 	"net/http"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/tbdavid2019/888a2a/backend/manager/api/auth"
 	apiv1 "github.com/tbdavid2019/888a2a/backend/manager/api/v1"
 	"github.com/tbdavid2019/888a2a/backend/manager/component/commandeventhub"
+	"github.com/tbdavid2019/888a2a/backend/manager/component/connectorvault"
 	"github.com/tbdavid2019/888a2a/backend/manager/component/device"
 	"github.com/tbdavid2019/888a2a/backend/manager/component/dispatcher"
 	"github.com/tbdavid2019/888a2a/backend/manager/component/iam"
@@ -90,7 +92,12 @@ func configureV1Routers(
 	identityProviderService := apiv1.NewIdentityProviderService(stores)
 	organizationService := apiv1.NewOrganizationService(stores, iamManager)
 	usageService := apiv1.NewUsageService(stores)
-	connectorService := apiv1.NewConnectorService(stores)
+	vaultKey := sha256.Sum256([]byte("888a2a connector vault\x00" + secret))
+	connectorVault, err := connectorvault.New(stores.GetDB(), vaultKey[:], "server-secret-v1")
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to configure connector credential vault")
+	}
+	connectorService := apiv1.NewConnectorService(stores, connectorVault)
 
 	// Web Push: load the auto-generated VAPID keypair from the setting table
 	// (initializeSetting guarantees a row exists by this point) and build the
