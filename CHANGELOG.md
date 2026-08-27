@@ -34,6 +34,10 @@
 
 - Added tenant-scoped Provider preparation controls so operators can explicitly prepare, repair, or update a detected runtime from the Machine profile.
 
+### Fixed
+
+- Normalized the new Provider UI locale keys so the repository project-rule gate passes.
+
 
 All notable changes to 888a2a are documented in this file.
 
