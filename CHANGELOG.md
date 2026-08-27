@@ -40,6 +40,7 @@ This project records changes by calendar date and does not maintain release vers
 - Added the first LINE connector adapter and decision record with official raw-body signature verification, event dedup/order handling, reply/push delivery, retry keys, and safe failure classification.
 - Added tenant-admin connector install/uninstall RPCs with bounded credential input, encrypted vault rotation, and tenant-scoped credential revocation.
 - Added the human-facing A2A task graph/trace view with collapsible delegation descendants, status, requester/delegate, artifacts, approvals, budget, and failure details.
+- Accepted the runtime approval architecture spike after fake ACP allow/deny/expiry/changed-intent tests and durable wait/resume evidence passed.
 
 ## [2026-08-26]
 
