@@ -32,6 +32,7 @@ import {
   SETTINGS_ROUTE_ROLES,
   SETTINGS_ROUTE_SMTP,
   SETTINGS_ROUTE_STORAGE,
+  SETTINGS_ROUTE_USAGE,
   SETTINGS_ROUTE_USERS,
 } from "./handles";
 
@@ -145,6 +146,10 @@ export const ROUTE_INFO: Record<string, RouteInfo> = {
   },
   [SETTINGS_ROUTE_APPROVALS]: {
     titleKey: "approval-center.title",
+    backTo: "/settings",
+  },
+  [SETTINGS_ROUTE_USAGE]: {
+    titleKey: "usage-summary.title",
     backTo: "/settings",
   },
 };

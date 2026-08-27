@@ -2,7 +2,7 @@
 // @generated from file a2a888/usage.proto (package a2a888.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 
@@ -282,6 +282,63 @@ export declare type UsageAggregate = Message<"a2a888.v1.UsageAggregate"> & {
 export declare const UsageAggregateSchema: GenMessage<UsageAggregate>;
 
 /**
+ * @generated from message a2a888.v1.GetUsageSummaryRequest
+ */
+export declare type GetUsageSummaryRequest = Message<"a2a888.v1.GetUsageSummaryRequest"> & {
+  /**
+   * @generated from field: string organization_id = 1;
+   */
+  organizationId: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp period_start = 2;
+   */
+  periodStart?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp period_end = 3;
+   */
+  periodEnd?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message a2a888.v1.GetUsageSummaryRequest.
+ * Use `create(GetUsageSummaryRequestSchema)` to create a new message.
+ */
+export declare const GetUsageSummaryRequestSchema: GenMessage<GetUsageSummaryRequest>;
+
+/**
+ * @generated from message a2a888.v1.GetUsageSummaryResponse
+ */
+export declare type GetUsageSummaryResponse = Message<"a2a888.v1.GetUsageSummaryResponse"> & {
+  /**
+   * @generated from field: repeated a2a888.v1.UsageAggregate aggregates = 1;
+   */
+  aggregates: UsageAggregate[];
+
+  /**
+   * @generated from field: repeated a2a888.v1.Entitlement entitlements = 2;
+   */
+  entitlements: Entitlement[];
+
+  /**
+   * @generated from field: a2a888.v1.Subscription subscription = 3;
+   */
+  subscription?: Subscription | undefined;
+
+  /**
+   * @generated from field: bool read_only = 4;
+   */
+  readOnly: boolean;
+};
+
+/**
+ * Describes the message a2a888.v1.GetUsageSummaryResponse.
+ * Use `create(GetUsageSummaryResponseSchema)` to create a new message.
+ */
+export declare const GetUsageSummaryResponseSchema: GenMessage<GetUsageSummaryResponse>;
+
+/**
  * SubscriptionState is provider-neutral. External billing adapters map into
  * this lifecycle without leaking provider identifiers into authorization.
  *
@@ -360,3 +417,17 @@ export enum UsageDecision {
  * Describes the enum a2a888.v1.UsageDecision.
  */
 export declare const UsageDecisionSchema: GenEnum<UsageDecision>;
+
+/**
+ * @generated from service a2a888.v1.UsageService
+ */
+export declare const UsageService: GenService<{
+  /**
+   * @generated from rpc a2a888.v1.UsageService.GetUsageSummary
+   */
+  getUsageSummary: {
+    methodKind: "unary";
+    input: typeof GetUsageSummaryRequestSchema;
+    output: typeof GetUsageSummaryResponseSchema;
+  },
+}>;

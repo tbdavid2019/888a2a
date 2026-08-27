@@ -155,6 +155,11 @@ function useSettingsMenuItems(): MenuItem[] {
           icon: Shield,
           label: t("approval-center.title"),
         },
+        canSettingsGet && {
+          to: "/settings/usage",
+          icon: ClipboardList,
+          label: t("usage-summary.title"),
+        },
         canViewMachines && {
           to: "/machines",
           icon: Monitor,

@@ -89,6 +89,7 @@ func configureV1Routers(
 	auditLogService := apiv1.NewAuditLogService(stores)
 	identityProviderService := apiv1.NewIdentityProviderService(stores)
 	organizationService := apiv1.NewOrganizationService(stores, iamManager)
+	usageService := apiv1.NewUsageService(stores)
 
 	// Web Push: load the auto-generated VAPID keypair from the setting table
 	// (initializeSetting guarantees a row exists by this point) and build the
@@ -188,6 +189,8 @@ func configureV1Routers(
 	connectHandlers[identityProviderPath] = identityProviderHandler
 	organizationPath, organizationHandler := a2a888connect.NewOrganizationServiceHandler(organizationService, handlerOpts)
 	connectHandlers[organizationPath] = organizationHandler
+	usagePath, usageHandler := a2a888connect.NewUsageServiceHandler(usageService, handlerOpts)
+	connectHandlers[usagePath] = usageHandler
 
 	// gRPC reflection is a dev-only convenience: it lets unauthenticated
 	// callers enumerate every RPC, message shape, and permission annotation,
@@ -214,6 +217,7 @@ func configureV1Routers(
 			v1connect.AuditLogServiceName,
 			v1connect.NotificationServiceName,
 			v1connect.IdentityProviderServiceName,
+			a2a888connect.UsageServiceName,
 		)
 		reflectPath, reflectHandler := grpcreflect.NewHandlerV1(reflector)
 		connectHandlers[reflectPath] = reflectHandler

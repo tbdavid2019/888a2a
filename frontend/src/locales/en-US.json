@@ -185,6 +185,19 @@
     "select-request": "Select a request to inspect its bounded intent.",
     "title": "Organization Approval Center"
   },
+  "usage-summary": {
+    "description": "Review organization entitlements and usage without exposing payment-provider data.",
+    "disabled": "Disabled",
+    "entitlements": "Entitlements",
+    "load-failed": "Failed to load organization usage",
+    "loading": "Loading usage…",
+    "no-entitlements": "No entitlements are configured.",
+    "no-usage": "No usage recorded for this period.",
+    "not-allowed": "Only organization owners and billing administrators can view usage.",
+    "read-only": "This organization is read-only. New chargeable operations are blocked.",
+    "title": "Usage and entitlements",
+    "usage": "Usage"
+  },
   "auth": {
     "device-login": {
       "approve": "Approve",

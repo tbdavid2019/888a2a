@@ -662,6 +662,134 @@ func (x *UsageAggregate) GetRecomputedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+type GetUsageSummaryRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	OrganizationId string                 `protobuf:"bytes,1,opt,name=organization_id,json=organizationId,proto3" json:"organization_id,omitempty"`
+	PeriodStart    *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=period_start,json=periodStart,proto3" json:"period_start,omitempty"`
+	PeriodEnd      *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=period_end,json=periodEnd,proto3" json:"period_end,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetUsageSummaryRequest) Reset() {
+	*x = GetUsageSummaryRequest{}
+	mi := &file_a2a888_usage_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUsageSummaryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUsageSummaryRequest) ProtoMessage() {}
+
+func (x *GetUsageSummaryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_a2a888_usage_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUsageSummaryRequest.ProtoReflect.Descriptor instead.
+func (*GetUsageSummaryRequest) Descriptor() ([]byte, []int) {
+	return file_a2a888_usage_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetUsageSummaryRequest) GetOrganizationId() string {
+	if x != nil {
+		return x.OrganizationId
+	}
+	return ""
+}
+
+func (x *GetUsageSummaryRequest) GetPeriodStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.PeriodStart
+	}
+	return nil
+}
+
+func (x *GetUsageSummaryRequest) GetPeriodEnd() *timestamppb.Timestamp {
+	if x != nil {
+		return x.PeriodEnd
+	}
+	return nil
+}
+
+type GetUsageSummaryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Aggregates    []*UsageAggregate      `protobuf:"bytes,1,rep,name=aggregates,proto3" json:"aggregates,omitempty"`
+	Entitlements  []*Entitlement         `protobuf:"bytes,2,rep,name=entitlements,proto3" json:"entitlements,omitempty"`
+	Subscription  *Subscription          `protobuf:"bytes,3,opt,name=subscription,proto3" json:"subscription,omitempty"`
+	ReadOnly      bool                   `protobuf:"varint,4,opt,name=read_only,json=readOnly,proto3" json:"read_only,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUsageSummaryResponse) Reset() {
+	*x = GetUsageSummaryResponse{}
+	mi := &file_a2a888_usage_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUsageSummaryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUsageSummaryResponse) ProtoMessage() {}
+
+func (x *GetUsageSummaryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_a2a888_usage_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUsageSummaryResponse.ProtoReflect.Descriptor instead.
+func (*GetUsageSummaryResponse) Descriptor() ([]byte, []int) {
+	return file_a2a888_usage_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetUsageSummaryResponse) GetAggregates() []*UsageAggregate {
+	if x != nil {
+		return x.Aggregates
+	}
+	return nil
+}
+
+func (x *GetUsageSummaryResponse) GetEntitlements() []*Entitlement {
+	if x != nil {
+		return x.Entitlements
+	}
+	return nil
+}
+
+func (x *GetUsageSummaryResponse) GetSubscription() *Subscription {
+	if x != nil {
+		return x.Subscription
+	}
+	return nil
+}
+
+func (x *GetUsageSummaryResponse) GetReadOnly() bool {
+	if x != nil {
+		return x.ReadOnly
+	}
+	return false
+}
+
 var File_a2a888_usage_proto protoreflect.FileDescriptor
 
 const file_a2a888_usage_proto_rawDesc = "" +
@@ -723,7 +851,19 @@ const file_a2a888_usage_proto_rawDesc = "" +
 	"\n" +
 	"period_end\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tperiodEnd\x12\x1a\n" +
 	"\bquantity\x18\a \x01(\x03R\bquantity\x12?\n" +
-	"\rrecomputed_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\frecomputedAt*\xf8\x01\n" +
+	"\rrecomputed_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\frecomputedAt\"\xbb\x01\n" +
+	"\x16GetUsageSummaryRequest\x12'\n" +
+	"\x0forganization_id\x18\x01 \x01(\tR\x0eorganizationId\x12=\n" +
+	"\fperiod_start\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\vperiodStart\x129\n" +
+	"\n" +
+	"period_end\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tperiodEnd\"\xea\x01\n" +
+	"\x17GetUsageSummaryResponse\x129\n" +
+	"\n" +
+	"aggregates\x18\x01 \x03(\v2\x19.a2a888.v1.UsageAggregateR\n" +
+	"aggregates\x12:\n" +
+	"\fentitlements\x18\x02 \x03(\v2\x16.a2a888.v1.EntitlementR\fentitlements\x12;\n" +
+	"\fsubscription\x18\x03 \x01(\v2\x17.a2a888.v1.SubscriptionR\fsubscription\x12\x1b\n" +
+	"\tread_only\x18\x04 \x01(\bR\breadOnly*\xf8\x01\n" +
 	"\x11SubscriptionState\x12\"\n" +
 	"\x1eSUBSCRIPTION_STATE_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18SUBSCRIPTION_STATE_TRIAL\x10\x01\x12\x1d\n" +
@@ -736,7 +876,9 @@ const file_a2a888_usage_proto_rawDesc = "" +
 	"\x1aUSAGE_DECISION_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14USAGE_DECISION_ALLOW\x10\x01\x12\x18\n" +
 	"\x14USAGE_DECISION_QUEUE\x10\x02\x12\x17\n" +
-	"\x13USAGE_DECISION_DENY\x10\x03B;Z9github.com/tbdavid2019/888a2a/backend/generated-go/a2a888b\x06proto3"
+	"\x13USAGE_DECISION_DENY\x10\x032h\n" +
+	"\fUsageService\x12X\n" +
+	"\x0fGetUsageSummary\x12!.a2a888.v1.GetUsageSummaryRequest\x1a\".a2a888.v1.GetUsageSummaryResponseB;Z9github.com/tbdavid2019/888a2a/backend/generated-go/a2a888b\x06proto3"
 
 var (
 	file_a2a888_usage_proto_rawDescOnce sync.Once
@@ -751,37 +893,46 @@ func file_a2a888_usage_proto_rawDescGZIP() []byte {
 }
 
 var file_a2a888_usage_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_a2a888_usage_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_a2a888_usage_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_a2a888_usage_proto_goTypes = []any{
-	(SubscriptionState)(0),        // 0: a2a888.v1.SubscriptionState
-	(UsageDecision)(0),            // 1: a2a888.v1.UsageDecision
-	(*BillingAccount)(nil),        // 2: a2a888.v1.BillingAccount
-	(*Subscription)(nil),          // 3: a2a888.v1.Subscription
-	(*Entitlement)(nil),           // 4: a2a888.v1.Entitlement
-	(*UsageEvent)(nil),            // 5: a2a888.v1.UsageEvent
-	(*UsageAggregate)(nil),        // 6: a2a888.v1.UsageAggregate
-	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
+	(SubscriptionState)(0),          // 0: a2a888.v1.SubscriptionState
+	(UsageDecision)(0),              // 1: a2a888.v1.UsageDecision
+	(*BillingAccount)(nil),          // 2: a2a888.v1.BillingAccount
+	(*Subscription)(nil),            // 3: a2a888.v1.Subscription
+	(*Entitlement)(nil),             // 4: a2a888.v1.Entitlement
+	(*UsageEvent)(nil),              // 5: a2a888.v1.UsageEvent
+	(*UsageAggregate)(nil),          // 6: a2a888.v1.UsageAggregate
+	(*GetUsageSummaryRequest)(nil),  // 7: a2a888.v1.GetUsageSummaryRequest
+	(*GetUsageSummaryResponse)(nil), // 8: a2a888.v1.GetUsageSummaryResponse
+	(*timestamppb.Timestamp)(nil),   // 9: google.protobuf.Timestamp
 }
 var file_a2a888_usage_proto_depIdxs = []int32{
-	7,  // 0: a2a888.v1.BillingAccount.created_at:type_name -> google.protobuf.Timestamp
-	7,  // 1: a2a888.v1.BillingAccount.updated_at:type_name -> google.protobuf.Timestamp
+	9,  // 0: a2a888.v1.BillingAccount.created_at:type_name -> google.protobuf.Timestamp
+	9,  // 1: a2a888.v1.BillingAccount.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: a2a888.v1.Subscription.state:type_name -> a2a888.v1.SubscriptionState
-	7,  // 3: a2a888.v1.Subscription.effective_from:type_name -> google.protobuf.Timestamp
-	7,  // 4: a2a888.v1.Subscription.effective_until:type_name -> google.protobuf.Timestamp
-	7,  // 5: a2a888.v1.Subscription.created_at:type_name -> google.protobuf.Timestamp
-	7,  // 6: a2a888.v1.Subscription.updated_at:type_name -> google.protobuf.Timestamp
+	9,  // 3: a2a888.v1.Subscription.effective_from:type_name -> google.protobuf.Timestamp
+	9,  // 4: a2a888.v1.Subscription.effective_until:type_name -> google.protobuf.Timestamp
+	9,  // 5: a2a888.v1.Subscription.created_at:type_name -> google.protobuf.Timestamp
+	9,  // 6: a2a888.v1.Subscription.updated_at:type_name -> google.protobuf.Timestamp
 	1,  // 7: a2a888.v1.Entitlement.overage_decision:type_name -> a2a888.v1.UsageDecision
-	7,  // 8: a2a888.v1.Entitlement.effective_from:type_name -> google.protobuf.Timestamp
-	7,  // 9: a2a888.v1.Entitlement.effective_until:type_name -> google.protobuf.Timestamp
-	7,  // 10: a2a888.v1.UsageEvent.occurred_at:type_name -> google.protobuf.Timestamp
-	7,  // 11: a2a888.v1.UsageAggregate.period_start:type_name -> google.protobuf.Timestamp
-	7,  // 12: a2a888.v1.UsageAggregate.period_end:type_name -> google.protobuf.Timestamp
-	7,  // 13: a2a888.v1.UsageAggregate.recomputed_at:type_name -> google.protobuf.Timestamp
-	14, // [14:14] is the sub-list for method output_type
-	14, // [14:14] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	9,  // 8: a2a888.v1.Entitlement.effective_from:type_name -> google.protobuf.Timestamp
+	9,  // 9: a2a888.v1.Entitlement.effective_until:type_name -> google.protobuf.Timestamp
+	9,  // 10: a2a888.v1.UsageEvent.occurred_at:type_name -> google.protobuf.Timestamp
+	9,  // 11: a2a888.v1.UsageAggregate.period_start:type_name -> google.protobuf.Timestamp
+	9,  // 12: a2a888.v1.UsageAggregate.period_end:type_name -> google.protobuf.Timestamp
+	9,  // 13: a2a888.v1.UsageAggregate.recomputed_at:type_name -> google.protobuf.Timestamp
+	9,  // 14: a2a888.v1.GetUsageSummaryRequest.period_start:type_name -> google.protobuf.Timestamp
+	9,  // 15: a2a888.v1.GetUsageSummaryRequest.period_end:type_name -> google.protobuf.Timestamp
+	6,  // 16: a2a888.v1.GetUsageSummaryResponse.aggregates:type_name -> a2a888.v1.UsageAggregate
+	4,  // 17: a2a888.v1.GetUsageSummaryResponse.entitlements:type_name -> a2a888.v1.Entitlement
+	3,  // 18: a2a888.v1.GetUsageSummaryResponse.subscription:type_name -> a2a888.v1.Subscription
+	7,  // 19: a2a888.v1.UsageService.GetUsageSummary:input_type -> a2a888.v1.GetUsageSummaryRequest
+	8,  // 20: a2a888.v1.UsageService.GetUsageSummary:output_type -> a2a888.v1.GetUsageSummaryResponse
+	20, // [20:21] is the sub-list for method output_type
+	19, // [19:20] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_a2a888_usage_proto_init() }
@@ -795,9 +946,9 @@ func file_a2a888_usage_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_a2a888_usage_proto_rawDesc), len(file_a2a888_usage_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
-			NumServices:   0,
+			NumServices:   1,
 		},
 		GoTypes:           file_a2a888_usage_proto_goTypes,
 		DependencyIndexes: file_a2a888_usage_proto_depIdxs,

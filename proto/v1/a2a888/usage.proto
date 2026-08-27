@@ -83,3 +83,20 @@ message UsageAggregate {
   int64 quantity = 7;
   google.protobuf.Timestamp recomputed_at = 8;
 }
+
+message GetUsageSummaryRequest {
+  string organization_id = 1;
+  google.protobuf.Timestamp period_start = 2;
+  google.protobuf.Timestamp period_end = 3;
+}
+
+message GetUsageSummaryResponse {
+  repeated UsageAggregate aggregates = 1;
+  repeated Entitlement entitlements = 2;
+  Subscription subscription = 3;
+  bool read_only = 4;
+}
+
+service UsageService {
+  rpc GetUsageSummary(GetUsageSummaryRequest) returns (GetUsageSummaryResponse);
+}

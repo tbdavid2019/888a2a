@@ -18,6 +18,8 @@ This project records changes by calendar date and does not maintain release vers
 - Added Organization Approval Center UI with bounded intent display, sensitive-parameter redaction, eligible-approver filtering, route registration, bilingual labels, and accessibility tests.
 - Added provider-neutral billing, subscription, entitlement, usage-event, aggregate, and quota-decision contracts with PostgreSQL migrations through 1.1.43.
 - Added idempotent immutable usage recording, aggregate recomputation, subscription read-only enforcement, and durable quota allow/queue/deny evaluation.
+- Recorded Provider Runtime Gateway tasks 7.1–7.7 and A2A orchestration tasks 8.1–8.9 as implemented with the existing manifest, runtime, work, orchestration, approval, and 12-Agent acceptance evidence; operator runtime UI and task graph UI remain open.
+- Added tenant-scoped UsageService visibility for owners and billing admins, with provider-neutral subscription/entitlement summaries and explicit read-only grace handling.
 
 ## [2026-08-26]
 

@@ -38,6 +38,7 @@ import {
   SETTINGS_ROUTE_ROLES,
   SETTINGS_ROUTE_SMTP,
   SETTINGS_ROUTE_STORAGE,
+  SETTINGS_ROUTE_USAGE,
   SETTINGS_ROUTE_USERS,
 } from "../handles";
 
@@ -429,6 +430,14 @@ export const dashboardChildrenRoutes: RouteObject[] = [
         lazy: () =>
           import("@/pages/dashboard/approval-center").then((m) => ({
             Component: m.ApprovalCenterPage,
+          })),
+      },
+      {
+        path: "usage",
+        handle: { name: SETTINGS_ROUTE_USAGE },
+        lazy: () =>
+          import("@/pages/dashboard/usage-summary").then((m) => ({
+            Component: m.UsageSummaryPage,
           })),
       },
     ],

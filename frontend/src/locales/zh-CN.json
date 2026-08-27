@@ -185,6 +185,19 @@
     "select-request": "选择请求以查看其绑定的操作意图。",
     "title": "组织审批中心"
   },
+  "usage-summary": {
+    "description": "查看组织权益与用量，不暴露支付供应商资料。",
+    "disabled": "已停用",
+    "entitlements": "功能权益",
+    "load-failed": "读取组织用量失败",
+    "loading": "正在读取用量…",
+    "no-entitlements": "尚未配置功能权益。",
+    "no-usage": "本期间没有用量记录。",
+    "not-allowed": "只有组织拥有者与计费管理员可以查看用量。",
+    "read-only": "此组织目前为只读状态，新的计费操作已阻挡。",
+    "title": "用量与权益",
+    "usage": "用量"
+  },
   "auth": {
     "device-login": {
       "approve": "批准",

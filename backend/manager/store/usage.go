@@ -264,3 +264,108 @@ func usageDecisionDB(value a2a888.UsageDecision) string {
 func parseUsageDecision(value string) a2a888.UsageDecision {
 	return a2a888.UsageDecision(a2a888.UsageDecision_value["USAGE_DECISION_"+value])
 }
+
+// GetCurrentSubscription returns the effective provider-neutral subscription
+// for an Organization at now.
+func (s *Store) GetCurrentSubscription(ctx context.Context, organizationID string, now time.Time) (*a2a888.Subscription, error) {
+	if s == nil || s.GetDB() == nil {
+		return nil, errors.New("usage store database is required")
+	}
+	var subscription a2a888.Subscription
+	var state string
+	var effectiveFrom, effectiveUntil, createdAt, updatedAt time.Time
+	var until sql.NullTime
+	err := s.GetDB().QueryRowContext(ctx, `
+		SELECT name, state, effective_from, effective_until, grace_policy, created_at, updated_at
+		FROM a2a888_subscription
+		WHERE organization_id = $1 AND effective_from <= $2 AND (effective_until IS NULL OR effective_until > $2)
+		ORDER BY effective_from DESC LIMIT 1
+	`, organizationID, now.UTC()).Scan(&subscription.Name, &state, &effectiveFrom, &until, &subscription.GracePolicy, &createdAt, &updatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "get current subscription")
+	}
+	if until.Valid {
+		effectiveUntil = until.Time
+		subscription.EffectiveUntil = timestamppb.New(effectiveUntil)
+	}
+	subscription.OrganizationId = organizationID
+	subscription.State = parseSubscriptionState(state)
+	subscription.EffectiveFrom = timestamppb.New(effectiveFrom)
+	subscription.CreatedAt = timestamppb.New(createdAt)
+	subscription.UpdatedAt = timestamppb.New(updatedAt)
+	return &subscription, nil
+}
+
+// ListEntitlements returns effective entitlements for one Organization.
+func (s *Store) ListEntitlements(ctx context.Context, organizationID string, now time.Time) ([]*a2a888.Entitlement, error) {
+	rows, err := s.GetDB().QueryContext(ctx, `
+		SELECT name, feature, enabled, quota_limit, unit, period, overage_decision, effective_from, effective_until
+		FROM a2a888_entitlement WHERE organization_id = $1 AND effective_from <= $2
+		  AND (effective_until IS NULL OR effective_until > $2) ORDER BY feature
+	`, organizationID, now.UTC())
+	if err != nil {
+		return nil, errors.Wrap(err, "list entitlements")
+	}
+	defer rows.Close()
+	var result []*a2a888.Entitlement
+	for rows.Next() {
+		var item a2a888.Entitlement
+		var decision string
+		var effectiveFrom time.Time
+		var effectiveUntil sql.NullTime
+		if err := rows.Scan(&item.Name, &item.Feature, &item.Enabled, &item.Limit, &item.Unit, &item.Period, &decision, &effectiveFrom, &effectiveUntil); err != nil {
+			return nil, errors.Wrap(err, "scan entitlement")
+		}
+		item.OrganizationId = organizationID
+		item.OverageDecision = parseUsageDecision(decision)
+		item.EffectiveFrom = timestamppb.New(effectiveFrom)
+		if effectiveUntil.Valid {
+			item.EffectiveUntil = timestamppb.New(effectiveUntil.Time)
+		}
+		result = append(result, &item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "iterate entitlements")
+	}
+	return result, nil
+}
+
+// ListUsageAggregates returns only tenant-scoped aggregates inside a bounded
+// requested period.
+func (s *Store) ListUsageAggregates(ctx context.Context, organizationID string, start, end time.Time) ([]*a2a888.UsageAggregate, error) {
+	rows, err := s.GetDB().QueryContext(ctx, `
+		SELECT feature, unit, period_start, period_end, quantity, recomputed_at
+		FROM a2a888_usage_aggregate
+		WHERE organization_id = $1 AND period_start >= $2 AND period_end <= $3
+		ORDER BY period_start, feature, unit
+	`, organizationID, start.UTC(), end.UTC())
+	if err != nil {
+		return nil, errors.Wrap(err, "list usage aggregates")
+	}
+	defer rows.Close()
+	var result []*a2a888.UsageAggregate
+	for rows.Next() {
+		var item a2a888.UsageAggregate
+		var periodStart, periodEnd, recomputedAt time.Time
+		if err := rows.Scan(&item.Feature, &item.Unit, &periodStart, &periodEnd, &item.Quantity, &recomputedAt); err != nil {
+			return nil, errors.Wrap(err, "scan usage aggregate")
+		}
+		item.OrganizationId = organizationID
+		item.Name = fmt.Sprintf("organizations/%s/usageAggregates/%s/%s", organizationID, item.Feature, periodStart.Format("20060102"))
+		item.PeriodStart = timestamppb.New(periodStart)
+		item.PeriodEnd = timestamppb.New(periodEnd)
+		item.RecomputedAt = timestamppb.New(recomputedAt)
+		result = append(result, &item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "iterate usage aggregates")
+	}
+	return result, nil
+}
+
+func parseSubscriptionState(value string) a2a888.SubscriptionState {
+	return a2a888.SubscriptionState(a2a888.SubscriptionState_value["SUBSCRIPTION_STATE_"+value])
+}

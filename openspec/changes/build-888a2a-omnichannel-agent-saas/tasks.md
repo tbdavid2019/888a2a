@@ -123,33 +123,37 @@ Task 4.10 has a durable per-Organization LEGACY/DUAL/MESSAGE_PLANE selector, nat
 - [x] 6.7 Define billing account, subscription, entitlement, quota and usage-event contracts without payment-provider fields in authorization paths; verify API contract tests.
 - [x] 6.8 Add immutable idempotent usage-event storage and recomputable aggregates; verify duplicate source events are counted once and aggregates rebuild.
 - [x] 6.9 Implement entitlement and quota checks for seats, Agents, Machines, connectors, concurrency, runtime and storage; verify per-Organization allow/queue/deny behavior.
-- [ ] 6.10 Add owner/billing-admin usage visibility and read-only grace state; verify ordinary members cannot access Organization-wide usage or cost data.
+- [x] 6.10 Add owner/billing-admin usage visibility and read-only grace state; verify ordinary members cannot access Organization-wide usage or cost data.
 
-Evidence notes (2026-08-27): Task 6.5 now has an ACP approval adapter in `backend/manager/component/approval/checker.go`, durable request polling/resume in `backend/manager/store/approval_wait.go`, and atomic decision persistence in `ApprovalStore.ApplyTransition`. The PostgreSQL gate `TestApprovalTransitionPersistsDecisionAndUnblocksWaiter` passed on the controlled VM; policy tests cover deny, expiry, changed intent, and cancellation. Task 6.6 has the reusable Approval Center component, bounded-parameter redaction, eligible-approver filtering, route, and bilingual/a11y tests. Tasks 6.7–6.9 have provider-neutral Proto contracts, fresh/upgrade migrations through 1.1.43, immutable idempotent usage events, recomputable aggregates, subscription read-only enforcement, and durable allow/queue/deny quota decisions. The controlled PostgreSQL gates for usage idempotency, aggregate rebuild, and quota enforcement passed. Task 6.10 remains open because owner/billing-admin API visibility and grace-state UI are not yet fully wired.
+Evidence notes (2026-08-27): Task 6.5 now has an ACP approval adapter in `backend/manager/component/approval/checker.go`, durable request polling/resume in `backend/manager/store/approval_wait.go`, and atomic decision persistence in `ApprovalStore.ApplyTransition`. The PostgreSQL gate `TestApprovalTransitionPersistsDecisionAndUnblocksWaiter` passed on the controlled VM; policy tests cover deny, expiry, changed intent, and cancellation. Task 6.6 has the reusable Approval Center component, bounded-parameter redaction, eligible-approver filtering, route, and bilingual/a11y tests. Tasks 6.7–6.9 have provider-neutral Proto contracts, fresh/upgrade migrations through 1.1.43, immutable idempotent usage events, recomputable aggregates, subscription read-only enforcement, and durable allow/queue/deny decisions. The controlled PostgreSQL gates for usage idempotency, aggregate rebuild, and quota enforcement passed. Task 6.10 adds a tenant-scoped UsageService restricted to active owners/billing admins plus a read-only grace-state UI and access-denial tests.
 
 ## 7. Provider Runtime Gateway
 
-- [ ] 7.1 Define Provider manifest and validation for runtime, protocol, platform, version, integrity, capabilities and permission profile; verify invalid/floating manifests fail tests.
-- [ ] 7.2 Migrate OpenCode, Claude Code and Codex registry entries to manifest-backed adapters; verify existing detection and model probes remain green.
-- [ ] 7.3 Implement atomic npm package preparation and immutable Machine cache; verify cache hit, interrupted install, integrity failure, quarantine and rollback.
-- [ ] 7.4 Replace Claude Code `@latest` turn launch with pinned prepared local binary; verify offline restart and real ACP opt-in tests.
-- [ ] 7.5 Isolate Provider workspace, session, env and credentials per Agent while sharing only immutable package data; verify two-Agent isolation tests.
-- [ ] 7.6 Preserve session resume/cold-start fingerprint behavior across package versions; verify incompatible upgrade invalidates only the affected session.
-- [ ] 7.7 Publish Provider compatibility evidence levels by OS/version; verify detected-only Providers cannot be selected for automatic execution.
+- [x] 7.1 Define Provider manifest and validation for runtime, protocol, platform, version, integrity, capabilities and permission profile; verify invalid/floating manifests fail tests.
+- [x] 7.2 Migrate OpenCode, Claude Code and Codex registry entries to manifest-backed adapters; verify existing detection and model probes remain green.
+- [x] 7.3 Implement atomic npm package preparation and immutable Machine cache; verify cache hit, interrupted install, integrity failure, quarantine and rollback.
+- [x] 7.4 Replace Claude Code `@latest` turn launch with pinned prepared local binary; verify offline restart and real ACP opt-in tests.
+- [x] 7.5 Isolate Provider workspace, session, env and credentials per Agent while sharing only immutable package data; verify two-Agent isolation tests.
+- [x] 7.6 Preserve session resume/cold-start fingerprint behavior across package versions; verify incompatible upgrade invalidates only the affected session.
+- [x] 7.7 Publish Provider compatibility evidence levels by OS/version; verify detected-only Providers cannot be selected for automatic execution.
 - [ ] 7.8 Add Provider install, update, broken and quarantined UI states; verify operators can roll back to the last verified runtime.
+
+Evidence notes (2026-08-27): Tasks 7.1–7.7 are implemented by the manifest validator/registry, atomic runtime preparer, integrity metadata and quarantine path, pinned Claude adapter, per-Agent runtime isolation, launch fingerprints, and compatibility gating already present under `backend/agent/provider`, `backend/agent/runtime`, `backend/agent/executor`, and `backend/agent/client`. The full backend test suite, provider/runtime tests, naming gate, and production build passed in GitHub Actions run `33027261306`. Task 7.8 remains open until the install/update/rollback controls are exposed as a complete operator UI.
 
 ## 8. A2A 1.0 and Multi-Agent Orchestration
 
-- [ ] 8.1 Add official A2A Go SDK dependency and isolate it behind an A2A service boundary; verify supported protocol version is surfaced in integration tests.
-- [ ] 8.2 Implement public and authenticated extended Agent Cards per tenant Agent/skill policy; verify public cards omit private skills and credentials.
-- [ ] 8.3 Implement tenant-authorized A2A send, stream, get, list, cancel, subscribe and push operations; verify cross-tenant task enumeration is impossible.
-- [ ] 8.4 Add canonical work records linking A2A task/context, Organization, workspace, principal, Agent, conversation, artifact and approval; verify internal and external delegation round-trip.
-- [ ] 8.5 Adapt existing 888a2a tasks and Agent delegation into the A2A-compatible work model; verify legacy task UI remains usable during migration.
-- [ ] 8.6 Implement parent/child graph creation, fan-out and join; verify success, partial failure and timeout join policies.
-- [ ] 8.7 Add cycle detection, maximum depth/children and Organization concurrency/budget limits; verify adversarial self-delegation and exponential fan-out are stopped.
-- [ ] 8.8 Implement cancellation propagation from A2A/human root tasks to descendants and runtimes; verify every descendant reaches an observable terminal state.
-- [ ] 8.9 Integrate A2A authorization-required state with Organization Approval; verify task resume requires a valid action-bound decision and secure credential path.
+- [x] 8.1 Add official A2A Go SDK dependency and isolate it behind an A2A service boundary; verify supported protocol version is surfaced in integration tests.
+- [x] 8.2 Implement public and authenticated extended Agent Cards per tenant Agent/skill policy; verify public cards omit private skills and credentials.
+- [x] 8.3 Implement tenant-authorized A2A send, stream, get, list, cancel, subscribe and push operations; verify cross-tenant task enumeration is impossible.
+- [x] 8.4 Add canonical work records linking A2A task/context, Organization, workspace, principal, Agent, conversation, artifact and approval; verify internal and external delegation round-trip.
+- [x] 8.5 Adapt existing 888a2a tasks and Agent delegation into the A2A-compatible work model; verify legacy task UI remains usable during migration.
+- [x] 8.6 Implement parent/child graph creation, fan-out and join; verify success, partial failure and timeout join policies.
+- [x] 8.7 Add cycle detection, maximum depth/children and Organization concurrency/budget limits; verify adversarial self-delegation and exponential fan-out are stopped.
+- [x] 8.8 Implement cancellation propagation from A2A/human root tasks to descendants and runtimes; verify every descendant reaches an observable terminal state.
+- [x] 8.9 Integrate A2A authorization-required state with Organization Approval; verify task resume requires a valid action-bound decision and secure credential path.
 - [ ] 8.10 Add task graph and trace UI; verify humans can see requester, delegates, status, artifacts, approvals, budget and failure cause.
+
+Evidence notes (2026-08-27): Tasks 8.1–8.9 are covered by the official SDK boundary, tenant-scoped Agent Card/directory, durable work store/tools, orchestration graph/fan-out/join/cancellation, approval-required work state, and the deterministic 12-Agent acceptance topology in `backend/a2a` and `backend/agent/testkit`. Backend tests and `TestTwelveAgentAcceptanceGate` passed in GitHub Actions run `33027261306`. Task 8.10 remains open pending a dedicated human-facing task graph/trace view.
 
 ## 9. Connector Gateway Framework
 
