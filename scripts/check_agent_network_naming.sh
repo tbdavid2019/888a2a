@@ -4,9 +4,10 @@ set -euo pipefail
 
 usage() {
 	cat >&2 <<'EOF'
-Usage: scripts/check_agent_network_naming.sh [--base REF] [FILE ...]
+Usage: scripts/check_agent_network_naming.sh [--all] [--base REF] [FILE ...]
 
 Check changed Agent Network files for unapproved legacy product identifiers.
+With --all, scan every tracked repository file instead of only changed files.
 With no FILE arguments, changed tracked and untracked files are discovered from
 the working tree. Migration and attribution records are explicitly allowlisted.
 EOF
@@ -17,9 +18,14 @@ gate_path="${repo_root}/scripts/check_agent_network_naming.sh"
 base_ref=""
 files=()
 auto_discovery=0
+scan_all=0
 
 while [ "$#" -gt 0 ]; do
 	case "$1" in
+		--all)
+			scan_all=1
+			shift
+			;;
 		--base)
 			if [ "$#" -lt 2 ]; then
 				usage
@@ -51,7 +57,11 @@ while [ "$#" -gt 0 ]; do
 	esac
 done
 
-if [ "${#files[@]}" -eq 0 ]; then
+if [ "${scan_all}" -eq 1 ]; then
+	while IFS= read -r file; do
+		[ -n "${file}" ] && files+=("${file}")
+	done < <(git -C "${repo_root}" ls-files --cached --others --exclude-standard)
+elif [ "${#files[@]}" -eq 0 ]; then
 	auto_discovery=1
 	changed_files=""
 	if [ -n "${base_ref}" ]; then

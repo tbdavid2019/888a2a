@@ -9,6 +9,9 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Added
 
+- Added a bounded one-time legacy-home importer that atomically preserves machine credentials, Agent sessions, context state, and workspaces under the 888a2a home; added a migration-only server configuration reader for legacy environment keys.
+- Added `--all` mode to the product-identity naming gate for repository-wide zero-legacy verification; the gate currently reports remaining legacy identifiers and Section 0.9 remains open.
+
 - Added the verified Section 1.1 architecture baseline inventory covering all 68 fresh-install tables, API/resource families, process-local realtime paths, and migrations through 0041.
 - Added an isolated tenant resource-name prototype proving same-ID resources remain organization/workspace scoped and cross-tenant misses are indistinguishable from unknown IDs.
 

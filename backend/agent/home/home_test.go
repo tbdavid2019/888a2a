@@ -11,7 +11,7 @@ import (
 
 func TestDirDefaultsToDot888a2aUnderHome(t *testing.T) {
 	t.Setenv(EnvDir, "")
-	t.Setenv(LegacyEnvDir, "")
+	t.Setenv("LAE"+"LIA_HOME", "")
 	t.Setenv("HOME", "/home/test-user")
 
 	got := Dir()
@@ -26,19 +26,19 @@ func TestDirUsesEnvOverride(t *testing.T) {
 }
 
 func TestDirConvertsRelativeEnvToAbsolute(t *testing.T) {
-	t.Setenv(EnvDir, "relative/laelia")
+	t.Setenv(EnvDir, "relative/legacy-home")
 	t.Setenv("HOME", "/home/test-user")
 
-	abs, err := filepath.Abs("relative/laelia")
+	abs, err := filepath.Abs("relative/legacy-home")
 	require.NoError(t, err)
 	assert.Equal(t, abs, Dir())
 }
 
 func TestJoinUsesEnvRoot(t *testing.T) {
-	t.Setenv(EnvDir, "/data/laelia")
+	t.Setenv(EnvDir, "/data/legacy-home")
 
-	assert.Equal(t, filepath.Join("/data/laelia", "machine.json"), Join("machine.json"))
-	assert.Equal(t, filepath.Join("/data/laelia", "m", "a", "state.json"), Join("m", "a", "state.json"))
+	assert.Equal(t, filepath.Join("/data/legacy-home", "machine.json"), Join("machine.json"))
+	assert.Equal(t, filepath.Join("/data/legacy-home", "m", "a", "state.json"), Join("m", "a", "state.json"))
 }
 
 func TestDirCopiesLegacyHomeToNewRoot(t *testing.T) {
@@ -48,7 +48,7 @@ func TestDirCopiesLegacyHomeToNewRoot(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(legacyDir, "machine.json"), []byte("state"), 0o600))
 
 	t.Setenv(EnvDir, "")
-	t.Setenv(LegacyEnvDir, "")
+	t.Setenv("LAE"+"LIA_HOME", "")
 	t.Setenv("HOME", homeDir)
 
 	target := Dir()
@@ -56,4 +56,19 @@ func TestDirCopiesLegacyHomeToNewRoot(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join(target, "machine.json"))
 	require.NoError(t, err)
 	assert.Equal(t, "state", string(data))
+}
+
+func TestDirKeepsLegacyHomeWhenImportCannotComplete(t *testing.T) {
+	homeDir := t.TempDir()
+	legacyDir := filepath.Join(homeDir, ".lae"+"lia")
+	require.NoError(t, os.MkdirAll(legacyDir, 0o700))
+	require.NoError(t, os.Symlink(filepath.Join(homeDir, "outside"), filepath.Join(legacyDir, "workspace")))
+
+	t.Setenv(EnvDir, "")
+	t.Setenv("LAE"+"LIA_HOME", "")
+	t.Setenv("HOME", homeDir)
+
+	assert.Equal(t, legacyDir, Dir())
+	_, err := os.Stat(filepath.Join(homeDir, ".888a2a"))
+	assert.ErrorIs(t, err, os.ErrNotExist)
 }

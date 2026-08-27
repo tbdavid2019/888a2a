@@ -20,9 +20,11 @@ Agent Network gate: 12 Agents across two Machines SHALL discover peers, exchange
 - [x] 0.4 Rename Proto package/resource names and generated clients with an explicit compatibility decision; verify `buf format`, `buf lint`, generation and wire-compatibility tests pass.
 - [x] 0.5 Rename Manager/Machine binaries, CLI commands, Docker images, release assets and install scripts; verify Linux, Windows and macOS build manifests contain only 888a2a targets.
 - [x] 0.6 Rename environment variables, config keys, data directories, sockets, service names, cookies, metrics and permission prefixes; verify clean installs write only 888a2a identifiers.
-- [ ] 0.7 Implement one-time import or compatibility readers for existing local state and server configuration; verify an existing fixture upgrades without losing Machine credentials, Agent sessions or workspaces.
+- [x] 0.7 Implement one-time import or compatibility readers for existing local state and server configuration; verify an existing fixture upgrades without losing Machine credentials, Agent sessions or workspaces.
 - [x] 0.8 Replace UI, localization, README, deployment, generated docs and examples with 888a2a branding while preserving required license attribution; verify documentation and snapshot searches contain no product-name leakage.
 - [ ] 0.9 Remove temporary compatibility aliases after migration verification and run a repository-wide zero-legacy-identifier gate, excluding only approved license/source-attribution records.
+
+Evidence notes (2026-08-27): Task 0.7 is proven by `backend/agent/migration/reader_test.go`, which atomically imports a legacy home fixture containing machine credentials, ACP session/context state, and workspace data, refuses symlinks, and does not overwrite an existing 888a2a home. `backend/manager/config/migration.go` provides the bounded current-key/legacy-key configuration reader, covered by its unit tests. Task 0.9 remains pending: `scripts/check_agent_network_naming.sh --all` is now a repository-wide gate, but the current tree still reports 183 unapproved legacy-identifier violations, so no zero-residual claim is made.
 
 ## 1. Architecture Spikes and Decision Gates
 

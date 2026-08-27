@@ -24,15 +24,14 @@ type Profile struct {
 
 	// AllowedOrigins lists extra origins (scheme://host[:port]) allowed to call
 	// the API cross-origin with credentials. Same-origin requests are always
-	// allowed. Populated from LAELIA_ALLOWED_ORIGINS (comma-separated); empty
-	// means only same-origin requests are accepted.
+	// allowed. Empty means only same-origin requests are accepted.
 	AllowedOrigins []string
 
 	// CookieSameSite overrides the access-token cookie SameSite policy: "lax"
 	// (default), "strict", or "none". "none" is only for deployments that serve
 	// the frontend from a different site than the API and accept the CSRF
 	// tradeoff (mitigated by Origin validation + CORS allowlist); it is only
-	// honored over HTTPS. Populated from LAELIA_COOKIE_SAMESITE.
+	// honored over HTTPS.
 	CookieSameSite string
 
 	// TrustProxy controls whether client-supplied forwarding headers

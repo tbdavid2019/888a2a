@@ -36,6 +36,18 @@ printf 'import _ "%s/backend/common"\n' "${legacy_module}" >>"${tmp_repo}/runtim
 printf 'import _ "%s/backend/common"\n' "${legacy_module}" >"${tmp_repo}/compatibility.go"
 "${tmp_repo}/scripts/check_agent_network_naming.sh" "${tmp_repo}/compatibility.go"
 
+if "${tmp_repo}/scripts/check_agent_network_naming.sh" --all; then
+	printf 'expected --all to reject a residual legacy identifier\n' >&2
+	exit 1
+fi
+
+rm -f "${tmp_repo}/compatibility.go"
+git -C "${tmp_repo}" rm -q -f runtime.go
+printf 'const currentName = "888a2a Agent";\n' >"${tmp_repo}/runtime.go"
+git -C "${tmp_repo}" add runtime.go
+git -C "${tmp_repo}" commit -qm current
+"${tmp_repo}/scripts/check_agent_network_naming.sh" --all
+
 git -C "${tmp_repo}" checkout -q -- runtime.go
 printf 'const addedLegacyName = "%s";\n' "${legacy_identifier}" >>"${tmp_repo}/runtime.go"
 if "${tmp_repo}/scripts/check_agent_network_naming.sh"; then
