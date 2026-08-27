@@ -26,12 +26,12 @@ func TestVerifyInboundUsesExactRawBodyAndRejectsBadSignature(t *testing.T) {
 	adapter := Adapter{ChannelSecret: "channel-secret"}
 	installation := connector.Installation{OrganizationID: "org-a", InstallationID: "line-a", Kind: "line"}
 	headers := http.Header{"X-Line-Signature": []string{lineSignature(lineFixtureBody, adapter.ChannelSecret)}}
-	verified, err := adapter.VerifyInbound(nil, installation, headers, []byte(lineFixtureBody))
+	verified, err := adapter.VerifyInbound(context.Background(), installation, headers, []byte(lineFixtureBody))
 	if err != nil || verified.ExternalID != "event-1" || string(verified.Raw) != lineFixtureBody {
 		t.Fatalf("verified = %+v, err = %v", verified, err)
 	}
 	headers.Set("X-Line-Signature", "bad")
-	if _, err := adapter.VerifyInbound(nil, installation, headers, []byte(lineFixtureBody)); err == nil {
+	if _, err := adapter.VerifyInbound(context.Background(), installation, headers, []byte(lineFixtureBody)); err == nil {
 		t.Fatal("bad LINE signature was accepted")
 	}
 }
@@ -39,7 +39,7 @@ func TestVerifyInboundUsesExactRawBodyAndRejectsBadSignature(t *testing.T) {
 func TestNormalizePreservesGroupAndEventIdentity(t *testing.T) {
 	adapter := Adapter{ChannelSecret: "channel-secret"}
 	installation := connector.Installation{OrganizationID: "org-a", InstallationID: "line-a", Kind: "line"}
-	verified, err := adapter.VerifyInbound(nil, installation, http.Header{"X-Line-Signature": []string{lineSignature(lineFixtureBody, adapter.ChannelSecret)}}, []byte(lineFixtureBody))
+	verified, err := adapter.VerifyInbound(context.Background(), installation, http.Header{"X-Line-Signature": []string{lineSignature(lineFixtureBody, adapter.ChannelSecret)}}, []byte(lineFixtureBody))
 	if err != nil {
 		t.Fatal(err)
 	}
