@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -97,14 +98,16 @@ type event struct {
 }
 
 type lineMessage struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
+	Type               string `json:"type"`
+	Text               string `json:"text,omitempty"`
+	OriginalContentURL string `json:"originalContentUrl,omitempty"`
+	PreviewImageURL    string `json:"previewImageUrl,omitempty"`
 }
 
 type lineOutboundPayload struct {
-	To         string        `json:"to,omitempty"`
-	ReplyToken string        `json:"replyToken,omitempty"`
-	Messages   []lineMessage `json:"messages"`
+	To         string            `json:"to,omitempty"`
+	ReplyToken string            `json:"replyToken,omitempty"`
+	Messages   []json.RawMessage `json:"messages"`
 }
 
 func (a Adapter) Normalize(_ context.Context, inbound connector.VerifiedInbound) (connector.Envelope, error) {
@@ -146,7 +149,41 @@ func (a Adapter) Deliver(ctx context.Context, installation connector.Installatio
 	if strings.TrimSpace(a.AccessToken) == "" || outbound.ConversationID == "" || outbound.Text == "" {
 		return connector.DeliveryResult{Terminal: true, Reason: "LINE delivery credentials and message are required"}, errors.New("LINE delivery credentials and message are required")
 	}
-	payload := lineOutboundPayload{To: outbound.ConversationID, Messages: []lineMessage{{Type: "text", Text: outbound.Text}}}
+	messages := make([]json.RawMessage, 0, 1+len(outbound.Media)+len(outbound.Interactive))
+	textMessage, err := json.Marshal(lineMessage{Type: "text", Text: outbound.Text})
+	if err != nil {
+		return connector.DeliveryResult{Terminal: true, Reason: "LINE message encoding failed"}, err
+	}
+	messages = append(messages, textMessage)
+	for _, media := range outbound.Media {
+		if media.Type != "image" && media.Type != "video" && media.Type != "audio" {
+			return connector.DeliveryResult{Terminal: true, Reason: "LINE media type is unsupported"}, errors.New("LINE media type is unsupported")
+		}
+		if err := validateMediaURL(media.URL); err != nil {
+			return connector.DeliveryResult{Terminal: true, Reason: err.Error()}, err
+		}
+		if media.Type == "image" || media.Type == "video" {
+			if err := validateMediaURL(media.PreviewURL); err != nil {
+				return connector.DeliveryResult{Terminal: true, Reason: err.Error()}, err
+			}
+		}
+		encoded, err := json.Marshal(lineMessage{Type: media.Type, OriginalContentURL: media.URL, PreviewImageURL: media.PreviewURL})
+		if err != nil {
+			return connector.DeliveryResult{Terminal: true, Reason: "LINE media encoding failed"}, err
+		}
+		messages = append(messages, encoded)
+	}
+	for _, interactive := range outbound.Interactive {
+		var object map[string]json.RawMessage
+		if err := json.Unmarshal(interactive, &object); err != nil || len(object["type"]) == 0 {
+			return connector.DeliveryResult{Terminal: true, Reason: "LINE interactive message must be valid JSON with a type"}, errors.New("LINE interactive message must be valid JSON with a type")
+		}
+		messages = append(messages, append(json.RawMessage(nil), interactive...))
+	}
+	if len(messages) > 5 {
+		return connector.DeliveryResult{Terminal: true, Reason: "LINE messages per request limit is five"}, errors.New("LINE messages per request limit is five")
+	}
+	payload := lineOutboundPayload{To: outbound.ConversationID, Messages: messages}
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return connector.DeliveryResult{Terminal: true, Reason: "LINE message encoding failed"}, err
@@ -195,4 +232,12 @@ func (a Adapter) Deliver(ctx context.Context, installation connector.Installatio
 		return connector.DeliveryResult{RetryAt: time.Now().UTC().Add(delay), Reason: "LINE retryable delivery failure"}, fmt.Errorf("LINE delivery returned HTTP %d", response.StatusCode)
 	}
 	return connector.DeliveryResult{Terminal: true, Reason: "LINE terminal delivery failure"}, fmt.Errorf("LINE delivery returned HTTP %d", response.StatusCode)
+}
+
+func validateMediaURL(value string) error {
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Scheme != "https" || parsed.Host == "" {
+		return errors.New("LINE media URL must be an absolute HTTPS URL")
+	}
+	return nil
 }

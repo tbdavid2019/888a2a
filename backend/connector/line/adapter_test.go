@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -67,5 +68,52 @@ func TestDeliverUsesReplyTokenAndRetryKeyWithoutExposingSecretInBody(t *testing.
 	}
 	if receivedPath != "/v2/bot/message/reply" || receivedAuth != "Bearer access-token" || receivedRetry == "" || !strings.Contains(receivedBody, `"replyToken":"reply-1"`) || strings.Contains(receivedBody, "access-token") {
 		t.Fatalf("path=%q auth=%q retry=%q body=%q", receivedPath, receivedAuth, receivedRetry, receivedBody)
+	}
+}
+
+func TestDeliverSupportsTypedMediaAndValidatedInteractivePayload(t *testing.T) {
+	var receivedBody string
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		body, _ := io.ReadAll(request.Body)
+		receivedBody = string(body)
+		writer.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+	adapter := Adapter{AccessToken: "access-token", APIBaseURL: server.URL}
+	_, err := adapter.Deliver(context.Background(), connector.Installation{OrganizationID: "org-a", InstallationID: "line-a", Kind: "line"}, connector.Outbound{
+		ConversationID: "user-1", Text: "hello", Media: []connector.MediaPart{{Type: "image", URL: "https://cdn.example/image.jpg", PreviewURL: "https://cdn.example/preview.jpg"}}, Interactive: []json.RawMessage{json.RawMessage(`{"type":"flex","altText":"details","contents":{}}`)},
+	})
+	if err != nil || !strings.Contains(receivedBody, `"originalContentUrl":"https://cdn.example/image.jpg"`) || !strings.Contains(receivedBody, `"type":"flex"`) {
+		t.Fatalf("body=%q err=%v", receivedBody, err)
+	}
+	_, err = adapter.Deliver(context.Background(), connector.Installation{OrganizationID: "org-a", InstallationID: "line-a", Kind: "line"}, connector.Outbound{ConversationID: "user-1", Text: "hello", Media: []connector.MediaPart{{Type: "image", URL: "http://cdn.example/image.jpg", PreviewURL: "https://cdn.example/preview.jpg"}}})
+	if err == nil {
+		t.Fatal("insecure media URL was accepted")
+	}
+}
+
+func TestDeliverClassifiesRateLimitAndTerminalResponses(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		status     int
+		retryAfter string
+		terminal   bool
+	}{
+		{name: "rate limit", status: http.StatusTooManyRequests, retryAfter: "12"},
+		{name: "terminal", status: http.StatusBadRequest, terminal: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+				if test.retryAfter != "" {
+					writer.Header().Set("Retry-After", test.retryAfter)
+				}
+				writer.WriteHeader(test.status)
+			}))
+			defer server.Close()
+			result, err := (Adapter{AccessToken: "access-token", APIBaseURL: server.URL}).Deliver(context.Background(), connector.Installation{OrganizationID: "org-a", InstallationID: "line-a", Kind: "line"}, connector.Outbound{ConversationID: "user-1", Text: "hello"})
+			if err == nil || result.Terminal != test.terminal || (!test.terminal && result.RetryAt.IsZero()) {
+				t.Fatalf("result=%+v err=%v", result, err)
+			}
+		})
 	}
 }

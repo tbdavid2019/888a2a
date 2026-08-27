@@ -88,7 +88,14 @@ type Outbound struct {
 	ConversationID string
 	Text           string
 	ReplyTo        string
-	Media          []string
+	Media          []MediaPart
+	Interactive    []json.RawMessage
+}
+
+type MediaPart struct {
+	Type       string
+	URL        string
+	PreviewURL string
 }
 
 type DeliveryResult struct {
