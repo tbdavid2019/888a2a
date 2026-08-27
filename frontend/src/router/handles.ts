@@ -39,3 +39,4 @@ export const SETTINGS_ROUTE_AUDIT = "settings.audit";
 export const SETTINGS_ROUTE_APPROVALS = "settings.approvals";
 export const SETTINGS_ROUTE_USAGE = "settings.usage";
 export const SETTINGS_ROUTE_CONNECTORS = "settings.connectors";
+export const SETTINGS_ROUTE_A2A_GRAPH = "settings.a2aGraph";

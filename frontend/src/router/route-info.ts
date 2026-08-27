@@ -18,6 +18,7 @@ import {
   REMINDER_ROUTE_LIST,
   SEARCH_ROUTE,
   SETTINGS_ROUTE,
+  SETTINGS_ROUTE_A2A_GRAPH,
   SETTINGS_ROUTE_AGENTS,
   SETTINGS_ROUTE_API_PROVIDERS,
   SETTINGS_ROUTE_APPROVALS,
@@ -155,6 +156,10 @@ export const ROUTE_INFO: Record<string, RouteInfo> = {
   },
   [SETTINGS_ROUTE_CONNECTORS]: {
     titleKey: "connector-status.title",
+    backTo: "/settings",
+  },
+  [SETTINGS_ROUTE_A2A_GRAPH]: {
+    titleKey: "a2a-graph.title",
     backTo: "/settings",
   },
 };

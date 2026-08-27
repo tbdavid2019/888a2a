@@ -1,4 +1,18 @@
 {
+  "a2a-graph": {
+    "approvals": "Approvals",
+    "artifacts": "Artifacts",
+    "budget": "Budget",
+    "collapse": "Collapse descendants",
+    "delegate": "Delegate",
+    "description": "Trace requester, delegation, status, artifacts, approval, budget, and failure cause.",
+    "empty": "No A2A task graph is available.",
+    "expand": "Expand descendants",
+    "failure": "Failure",
+    "requester": "Requester",
+    "title": "A2A task graph",
+    "tree": "A2A task graph"
+  },
   "activity": {
     "active-count": "{{n}} active",
     "category-mention": "Mention",

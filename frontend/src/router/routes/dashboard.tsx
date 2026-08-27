@@ -23,6 +23,7 @@ import {
   REMINDER_ROUTE_LIST,
   SEARCH_ROUTE,
   SETTINGS_ROUTE,
+  SETTINGS_ROUTE_A2A_GRAPH,
   SETTINGS_ROUTE_AGENTS,
   SETTINGS_ROUTE_API_PROVIDERS,
   SETTINGS_ROUTE_APPROVALS,
@@ -447,6 +448,14 @@ export const dashboardChildrenRoutes: RouteObject[] = [
         lazy: () =>
           import("@/pages/dashboard/connector-status").then((m) => ({
             Component: m.ConnectorStatusPage,
+          })),
+      },
+      {
+        path: "a2a-graph",
+        handle: { name: SETTINGS_ROUTE_A2A_GRAPH },
+        lazy: () =>
+          import("@/pages/dashboard/a2a-graph").then((m) => ({
+            Component: m.A2AGraphPage,
           })),
       },
     ],

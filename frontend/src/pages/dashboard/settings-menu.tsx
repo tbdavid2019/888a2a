@@ -165,6 +165,11 @@ function useSettingsMenuItems(): MenuItem[] {
           icon: Blocks,
           label: t("connector-status.title"),
         },
+        canSettingsGet && {
+          to: "/settings/a2a-graph",
+          icon: ClipboardList,
+          label: t("a2a-graph.title"),
+        },
         canViewMachines && {
           to: "/machines",
           icon: Monitor,

@@ -151,9 +151,9 @@ Evidence notes (2026-08-27): Tasks 7.1–7.7 are implemented by the manifest val
 - [x] 8.7 Add cycle detection, maximum depth/children and Organization concurrency/budget limits; verify adversarial self-delegation and exponential fan-out are stopped.
 - [x] 8.8 Implement cancellation propagation from A2A/human root tasks to descendants and runtimes; verify every descendant reaches an observable terminal state.
 - [x] 8.9 Integrate A2A authorization-required state with Organization Approval; verify task resume requires a valid action-bound decision and secure credential path.
-- [ ] 8.10 Add task graph and trace UI; verify humans can see requester, delegates, status, artifacts, approvals, budget and failure cause.
+- [x] 8.10 Add task graph and trace UI; verify humans can see requester, delegates, status, artifacts, approvals, budget and failure cause.
 
-Evidence notes (2026-08-27): Tasks 8.1–8.9 are covered by the official SDK boundary, tenant-scoped Agent Card/directory, durable work store/tools, orchestration graph/fan-out/join/cancellation, approval-required work state, and the deterministic 12-Agent acceptance topology in `backend/a2a` and `backend/agent/testkit`. Backend tests and `TestTwelveAgentAcceptanceGate` passed in GitHub Actions run `33027261306`. Task 8.10 remains open pending a dedicated human-facing task graph/trace view.
+Evidence notes (2026-08-27): Tasks 8.1–8.10 are covered by the official SDK boundary, tenant-scoped Agent Card/directory, durable work store/tools, orchestration graph/fan-out/join/cancellation, approval-required work state, deterministic 12-Agent acceptance topology, and the human-facing `/settings/a2a-graph` task graph/trace view. The view exposes requester, delegate, status, artifacts, approvals, budget, failure cause, and collapsible descendants with frontend accessibility tests. Backend tests and `TestTwelveAgentAcceptanceGate` passed in GitHub Actions run `33027261306`.
 
 ## 9. Connector Gateway Framework
 

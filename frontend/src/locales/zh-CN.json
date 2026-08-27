@@ -1,4 +1,18 @@
 {
+  "a2a-graph": {
+    "approvals": "审批",
+    "artifacts": "产物",
+    "budget": "预算",
+    "collapse": "收起子任务",
+    "delegate": "委派者",
+    "description": "查看请求者、委派、状态、产物、审批、预算与失败原因。",
+    "empty": "暂无 A2A 任务图。",
+    "expand": "展开子任务",
+    "failure": "失败",
+    "requester": "请求者",
+    "title": "A2A 任务图",
+    "tree": "A2A 任务图"
+  },
   "activity": {
     "active-count": "{{n}} 条未读",
     "category-mention": "提及",

@@ -39,6 +39,7 @@ This project records changes by calendar date and does not maintain release vers
 - Added tenant-admin Connector Status API/UI with installation capabilities, health, pending delivery, and dead-letter projections.
 - Added the first LINE connector adapter and decision record with official raw-body signature verification, event dedup/order handling, reply/push delivery, retry keys, and safe failure classification.
 - Added tenant-admin connector install/uninstall RPCs with bounded credential input, encrypted vault rotation, and tenant-scoped credential revocation.
+- Added the human-facing A2A task graph/trace view with collapsible delegation descendants, status, requester/delegate, artifacts, approvals, budget, and failure details.
 
 ## [2026-08-26]
 
