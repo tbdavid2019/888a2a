@@ -139,7 +139,7 @@ export function DeviceLoginPage() {
   return (
     <div className="mx-auto mt-20 w-full max-w-md">
       <div className="text-center">
-        <h1 className="text-2xl font-semibold text-main">Laelia</h1>
+        <h1 className="text-2xl font-semibold text-main">888a2a</h1>
         <p className="mt-1 text-sm text-control-light">
           {t("auth.device-login.title")}
         </p>

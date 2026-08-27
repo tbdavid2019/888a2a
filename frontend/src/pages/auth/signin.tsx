@@ -86,7 +86,7 @@ export function SignInPage() {
   return (
     <div className="flex w-full max-w-sm flex-col gap-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-semibold text-main">Laelia</h1>
+        <h1 className="text-2xl font-semibold text-main">888a2a</h1>
         <p className="mt-1 text-sm text-control-light">
           {t("auth.sign-in.title")}
         </p>

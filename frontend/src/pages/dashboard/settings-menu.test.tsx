@@ -24,7 +24,7 @@ vi.mock("@/components/user-menu", () => ({
 vi.mock("@/lib/i18n", () => ({
   LOCALES: [
     { value: "en-US", label: "English" },
-    { value: "zh-CN", label: "中文" },
+    { value: "zh-CN", label: "繁體中文（台灣）" },
   ],
   setLocale: mock.setLocale,
 }));
@@ -155,7 +155,7 @@ describe("settings-menu", () => {
     renderPage();
 
     fireEvent.click(screen.getByRole("combobox"));
-    const item = screen.getByText("中文");
+    const item = screen.getByText("繁體中文（台灣）");
     // Base UI select items commit on pointer events; fire the full sequence.
     fireEvent.pointerDown(item);
     fireEvent.pointerUp(item);

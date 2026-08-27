@@ -32,6 +32,8 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Fixed
 
+- Replaced visible auth-page Laelia branding with 888a2a and converted the Chinese UI locale to Traditional Chinese for Taiwan, using `email` terminology.
+- Updated the Chinese locale label to Traditional Chinese (Taiwan) while retaining the existing locale key for compatibility.
 - Docker machine-image builds now prepare the pinned Pi runtime before compiling embedded release binaries.
 - Bootstrap signup and the local test server now create an active default-organization membership, allowing IAM-protected operations immediately after first login.
 - Backup and restore tooling now works on Docker-only hosts by using the Compose database container when PostgreSQL client binaries are unavailable.

@@ -19,7 +19,7 @@ export type LocaleOption = {
 
 export const LOCALES: LocaleOption[] = [
   { value: "en-US", label: "English" },
-  { value: "zh-CN", label: "中文" },
+  { value: "zh-CN", label: "繁體中文（台灣）" },
 ];
 
 const localeLoaders: Record<Locale, () => Promise<{ default: unknown }>> = {

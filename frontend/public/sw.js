@@ -1,4 +1,4 @@
-// Laelia Web Push service worker.
+// 888a2a Web Push service worker.
 //
 // Receives encrypted push payloads from the manager (see
 // backend/manager/component/webpush and store.buildPushPayload) and shows a
