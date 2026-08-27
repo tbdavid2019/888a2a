@@ -19,6 +19,7 @@
 
 - Added PostgreSQL backup/restore/verification tooling, a disaster-recovery guide, and an opt-in Message Plane hot-channel load gate.
 - Added tenant-safe correlation ID propagation through Connect handlers, response headers, and structured audit logs.
+- Added tenant-scoped operation request counters and latency histograms to the Prometheus metrics surface.
 
 ### Fixed
 

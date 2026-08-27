@@ -105,11 +105,13 @@ func auditPrincipalID(ctx context.Context, requester bool) string {
 func (a *AuditInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 		ctx = withObservabilityContext(ctx, req.Header())
+		started := time.Now()
 		var serviceData *anypb.Any
 		wrappedCtx := common.WithSetServiceData(ctx, func(a *anypb.Any) {
 			serviceData = a
 		})
 		resp, err := next(wrappedCtx, req)
+		observability.RecordOperation(ctx, "api", req.Spec().Procedure, statusFromError(err), time.Since(started))
 		if resp != nil {
 			resp.Header().Set("X-Correlation-ID", observability.CorrelationID(ctx))
 		}
@@ -142,7 +144,9 @@ func (*AuditInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) c
 func (a *AuditInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
 	return func(ctx context.Context, conn connect.StreamingHandlerConn) error {
 		ctx = withObservabilityContext(ctx, conn.RequestHeader())
+		started := time.Now()
 		err := next(ctx, conn)
+		observability.RecordOperation(ctx, "api", conn.Spec().Procedure, statusFromError(err), time.Since(started))
 
 		authCtx, ok := common.GetAuthContextFromContext(ctx)
 		if !ok || !authCtx.Audit {
