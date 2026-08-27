@@ -27,6 +27,7 @@ import {
   SETTINGS_ROUTE_API_PROVIDERS,
   SETTINGS_ROUTE_APPROVALS,
   SETTINGS_ROUTE_AUDIT,
+  SETTINGS_ROUTE_CONNECTORS,
   SETTINGS_ROUTE_GENERAL,
   SETTINGS_ROUTE_GROUPS,
   SETTINGS_ROUTE_IAM,
@@ -438,6 +439,14 @@ export const dashboardChildrenRoutes: RouteObject[] = [
         lazy: () =>
           import("@/pages/dashboard/usage-summary").then((m) => ({
             Component: m.UsageSummaryPage,
+          })),
+      },
+      {
+        path: "connectors",
+        handle: { name: SETTINGS_ROUTE_CONNECTORS },
+        lazy: () =>
+          import("@/pages/dashboard/connector-status").then((m) => ({
+            Component: m.ConnectorStatusPage,
           })),
       },
     ],

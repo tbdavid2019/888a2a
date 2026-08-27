@@ -38,3 +38,4 @@ export const SETTINGS_ROUTE_MCP_SERVERS = "settings.mcpServers";
 export const SETTINGS_ROUTE_AUDIT = "settings.audit";
 export const SETTINGS_ROUTE_APPROVALS = "settings.approvals";
 export const SETTINGS_ROUTE_USAGE = "settings.usage";
+export const SETTINGS_ROUTE_CONNECTORS = "settings.connectors";

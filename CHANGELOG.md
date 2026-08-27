@@ -26,6 +26,8 @@ This project records changes by calendar date and does not maintain release vers
 - Fixed frontend locale key ordering so the project-rules gate passes in GitHub Actions.
 - Added the versioned Connector v1 contract and capability matrix, tenant-scoped AES-GCM credential vault with rotation metadata, and explicit external identity mappings with no display-name merging.
 - Added the Connector inbound verification/normalization pipeline, which persists only authenticated tenant envelopes before asynchronous routing.
+- Added per-installation outbound connector delivery scheduling through the durable outbox, retry/terminal classification, explicit bridge policy, and tenant-scoped delivery-divergence records.
+- Added tenant-admin Connector Status API/UI with installation capabilities, health, pending delivery, and dead-letter projections.
 
 ## [2026-08-26]
 

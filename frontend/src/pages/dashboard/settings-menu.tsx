@@ -160,6 +160,11 @@ function useSettingsMenuItems(): MenuItem[] {
           icon: ClipboardList,
           label: t("usage-summary.title"),
         },
+        canSettingsGet && {
+          to: "/settings/connectors",
+          icon: Blocks,
+          label: t("connector-status.title"),
+        },
         canViewMachines && {
           to: "/machines",
           icon: Monitor,

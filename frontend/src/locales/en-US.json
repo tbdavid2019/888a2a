@@ -548,6 +548,15 @@
     "type-to-search": "Type to search...",
     "version": "Version"
   },
+  "connector-status": {
+    "dead-letter": "Dead-letter: {{count}}",
+    "description": "Inspect connector capability, health, backlog, and terminal delivery failures.",
+    "empty": "No connector installations are configured.",
+    "load-failed": "Failed to load connector status",
+    "not-allowed": "Only organization administrators can view connector status.",
+    "pending": "Pending: {{count}}",
+    "title": "Connector status"
+  },
   "globalSearch": {
     "all-channels": "All conversations",
     "channel": "Channel",

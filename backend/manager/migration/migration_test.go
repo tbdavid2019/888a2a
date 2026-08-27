@@ -83,6 +83,12 @@ func TestUsageEntitlementsMigrationPresent(t *testing.T) {
 			t.Errorf("connector identity schema is missing %q", want)
 		}
 	}
+	if !strings.Contains(latest, "CREATE TABLE IF NOT EXISTS a2a888_connector_divergence") {
+		t.Error("connector schema is missing divergence records")
+	}
+	if !strings.Contains(latest, "CREATE TABLE IF NOT EXISTS a2a888_connector_installation") {
+		t.Error("connector schema is missing installation status")
+	}
 }
 
 // TestMessagePlaneIdentityMigrationPresent guards the additive MessagePlane

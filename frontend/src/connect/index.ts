@@ -16,6 +16,7 @@ import { AuditLogService } from "@/types/proto-es/v1/audit_log_service_pb";
 import { NotificationService } from "@/types/proto-es/v1/notification_pb";
 import { OrganizationService } from "@/types/proto-es/a2a888/organization_pb";
 import { UsageService } from "@/types/proto-es/a2a888/usage_pb";
+import { ConnectorService } from "@/types/proto-es/a2a888/connector_pb";
 import { IdentityProviderService } from "@/types/proto-es/v1/idp_service_pb";
 import { createAuthInterceptor } from "./auth-interceptor";
 
@@ -105,3 +106,4 @@ export const organizationServiceClient = createClient(
   transport
 );
 export const usageServiceClient = createClient(UsageService, transport);
+export const connectorServiceClient = createClient(ConnectorService, transport);

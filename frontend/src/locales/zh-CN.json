@@ -548,6 +548,15 @@
     "type-to-search": "输入以搜索...",
     "version": "版本"
   },
+  "connector-status": {
+    "dead-letter": "死信：{{count}}",
+    "description": "查看连接器能力、健康状态、待处理量与终态投递失败。",
+    "empty": "尚未配置连接器安装。",
+    "load-failed": "读取连接器状态失败",
+    "not-allowed": "只有组织管理员可以查看连接器状态。",
+    "pending": "待处理：{{count}}",
+    "title": "连接器状态"
+  },
   "globalSearch": {
     "all-channels": "全部会话",
     "channel": "频道",

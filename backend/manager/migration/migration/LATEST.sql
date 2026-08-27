@@ -1735,6 +1735,25 @@ CREATE TABLE IF NOT EXISTS a2a888_connector_conversation_map (
     CONSTRAINT a2a888_connector_conversation_map_identity_check CHECK (organization_id <> '' AND installation_id <> '' AND external_conversation_id <> '' AND conversation_name <> '')
 );
 
+-- Explicit connector bridge divergence records
+CREATE TABLE IF NOT EXISTS a2a888_connector_divergence (
+    id BIGSERIAL PRIMARY KEY, organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    installation_id TEXT NOT NULL, source_ref TEXT NOT NULL, destination_ref TEXT NOT NULL,
+    external_event_id TEXT NOT NULL, reason TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT a2a888_connector_divergence_identity_check CHECK (organization_id <> '' AND installation_id <> '' AND source_ref <> '' AND destination_ref <> '' AND external_event_id <> '' AND reason <> '')
+);
+CREATE INDEX IF NOT EXISTS idx_a2a888_connector_divergence_tenant ON a2a888_connector_divergence(organization_id, created_at DESC);
+
+-- Tenant-scoped connector installation status
+CREATE TABLE IF NOT EXISTS a2a888_connector_installation (
+    organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    installation_id TEXT NOT NULL, kind TEXT NOT NULL, enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    capabilities TEXT[] NOT NULL DEFAULT '{}', health TEXT NOT NULL DEFAULT 'HEALTHY', last_error TEXT NOT NULL DEFAULT '',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY (organization_id, installation_id),
+    CONSTRAINT a2a888_connector_installation_identity_check CHECK (organization_id <> '' AND installation_id <> '' AND kind <> ''),
+    CONSTRAINT a2a888_connector_installation_health_check CHECK (health IN ('HEALTHY', 'DEGRADED', 'FAILED', 'DISABLED'))
+);
+
 -- Per-Organization native collaboration rollout with a durable rollback path
 CREATE TABLE IF NOT EXISTS a2a888_collaboration_rollout (
     organization_id TEXT PRIMARY KEY REFERENCES organizations(id) ON DELETE CASCADE,

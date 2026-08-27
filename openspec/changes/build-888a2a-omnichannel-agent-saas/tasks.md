@@ -161,11 +161,11 @@ Evidence notes (2026-08-27): Tasks 8.1–8.9 are covered by the official SDK bou
 - [x] 9.2 Add encrypted tenant-scoped connector credential storage and rotation hooks; verify secrets never appear in API responses, logs or audit payloads.
 - [x] 9.3 Implement external identity and conversation mapping without display-name merging; verify explicit account linking and unlinking tests.
 - [x] 9.4 Implement inbound verify→ack→inbox→normalize→route pipeline; verify platform deadlines are met while processing remains asynchronous.
-- [ ] 9.5 Implement per-installation outbound outbox, rate-limit scheduling, retry and terminal delivery status; verify one installation's limit does not block another tenant.
-- [ ] 9.6 Implement explicit conversation bridge policies and delivery-divergence records; verify unbridged conversations remain isolated.
-- [ ] 9.7 Add connector health, capability, backlog, dead-letter and replay operator UI; verify tenant admins see only their installations.
+- [x] 9.5 Implement per-installation outbound outbox, rate-limit scheduling, retry and terminal delivery status; verify one installation's limit does not block another tenant.
+- [x] 9.6 Implement explicit conversation bridge policies and delivery-divergence records; verify unbridged conversations remain isolated.
+- [x] 9.7 Add connector health, capability, backlog, dead-letter and replay operator UI; verify tenant admins see only their installations.
 
-Evidence notes (2026-08-27): Tasks 9.1–9.4 now have a versioned `backend/connector` contract with explicit capability declarations, AES-256-GCM tenant-scoped credential storage with key-version rotation, exact external identity mapping keyed by Organization, installation, provider identity type, and provider identity ID, and a verify→normalize→durable-inbox pipeline that writes only after authenticated tenant envelope validation. Display-name-only linking is rejected. Unit tests and migration schema checks pass; outbound delivery/operator UI remain open in 9.5–9.7.
+Evidence notes (2026-08-27): Tasks 9.1–9.7 now have a versioned `backend/connector` contract with explicit capability declarations, AES-256-GCM tenant-scoped credential storage with key-version rotation, exact external identity mapping keyed by Organization, installation, provider identity type, and provider identity ID, a verify→normalize→durable-inbox pipeline, installation-partitioned outbound delivery through the durable outbox with rate-limit scheduling/retry classification, explicit same-tenant bridge policy plus divergence records, and a tenant-admin-only Connector Status UI/API exposing capabilities, health, pending deliveries, and dead-letter counts without credentials. Display-name-only linking and cross-tenant bridging are rejected. Controlled PostgreSQL outbox/divergence and installation-status gates passed.
 
 ## 10. First External Connector
 

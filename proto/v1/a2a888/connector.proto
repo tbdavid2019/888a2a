@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package a2a888.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888";
+
+enum ConnectorHealth {
+  CONNECTOR_HEALTH_UNSPECIFIED = 0;
+  CONNECTOR_HEALTH_HEALTHY = 1;
+  CONNECTOR_HEALTH_DEGRADED = 2;
+  CONNECTOR_HEALTH_FAILED = 3;
+  CONNECTOR_HEALTH_DISABLED = 4;
+}
+
+message ConnectorInstallation {
+  string name = 1;
+  string organization_id = 2;
+  string installation_id = 3;
+  string kind = 4;
+  bool enabled = 5;
+  repeated string capabilities = 6;
+  ConnectorHealth health = 7;
+  int64 pending_deliveries = 8;
+  int64 dead_letter_deliveries = 9;
+  string last_error = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message ListConnectorInstallationsRequest {
+  string organization_id = 1;
+}
+
+message ListConnectorInstallationsResponse {
+  repeated ConnectorInstallation installations = 1;
+}
+
+service ConnectorService {
+  rpc ListConnectorInstallations(ListConnectorInstallationsRequest) returns (ListConnectorInstallationsResponse);
+}

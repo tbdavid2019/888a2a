@@ -22,6 +22,7 @@ import {
   SETTINGS_ROUTE_API_PROVIDERS,
   SETTINGS_ROUTE_APPROVALS,
   SETTINGS_ROUTE_AUDIT,
+  SETTINGS_ROUTE_CONNECTORS,
   SETTINGS_ROUTE_GENERAL,
   SETTINGS_ROUTE_GROUPS,
   SETTINGS_ROUTE_IAM,
@@ -150,6 +151,10 @@ export const ROUTE_INFO: Record<string, RouteInfo> = {
   },
   [SETTINGS_ROUTE_USAGE]: {
     titleKey: "usage-summary.title",
+    backTo: "/settings",
+  },
+  [SETTINGS_ROUTE_CONNECTORS]: {
+    titleKey: "connector-status.title",
     backTo: "/settings",
   },
 };
