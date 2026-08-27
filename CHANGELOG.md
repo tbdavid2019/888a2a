@@ -43,6 +43,7 @@ This project records changes by calendar date and does not maintain release vers
 - Added cross-connector capability fallback tests and an operations index linking deployment, Agent Network, LINE, A2A, and migration runbooks.
 - Added the human-facing A2A task graph/trace view with collapsible delegation descendants, status, requester/delegate, artifacts, approvals, budget, and failure details.
 - Accepted the runtime approval architecture spike after fake ACP allow/deny/expiry/changed-intent tests and durable wait/resume evidence passed.
+- Accepted the canonical connector envelope prototype after LINE, Slack, and Web Widget duplicate/out-of-order fixtures converged deterministically.
 
 ## [2026-08-26]
 
