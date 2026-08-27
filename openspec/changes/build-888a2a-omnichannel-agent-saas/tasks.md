@@ -118,12 +118,14 @@ Task 4.10 has a durable per-Organization LEGACY/DUAL/MESSAGE_PLANE selector, nat
 - [x] 6.2 Add approval policy/version/request/decision schema; verify immutable intent hash, nonce, expiry and tenant foreign keys.
 - [x] 6.3 Implement approver resolution for users, groups and roles; verify suspended members, conflicts and removed group members cannot decide.
 - [x] 6.4 Implement quorum, deny, expiry, cancellation, supersession and escalation transitions; verify every transition is deterministic and audited.
-- [ ] 6.5 Replace ACP unconditional permission granting with policy evaluation and approval wait/resume; verify fake Provider tests cover allow, deny, timeout and changed parameters.
-- [ ] 6.6 Build Organization Approval Center UI; verify eligible approvers can inspect bounded intent and ineligible users cannot view sensitive requests.
-- [ ] 6.7 Define billing account, subscription, entitlement, quota and usage-event contracts without payment-provider fields in authorization paths; verify API contract tests.
-- [ ] 6.8 Add immutable idempotent usage-event storage and recomputable aggregates; verify duplicate source events are counted once and aggregates rebuild.
-- [ ] 6.9 Implement entitlement and quota checks for seats, Agents, Machines, connectors, concurrency, runtime and storage; verify per-Organization allow/queue/deny behavior.
+- [x] 6.5 Replace ACP unconditional permission granting with policy evaluation and approval wait/resume; verify fake Provider tests cover allow, deny, timeout and changed parameters.
+- [x] 6.6 Build Organization Approval Center UI; verify eligible approvers can inspect bounded intent and ineligible users cannot view sensitive requests.
+- [x] 6.7 Define billing account, subscription, entitlement, quota and usage-event contracts without payment-provider fields in authorization paths; verify API contract tests.
+- [x] 6.8 Add immutable idempotent usage-event storage and recomputable aggregates; verify duplicate source events are counted once and aggregates rebuild.
+- [x] 6.9 Implement entitlement and quota checks for seats, Agents, Machines, connectors, concurrency, runtime and storage; verify per-Organization allow/queue/deny behavior.
 - [ ] 6.10 Add owner/billing-admin usage visibility and read-only grace state; verify ordinary members cannot access Organization-wide usage or cost data.
+
+Evidence notes (2026-08-27): Task 6.5 now has an ACP approval adapter in `backend/manager/component/approval/checker.go`, durable request polling/resume in `backend/manager/store/approval_wait.go`, and atomic decision persistence in `ApprovalStore.ApplyTransition`. The PostgreSQL gate `TestApprovalTransitionPersistsDecisionAndUnblocksWaiter` passed on the controlled VM; policy tests cover deny, expiry, changed intent, and cancellation. Task 6.6 has the reusable Approval Center component, bounded-parameter redaction, eligible-approver filtering, route, and bilingual/a11y tests. Tasks 6.7–6.9 have provider-neutral Proto contracts, fresh/upgrade migrations through 1.1.43, immutable idempotent usage events, recomputable aggregates, subscription read-only enforcement, and durable allow/queue/deny quota decisions. The controlled PostgreSQL gates for usage idempotency, aggregate rebuild, and quota enforcement passed. Task 6.10 remains open because owner/billing-admin API visibility and grace-state UI are not yet fully wired.
 
 ## 7. Provider Runtime Gateway
 

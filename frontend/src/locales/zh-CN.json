@@ -162,6 +162,29 @@
     "transfer-owner-title": "转让 Agent 所有权",
     "waiting-connection-hint": "该 Agent 会被其所属机器自动接管,无需为单个 Agent 运行命令。若一直离线,请确认机器已连接。"
   },
+  "approval-center": {
+    "action": "操作",
+    "agent": "执行 Agent",
+    "approve": "批准",
+    "deny": "拒绝",
+    "description": "在受保护操作执行前，审查组织范围内的审批请求。",
+    "destination": "目标",
+    "intent-hash-hidden": "不可变 intent hash 与执行 nonce 不会显示在界面中。",
+    "intent-title": "绑定的操作意图",
+    "no-eligible-requests": "目前没有分配给你的审批请求。",
+    "not-allowed": "你没有查看审批请求的权限。",
+    "parameters": "规范化参数",
+    "pending-title": "等待你决定的请求",
+    "quorum": "已批准 {{approved}} / 需要 {{required}} · 到期时间",
+    "requester": "请求者",
+    "resource": "资源",
+    "risk-critical": "严重",
+    "risk-high": "高",
+    "risk-low": "低",
+    "risk-moderate": "中",
+    "select-request": "选择请求以查看其绑定的操作意图。",
+    "title": "组织审批中心"
+  },
   "auth": {
     "device-login": {
       "approve": "批准",

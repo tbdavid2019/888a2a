@@ -12,6 +12,7 @@ import (
 
 	"github.com/tbdavid2019/888a2a/backend/agent/executor"
 	"github.com/tbdavid2019/888a2a/backend/agent/home"
+	"github.com/tbdavid2019/888a2a/backend/agent/migration"
 	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
 
@@ -284,8 +285,8 @@ func (c *PiConfig) buildPiEnv(commandID string) []string {
 	if v := os.Getenv(home.EnvDir); v != "" {
 		values[home.EnvDir] = v
 	}
-	if v := os.Getenv(home.LegacyEnvDir); v != "" {
-		values[home.LegacyEnvDir] = v
+	if v := os.Getenv(migration.LegacyHomeEnv()); v != "" {
+		values[migration.LegacyHomeEnv()] = v
 	}
 	if c.BinaryDir != "" {
 		existing := values["PATH"]

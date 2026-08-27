@@ -13,6 +13,7 @@ import (
 	daemonsrv "github.com/tbdavid2019/888a2a/backend/agent/daemon"
 	"github.com/tbdavid2019/888a2a/backend/agent/executor"
 	"github.com/tbdavid2019/888a2a/backend/agent/home"
+	"github.com/tbdavid2019/888a2a/backend/agent/migration"
 	"github.com/tbdavid2019/888a2a/backend/agent/pi"
 	"github.com/tbdavid2019/888a2a/backend/agent/provider"
 	agentruntime "github.com/tbdavid2019/888a2a/backend/agent/runtime"
@@ -516,8 +517,8 @@ func (r *agentRunner) buildMcpServers(req executor.Request) []acp.McpServer {
 	if v := os.Getenv(home.EnvDir); v != "" {
 		env = append(env, acp.EnvVariable{Name: home.EnvDir, Value: v})
 	}
-	if v := os.Getenv(home.LegacyEnvDir); v != "" {
-		env = append(env, acp.EnvVariable{Name: home.LegacyEnvDir, Value: v})
+	if v := os.Getenv(migration.LegacyHomeEnv()); v != "" {
+		env = append(env, acp.EnvVariable{Name: migration.LegacyHomeEnv(), Value: v})
 	}
 	return []acp.McpServer{
 		{

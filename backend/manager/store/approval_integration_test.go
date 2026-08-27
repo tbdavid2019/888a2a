@@ -40,3 +40,30 @@ func TestApprovalSchemaIntentAndImmutability(t *testing.T) {
 	_, err = services.GetDB().ExecContext(ctx, `INSERT INTO a2a888_approval_request (organization_id,name,policy_name,policy_version,requester_principal_id,action_json,intent_hash,required_approvals,execution_nonce,expires_at) VALUES ('other-tenant','bad','missing','1','user','{}','hash',1,'nonce',now() + interval '1 hour')`)
 	require.Error(t, err)
 }
+
+func TestApprovalTransitionPersistsDecisionAndUnblocksWaiter(t *testing.T) {
+	services, _ := requireCommandEventIntegrationStore(t)
+	ctx := context.Background()
+	approvalStore := NewApprovalStore(services.GetDB())
+	policy := &a2a888.ApprovalPolicy{
+		Name: "organizations/default/approvalPolicies/runtime", OrganizationId: "default", Version: "1",
+		RequiredApprovals: 1, TimeoutSeconds: 300, OnTimeout: a2a888.ApprovalTimeoutAction_APPROVAL_TIMEOUT_ACTION_DENY, Enabled: true,
+	}
+	require.NoError(t, approvalStore.CreatePolicy(ctx, policy))
+	request := &a2a888.ApprovalRequest{
+		Name: "organizations/default/approvalRequests/runtime-1", OrganizationId: "default", PolicyName: policy.Name, PolicyVersion: "1",
+		RequesterPrincipalId: "runtime-user", RequiredApprovals: 1,
+		Action:    &a2a888.BoundAction{OrganizationId: "default", AgentId: "agent-1", ActionType: "SHELL", Destination: "terminal", NormalizedParametersJson: `{"command":"git status"}`},
+		ExpiresAt: timestamppb.New(time.Now().Add(time.Hour)),
+	}
+	require.NoError(t, approvalStore.CreateRequest(ctx, request))
+	updated, err := approvalStore.ApplyTransition(ctx, policy, "default", request.Name, "approver-1", "approved for the bounded test action", []string{"approver-1"}, ApprovalTransitionApprove, time.Now())
+	require.NoError(t, err)
+	require.Equal(t, a2a888.ApprovalRequestState_APPROVAL_REQUEST_STATE_APPROVED, updated.State)
+	decisions, err := approvalStore.ListDecisions(ctx, "default", request.Name)
+	require.NoError(t, err)
+	require.Len(t, decisions, 1)
+	waited, err := approvalStore.WaitForDecision(ctx, "default", request.Name, request.Action.IntentHash)
+	require.NoError(t, err)
+	require.Equal(t, ApprovalWaitAllow, waited.Decision)
+}

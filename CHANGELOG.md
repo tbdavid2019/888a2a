@@ -14,6 +14,10 @@ This project records changes by calendar date and does not maintain release vers
 
 - Added the verified Section 1.1 architecture baseline inventory covering all 68 fresh-install tables, API/resource families, process-local realtime paths, and migrations through 0041.
 - Added an isolated tenant resource-name prototype proving same-ID resources remain organization/workspace scoped and cross-tenant misses are indistinguishable from unknown IDs.
+- Added durable ACP approval wait/resume integration with action-bound intent names, tenant-scoped request reads, and atomic decision/lifecycle persistence.
+- Added Organization Approval Center UI with bounded intent display, sensitive-parameter redaction, eligible-approver filtering, route registration, bilingual labels, and accessibility tests.
+- Added provider-neutral billing, subscription, entitlement, usage-event, aggregate, and quota-decision contracts with PostgreSQL migrations through 1.1.43.
+- Added idempotent immutable usage recording, aggregate recomputation, subscription read-only enforcement, and durable quota allow/queue/deny evaluation.
 
 ## [2026-08-26]
 

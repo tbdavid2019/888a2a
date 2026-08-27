@@ -24,6 +24,7 @@ import (
 
 	"github.com/tbdavid2019/888a2a/backend/a2a"
 	"github.com/tbdavid2019/888a2a/backend/agent/home"
+	"github.com/tbdavid2019/888a2a/backend/agent/migration"
 	"github.com/tbdavid2019/888a2a/backend/agent/provider"
 	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
 )
@@ -1302,8 +1303,8 @@ func buildRuntimeEnv(allowEnv []string, customEnv, env map[string]string, reques
 	if v := os.Getenv(home.EnvDir); v != "" {
 		values[home.EnvDir] = v
 	}
-	if v := os.Getenv(home.LegacyEnvDir); v != "" {
-		values[home.LegacyEnvDir] = v
+	if v := os.Getenv(migration.LegacyHomeEnv()); v != "" {
+		values[migration.LegacyHomeEnv()] = v
 	}
 	// Prepend the agent binary's directory to PATH so `laelia-machine` resolves
 	// regardless of the host's PATH configuration.

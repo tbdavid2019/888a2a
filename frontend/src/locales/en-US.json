@@ -162,6 +162,29 @@
     "transfer-owner-title": "Transfer Agent Ownership",
     "waiting-connection-hint": "This agent is picked up automatically by its machine — no per-agent command is needed. If it stays offline, make sure the machine is connected."
   },
+  "approval-center": {
+    "action": "Action",
+    "agent": "Executing agent",
+    "approve": "Approve",
+    "deny": "Deny",
+    "description": "Review organization-scoped requests before protected actions can execute.",
+    "destination": "Destination",
+    "intent-hash-hidden": "The immutable intent hash and execution nonce are hidden from the UI.",
+    "intent-title": "Bound action intent",
+    "no-eligible-requests": "There are no approval requests assigned to you.",
+    "not-allowed": "You do not have permission to view approval requests.",
+    "parameters": "Normalized parameters",
+    "pending-title": "Requests awaiting your decision",
+    "quorum": "{{approved}} of {{required}} approvals · Expires",
+    "requester": "Requester",
+    "resource": "Resource",
+    "risk-critical": "Critical",
+    "risk-high": "High",
+    "risk-low": "Low",
+    "risk-moderate": "Moderate",
+    "select-request": "Select a request to inspect its bounded intent.",
+    "title": "Organization Approval Center"
+  },
   "auth": {
     "device-login": {
       "approve": "Approve",

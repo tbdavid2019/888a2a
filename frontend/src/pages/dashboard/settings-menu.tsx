@@ -150,6 +150,11 @@ function useSettingsMenuItems(): MenuItem[] {
           icon: ClipboardList,
           label: t("sidebar.settings-audit"),
         },
+        canSettingsGet && {
+          to: "/settings/approvals",
+          icon: Shield,
+          label: t("approval-center.title"),
+        },
         canViewMachines && {
           to: "/machines",
           icon: Monitor,

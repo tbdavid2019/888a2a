@@ -20,6 +20,7 @@ import {
   SETTINGS_ROUTE,
   SETTINGS_ROUTE_AGENTS,
   SETTINGS_ROUTE_API_PROVIDERS,
+  SETTINGS_ROUTE_APPROVALS,
   SETTINGS_ROUTE_AUDIT,
   SETTINGS_ROUTE_GENERAL,
   SETTINGS_ROUTE_GROUPS,
@@ -140,6 +141,10 @@ export const ROUTE_INFO: Record<string, RouteInfo> = {
   },
   [SETTINGS_ROUTE_AUDIT]: {
     titleKey: "sidebar.settings-audit",
+    backTo: "/settings",
+  },
+  [SETTINGS_ROUTE_APPROVALS]: {
+    titleKey: "approval-center.title",
     backTo: "/settings",
   },
 };

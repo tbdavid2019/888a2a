@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package a2a888.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888";
+
+// SubscriptionState is provider-neutral. External billing adapters map into
+// this lifecycle without leaking provider identifiers into authorization.
+enum SubscriptionState {
+  SUBSCRIPTION_STATE_UNSPECIFIED = 0;
+  SUBSCRIPTION_STATE_TRIAL = 1;
+  SUBSCRIPTION_STATE_ACTIVE = 2;
+  SUBSCRIPTION_STATE_GRACE = 3;
+  SUBSCRIPTION_STATE_READ_ONLY = 4;
+  SUBSCRIPTION_STATE_SUSPENDED = 5;
+  SUBSCRIPTION_STATE_CANCELLED = 6;
+}
+
+// UsageDecision describes the enforcement result for a chargeable operation.
+enum UsageDecision {
+  USAGE_DECISION_UNSPECIFIED = 0;
+  USAGE_DECISION_ALLOW = 1;
+  USAGE_DECISION_QUEUE = 2;
+  USAGE_DECISION_DENY = 3;
+}
+
+message BillingAccount {
+  string name = 1;
+  string organization_id = 2;
+  string currency = 3;
+  string grace_policy = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message Subscription {
+  string name = 1;
+  string organization_id = 2;
+  SubscriptionState state = 3;
+  google.protobuf.Timestamp effective_from = 4;
+  google.protobuf.Timestamp effective_until = 5;
+  string grace_policy = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message Entitlement {
+  string name = 1;
+  string organization_id = 2;
+  string feature = 3;
+  bool enabled = 4;
+  int64 limit = 5;
+  string unit = 6;
+  string period = 7;
+  UsageDecision overage_decision = 8;
+  google.protobuf.Timestamp effective_from = 9;
+  google.protobuf.Timestamp effective_until = 10;
+}
+
+message UsageEvent {
+  string name = 1;
+  string organization_id = 2;
+  string workspace_id = 3;
+  string principal_id = 4;
+  string agent_id = 5;
+  string feature = 6;
+  int64 quantity = 7;
+  string unit = 8;
+  google.protobuf.Timestamp occurred_at = 9;
+  string source_reference = 10;
+  string idempotency_key = 11;
+}
+
+message UsageAggregate {
+  string name = 1;
+  string organization_id = 2;
+  string feature = 3;
+  string unit = 4;
+  google.protobuf.Timestamp period_start = 5;
+  google.protobuf.Timestamp period_end = 6;
+  int64 quantity = 7;
+  google.protobuf.Timestamp recomputed_at = 8;
+}

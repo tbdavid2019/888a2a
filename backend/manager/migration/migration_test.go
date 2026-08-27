@@ -37,6 +37,38 @@ func TestSchemaMigrationHistoryPresent(t *testing.T) {
 	}
 }
 
+func TestUsageEntitlementsMigrationPresent(t *testing.T) {
+	latest := latestSQL(t)
+	incrementalBytes, err := os.ReadFile("migration/1.1/0042##usage-entitlements.sql")
+	if err != nil {
+		t.Fatalf("read usage entitlements migration: %v", err)
+	}
+	incremental := string(incrementalBytes)
+	for _, want := range []string{
+		"CREATE TABLE IF NOT EXISTS a2a888_billing_account",
+		"CREATE TABLE IF NOT EXISTS a2a888_subscription",
+		"CREATE TABLE IF NOT EXISTS a2a888_entitlement",
+		"CREATE TABLE IF NOT EXISTS a2a888_usage_event",
+		"uq_a2a888_usage_event_idempotency",
+		"CREATE TABLE IF NOT EXISTS a2a888_usage_aggregate",
+		"a2a888_reject_usage_event_update",
+	} {
+		if !strings.Contains(latest, want) {
+			t.Errorf("LATEST.sql missing usage entitlements DDL %q", want)
+		}
+		if !strings.Contains(incremental, want) {
+			t.Errorf("0042 migration missing usage entitlements DDL %q", want)
+		}
+	}
+	quotaBytes, err := os.ReadFile("migration/1.1/0043##quota-decisions.sql")
+	if err != nil {
+		t.Fatalf("read quota decision migration: %v", err)
+	}
+	if !strings.Contains(latest, "CREATE TABLE IF NOT EXISTS a2a888_quota_decision") || !strings.Contains(string(quotaBytes), "CREATE TABLE IF NOT EXISTS a2a888_quota_decision") {
+		t.Error("usage schema is missing durable quota decision DDL")
+	}
+}
+
 // TestMessagePlaneIdentityMigrationPresent guards the additive MessagePlane
 // schema on both fresh installs and upgrades. The incremental and cumulative
 // files must expose the same tenant-scoped identity, sequence, retry, and
