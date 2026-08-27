@@ -26,8 +26,8 @@ Agent Network gate: 12 Agents across two Machines SHALL discover peers, exchange
 
 ## 1. Architecture Spikes and Decision Gates
 
-- [ ] 1.1 Record the current single-workspace schema, API resource names, process-local realtime paths and migration inventory; verify the inventory covers every table and service named in `proposal.md`.
-- [ ] 1.2 Build an additive Organization/resource-name prototype in an isolated spike and verify two tenant-scoped sample requests cannot resolve each other's resources.
+- [x] 1.1 Record the current single-workspace schema, API resource names, process-local realtime paths and migration inventory; verify the inventory covers every table and service named in `proposal.md`.
+- [x] 1.2 Build an additive Organization/resource-name prototype in an isolated spike and verify two tenant-scoped sample requests cannot resolve each other's resources.
 - [ ] 1.3 Run an official A2A Go SDK server/client spike covering Agent Card, send, stream, get, list, cancel and authenticated tenant routing; verify the recorded interoperability suite passes without proprietary wire changes.
 - [ ] 1.4 Run a WuKongIM production-readiness spike covering version selection, ordering, duplicate send, reconnect, offline sync, multi-device, failover, backup and restore; verify a written decision records measured results and a rollback candidate.
 - [ ] 1.5 Prototype the canonical connector envelope with LINE, Slack and Web Widget fixtures; verify duplicate and out-of-order fixtures converge to one deterministic event sequence.

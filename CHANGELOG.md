@@ -5,6 +5,13 @@ All notable changes to 888a2a are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project records changes by calendar date and does not maintain release versions.
 
+## [2026-08-27]
+
+### Added
+
+- Added the verified Section 1.1 architecture baseline inventory covering all 68 fresh-install tables, API/resource families, process-local realtime paths, and migrations through 0041.
+- Added an isolated tenant resource-name prototype proving same-ID resources remain organization/workspace scoped and cross-tenant misses are indistinguishable from unknown IDs.
+
 ## [2026-08-26]
 
 ### Added
