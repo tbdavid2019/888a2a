@@ -123,3 +123,6 @@ docker compose exec db pg_dump -U dev 888a2a > 888a2a_backup_$(date +%Y%m%d).sql
 # 還原 PostgreSQL
 docker compose exec -T db psql -U dev 888a2a < 888a2a_backup.sql
 ```
+
+完整的 custom-format 備份、校驗與隔離資料庫災難復原演練，請參閱
+[`docs/guide/backup-restore.md`](backup-restore.md)。

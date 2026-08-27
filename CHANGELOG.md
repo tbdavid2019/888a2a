@@ -15,6 +15,10 @@
 - Docker machine-image builds now prepare the pinned Pi runtime before compiling embedded release binaries.
 - Bootstrap signup and the local test server now create an active default-organization membership, allowing IAM-protected operations immediately after first login.
 
+### Added
+
+- Added PostgreSQL backup/restore/verification tooling, a disaster-recovery guide, and an opt-in Message Plane hot-channel load gate.
+
 
 All notable changes to 888a2a are documented in this file.
 
