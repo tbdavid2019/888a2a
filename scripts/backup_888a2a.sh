@@ -28,6 +28,10 @@ checksum() {
 	fi
 }
 
+checksum_value() {
+	checksum "$1" | awk '{print $1}'
+}
+
 require_command() {
 	command -v "$1" >/dev/null 2>&1 || {
 		echo "required command not found: $1" >&2
@@ -65,8 +69,8 @@ backup() {
 	database_exec psql --no-psqlrc --tuples-only --no-align --field-separator $'\t' "${A2A888_PG_URL}" \
 		-c "SELECT table_name, (xpath('/row/c/text()', query_to_xml(format('SELECT count(*) AS c FROM %I', table_name), true, false, '')))[1]::text::bigint FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;" \
 		> "${counts}"
-	checksum "${dump}" > "${dump}.sha256"
-	checksum "${schema}" > "${schema}.sha256"
+	checksum_value "${dump}" > "${dump}.sha256"
+	checksum_value "${schema}" > "${schema}.sha256"
 	printf 'backup=%s\ncounts=%s\n' "${dump}" "${counts}"
 }
 
@@ -80,7 +84,9 @@ restore() {
 	fi
 	[[ -f "${dump}" ]] || { echo "dump not found: ${dump}" >&2; exit 1; }
 	if [[ -f "${dump}.sha256" ]]; then
-		( cd "$(dirname "${dump}")" && checksum "$(basename "${dump}")" | cmp - "$(basename "${dump}").sha256" )
+		actual="$(checksum_value "${dump}")"
+		expected="$(tr -d '[:space:]' < "${dump}.sha256")"
+		[[ "${actual}" == "${expected}" ]] || { echo "dump checksum mismatch" >&2; exit 1; }
 	fi
 	if command -v pg_restore >/dev/null 2>&1; then
 		pg_restore --exit-on-error --clean --if-exists --no-owner --no-privileges \
@@ -100,7 +106,9 @@ verify() {
 	dump="$(find "${backup_dir}" -maxdepth 1 -type f -name '*.dump' -print | sort | tail -n 1)"
 	[[ -n "${dump}" ]] || { echo "no custom-format dump found in ${backup_dir}" >&2; exit 1; }
 	if [[ -f "${dump}.sha256" ]]; then
-		( cd "$(dirname "${dump}")" && checksum "$(basename "${dump}")" | cmp - "$(basename "${dump}").sha256" )
+		actual="$(checksum_value "${dump}")"
+		expected="$(tr -d '[:space:]' < "${dump}.sha256")"
+		[[ "${actual}" == "${expected}" ]] || { echo "dump checksum mismatch" >&2; exit 1; }
 	fi
 	if command -v pg_restore >/dev/null 2>&1; then
 		pg_restore --list "${dump}" > "${dump}.toc"

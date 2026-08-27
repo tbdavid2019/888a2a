@@ -23,6 +23,7 @@
 ### Fixed
 
 - Backup and restore tooling now works on Docker-only hosts by using the Compose database container when PostgreSQL client binaries are unavailable.
+- Backup checksum sidecars now compare stable hash values independent of the backup directory path.
 
 
 All notable changes to 888a2a are documented in this file.
