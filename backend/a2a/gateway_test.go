@@ -2,6 +2,7 @@ package a2a
 
 import (
 	"context"
+	"iter"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/a2aproject/a2a-go/v2/a2a"
 	"github.com/a2aproject/a2a-go/v2/a2aclient"
+	"github.com/a2aproject/a2a-go/v2/a2asrv"
 	"github.com/a2aproject/a2a-go/v2/a2asrv/taskstore"
 )
 
@@ -226,5 +228,47 @@ func TestGateway_TenantNamespacedRouting(t *testing.T) {
 		if !strings.Contains(txt, "specialist-1") {
 			t.Errorf("expected response to reflect specialist-1 executor, got %q", txt)
 		}
+	}
+}
+
+func TestGateway_OfficialSDKStreamingAndTenantRouting(t *testing.T) {
+	ctx := context.Background()
+	taskStore := taskstore.NewInMemory(nil)
+	gw := NewGateway(GatewayOptions{
+		TaskStore: taskStore,
+		BaseURL:   "http://localhost:8181",
+		ExecutorFactory: func(agentID string) a2asrv.AgentExecutor {
+			return NewAgentExecutor(agentID, func(_ context.Context, execCtx *a2asrv.ExecutorContext) iter.Seq2[a2a.Event, error] {
+				return func(yield func(a2a.Event, error) bool) {
+					yield(a2a.NewSubmittedTask(execCtx, execCtx.Message), nil)
+					yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateWorking, nil), nil)
+					yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateCompleted, a2a.NewMessage(a2a.MessageRoleAgent, a2a.NewTextPart("streamed"))), nil)
+				}
+			})
+		},
+	})
+	server := httptest.NewServer(gw)
+	defer server.Close()
+	card := &a2a.AgentCard{
+		Name: "stream-agent", Version: "1.0",
+		SupportedInterfaces: []*a2a.AgentInterface{a2a.NewAgentInterface(server.URL+"/a2a/v1/org-stream/agents/agent-stream", a2a.TransportProtocolHTTPJSON)},
+		Capabilities:        a2a.AgentCapabilities{Streaming: true}, DefaultInputModes: []string{"text/plain"}, DefaultOutputModes: []string{"text/plain"},
+	}
+	client, err := a2aclient.NewFromCard(ctx, card)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = client.Destroy() }()
+	eventCount := 0
+	for event, streamErr := range client.SendStreamingMessage(ctx, &a2a.SendMessageRequest{Message: a2a.NewMessage(a2a.MessageRoleUser, a2a.NewTextPart("hello"))}) {
+		if streamErr != nil {
+			t.Fatal(streamErr)
+		}
+		if event != nil {
+			eventCount++
+		}
+	}
+	if eventCount < 2 {
+		t.Fatalf("streamed event count = %d, want at least 2", eventCount)
 	}
 }
