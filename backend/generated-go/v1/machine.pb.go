@@ -498,7 +498,9 @@ type RefreshMachineProvidersRequest struct {
 	ForcePreparation bool `protobuf:"varint,2,opt,name=force_preparation,json=forcePreparation,proto3" json:"force_preparation,omitempty"`
 	// Empty means all providers. A non-empty value limits preparation to this
 	// provider while the response still reports the complete discovery list.
-	ProviderId    string `protobuf:"bytes,3,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
+	ProviderId string `protobuf:"bytes,3,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
+	// When true, activate the previous verified runtime identity for provider_id.
+	Rollback      bool `protobuf:"varint,4,opt,name=rollback,proto3" json:"rollback,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -552,6 +554,13 @@ func (x *RefreshMachineProvidersRequest) GetProviderId() string {
 		return x.ProviderId
 	}
 	return ""
+}
+
+func (x *RefreshMachineProvidersRequest) GetRollback() bool {
+	if x != nil {
+		return x.Rollback
+	}
+	return false
 }
 
 type RefreshMachineProvidersResponse struct {
@@ -2907,13 +2916,14 @@ const file_v1_machine_proto_rawDesc = "" +
 	"page_token\x18\x03 \x01(\tR\tpageToken\"t\n" +
 	"\x19ListMachineAgentsResponse\x12/\n" +
 	"\x06agents\x18\x01 \x03(\v2\x17.laelia.v1.AgentSummaryR\x06agents\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x9a\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb6\x01\n" +
 	"\x1eRefreshMachineProvidersRequest\x12*\n" +
 	"\x04name\x18\x01 \x01(\tB\x16\xe0A\x02\xfaA\x10\n" +
 	"\x0elaelia/MachineR\x04name\x12+\n" +
 	"\x11force_preparation\x18\x02 \x01(\bR\x10forcePreparation\x12\x1f\n" +
 	"\vprovider_id\x18\x03 \x01(\tR\n" +
-	"providerId\"]\n" +
+	"providerId\x12\x1a\n" +
+	"\brollback\x18\x04 \x01(\bR\brollback\"]\n" +
 	"\x1fRefreshMachineProvidersResponse\x12:\n" +
 	"\tproviders\x18\x01 \x03(\v2\x1c.laelia.v1.AgentProviderInfoR\tproviders\"[\n" +
 	"\x15UpgradeMachineRequest\x12*\n" +

@@ -485,6 +485,26 @@ export function MachineProfilePage() {
     }
   }
 
+  async function handleProviderRollback(providerId: string) {
+    setProviderAction(providerId);
+    setRefreshError("");
+    try {
+      await useAppStore.getState().refreshMachineProviders(machineName, {
+        providerId,
+        rollback: true,
+      });
+      await reload();
+    } catch (err) {
+      setRefreshError(
+        err instanceof Error
+          ? err.message
+          : t("machine.provider-rollback-failed")
+      );
+    } finally {
+      setProviderAction("");
+    }
+  }
+
   async function handleUpgrade() {
     setUpgrading(true);
     setUpgradeError("");
@@ -1142,21 +1162,35 @@ export function MachineProfilePage() {
                         )}
                         {needsPreparation && canManage && (
                           <div className="flex justify-end">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={providerAction !== ""}
-                              onClick={() =>
-                                void handleProviderPreparation(p.providerId)
-                              }
-                            >
-                              {providerAction === p.providerId ? (
-                                <Loader2 className="size-3.5 animate-spin" />
-                              ) : null}
-                              {providerAction === p.providerId
-                                ? t("common.loading")
-                                : actionLabel}
-                            </Button>
+                            <div className="flex gap-1.5">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={providerAction !== ""}
+                                onClick={() =>
+                                  void handleProviderPreparation(p.providerId)
+                                }
+                              >
+                                {providerAction === p.providerId ? (
+                                  <Loader2 className="size-3.5 animate-spin" />
+                                ) : null}
+                                {providerAction === p.providerId
+                                  ? t("common.loading")
+                                  : actionLabel}
+                              </Button>
+                              {status === "UPDATE_AVAILABLE" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={providerAction !== ""}
+                                  onClick={() =>
+                                    void handleProviderRollback(p.providerId)
+                                  }
+                                >
+                                  {t("machine.provider-rollback")}
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         )}
                       </li>

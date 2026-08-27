@@ -675,6 +675,8 @@
     "provider-preparation-failed": "Failed to prepare provider",
     "provider-prepare": "Prepare",
     "provider-repair": "Repair",
+    "provider-rollback": "Rollback",
+    "provider-rollback-failed": "Failed to roll back provider",
     "provider-update": "Update",
     "providers": "Available Providers",
     "providers-refresh-failed": "Failed to refresh providers",

@@ -675,6 +675,8 @@
     "provider-preparation-failed": "准备 Provider 失败",
     "provider-prepare": "准备",
     "provider-repair": "修复",
+    "provider-rollback": "回滚",
+    "provider-rollback-failed": "回滚 Provider 失败",
     "provider-update": "更新",
     "providers": "可用 Provider",
     "providers-refresh-failed": "刷新 Provider 失败",

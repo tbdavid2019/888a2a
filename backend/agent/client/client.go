@@ -601,12 +601,12 @@ func (c *MachineClient) collectMachineInfo() *v1pb.MachineInfo {
 // returned slice lets the MachineChannel reply to DiscoverProviders with the
 // fresh list in one probe.
 func (c *MachineClient) refreshProviders(ctx context.Context) []provider.Discovered {
-	return c.refreshProvidersWithOptions(ctx, "", false)
+	return c.refreshProvidersWithOptions(ctx, "", false, false)
 }
 
-func (c *MachineClient) refreshProvidersWithOptions(ctx context.Context, providerID string, forcePreparation bool) []provider.Discovered {
+func (c *MachineClient) refreshProvidersWithOptions(ctx context.Context, providerID string, forcePreparation, rollback bool) []provider.Discovered {
 	discovered := provider.Default().Discover(ctx)
-	discovered = c.prepareDiscoveredProviders(ctx, discovered, providerID, forcePreparation)
+	discovered = c.prepareDiscoveredProviders(ctx, discovered, providerID, forcePreparation, rollback)
 	c.mu.Lock()
 	c.discoveredProviders = discovered
 	c.discoveredAt = time.Now()
@@ -623,7 +623,7 @@ func (c *MachineClient) refreshProvidersWithOptions(ctx context.Context, provide
 	return discovered
 }
 
-func (c *MachineClient) prepareDiscoveredProviders(ctx context.Context, discovered []provider.Discovered, providerID string, forcePreparation bool) []provider.Discovered {
+func (c *MachineClient) prepareDiscoveredProviders(ctx context.Context, discovered []provider.Discovered, providerID string, forcePreparation, rollback bool) []provider.Discovered {
 	if c.runtimePreparer == nil {
 		return discovered
 	}
@@ -631,7 +631,12 @@ func (c *MachineClient) prepareDiscoveredProviders(ctx context.Context, discover
 		if providerID != "" && discovered[i].ProviderID != providerID {
 			continue
 		}
-		if discovered[i].RuntimeStatus == "UPDATE_AVAILABLE" && !forcePreparation {
+		if rollback && providerID == "" {
+			discovered[i].RuntimeStatus = "BROKEN"
+			discovered[i].FailureMessage = "rollback requires a provider_id"
+			continue
+		}
+		if discovered[i].RuntimeStatus == "UPDATE_AVAILABLE" && !forcePreparation && !rollback {
 			continue
 		}
 		manifest, ok := provider.Default().LookupManifest(discovered[i].ProviderID)
@@ -642,7 +647,9 @@ func (c *MachineClient) prepareDiscoveredProviders(ctx context.Context, discover
 			prepared *a2a888pb.PreparedRuntime
 			err      error
 		)
-		if forcePreparation {
+		if rollback {
+			prepared, err = c.runtimePreparer.Rollback(ctx, discovered[i].ProviderID, agentruntime.CurrentPlatform())
+		} else if forcePreparation {
 			prepared, err = c.runtimePreparer.RetryPreparation(ctx, manifest, agentruntime.CurrentPlatform())
 		} else {
 			prepared, err = c.runtimePreparer.Prepare(ctx, manifest, agentruntime.CurrentPlatform())

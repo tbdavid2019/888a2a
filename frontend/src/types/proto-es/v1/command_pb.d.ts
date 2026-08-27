@@ -4555,6 +4555,13 @@ export declare type DiscoverProviders = Message<"laelia.v1.DiscoverProviders"> &
    * @generated from field: bool force_preparation = 3;
    */
   forcePreparation: boolean;
+
+  /**
+   * activate the previous verified runtime for the selected provider
+   *
+   * @generated from field: bool rollback = 4;
+   */
+  rollback: boolean;
 };
 
 /**

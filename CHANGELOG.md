@@ -1,45 +1,5 @@
 # Changelog
 
-## [2026-08-27]
-
-### Security
-
-- Docker Compose now requires a private database password from `.env` and keeps PostgreSQL off the host network.
-
-### Documentation
-
-- Added `.env.example` and updated the server quick-start instructions for the password-protected Compose deployment.
-
-### Fixed
-
-- Docker machine-image builds now prepare the pinned Pi runtime before compiling embedded release binaries.
-- Bootstrap signup and the local test server now create an active default-organization membership, allowing IAM-protected operations immediately after first login.
-
-### Added
-
-- Added PostgreSQL backup/restore/verification tooling, a disaster-recovery guide, and an opt-in Message Plane hot-channel load gate.
-- Added tenant-safe correlation ID propagation through Connect handlers, response headers, and structured audit logs.
-- Added tenant-scoped operation request counters and latency histograms to the Prometheus metrics surface.
-
-### Fixed
-
-- Backup and restore tooling now works on Docker-only hosts by using the Compose database container when PostgreSQL client binaries are unavailable.
-- Backup checksum sidecars now compare stable hash values independent of the backup directory path.
-
-### Documentation
-
-- Recorded the controlled PostgreSQL backup/restore drill and its production-scope limitations.
-- Recorded the controlled WuKongIM live check and rejected the tested HTTP image until duplicate delivery is guaranteed.
-
-### Changed
-
-- Added tenant-scoped Provider preparation controls so operators can explicitly prepare, repair, or update a detected runtime from the Machine profile.
-
-### Fixed
-
-- Normalized the new Provider UI locale keys so the repository project-rule gate passes.
-
-
 All notable changes to 888a2a are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
@@ -49,6 +9,10 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Added
 
+- Added verified Provider runtime history and an integrity-checked rollback path from the Machine operator UI.
+- Added PostgreSQL backup/restore/verification tooling, a disaster-recovery guide, and an opt-in Message Plane hot-channel load gate.
+- Added tenant-safe correlation ID propagation through Connect handlers, response headers, and structured audit logs.
+- Added tenant-scoped operation request counters and latency histograms to the Prometheus metrics surface.
 - Added a bounded one-time legacy-home importer that atomically preserves machine credentials, Agent sessions, context state, and workspaces under the 888a2a home; added a migration-only server configuration reader for legacy environment keys.
 - Added `--all` mode to the product-identity naming gate for repository-wide zero-legacy verification; the gate currently reports remaining legacy identifiers and Section 0.9 remains open.
 
@@ -61,13 +25,22 @@ This project records changes by calendar date and does not maintain release vers
 - Recorded Provider Runtime Gateway tasks 7.1–7.7 and A2A orchestration tasks 8.1–8.9 as implemented with the existing manifest, runtime, work, orchestration, approval, and 12-Agent acceptance evidence; operator runtime UI and task graph UI remain open.
 - Added tenant-scoped UsageService visibility for owners and billing admins, with provider-neutral subscription/entitlement summaries and explicit read-only grace handling.
 
+### Changed
+
+- Extended provider preparation control messages so Manager operators can activate the previous verified runtime without turn-time downloads.
+
 ### Fixed
 
+- Docker machine-image builds now prepare the pinned Pi runtime before compiling embedded release binaries.
+- Bootstrap signup and the local test server now create an active default-organization membership, allowing IAM-protected operations immediately after first login.
+- Backup and restore tooling now works on Docker-only hosts by using the Compose database container when PostgreSQL client binaries are unavailable.
+- Backup checksum sidecars now compare stable hash values independent of the backup directory path.
 - Fixed frontend locale key ordering so the project-rules gate passes in GitHub Actions.
 - Fixed LINE connector tests to pass explicit contexts required by the CI staticcheck gate.
 
 ### Security
 
+- Docker Compose now requires a private database password from `.env` and keeps PostgreSQL off the host network.
 - Bound encrypted connector credentials to their tenant and installation with AES-GCM associated data, and added explicit revoke/uninstall primitives.
 
 ### Fixed

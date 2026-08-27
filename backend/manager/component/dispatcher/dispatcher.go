@@ -281,15 +281,15 @@ func (d *Dispatcher) SendReloadAgentAssignment(machineID int, reload *v1pb.Reloa
 // discover registered via RegisterPendingDiscover (requestID is globally
 // unique, so the existing agent-scoped pending map is reused).
 func (d *Dispatcher) SendDiscoverProvidersToMachine(machineID int, requestID string) error {
-	return d.SendDiscoverProvidersToMachineWithOptions(machineID, requestID, "", false)
+	return d.SendDiscoverProvidersToMachineWithOptions(machineID, requestID, "", false, false)
 }
 
 // SendDiscoverProvidersToMachineWithOptions asks a connected machine to
 // discover providers and optionally force preparation for one provider.
-func (d *Dispatcher) SendDiscoverProvidersToMachineWithOptions(machineID int, requestID, providerID string, forcePreparation bool) error {
+func (d *Dispatcher) SendDiscoverProvidersToMachineWithOptions(machineID int, requestID, providerID string, forcePreparation, rollback bool) error {
 	return d.sendToMachine(machineID, &v1pb.ManagerMachineStreamMessage{
 		Message: &v1pb.ManagerMachineStreamMessage_DiscoverProviders{
-			DiscoverProviders: &v1pb.DiscoverProviders{RequestId: requestID, ProviderId: providerID, ForcePreparation: forcePreparation},
+			DiscoverProviders: &v1pb.DiscoverProviders{RequestId: requestID, ProviderId: providerID, ForcePreparation: forcePreparation, Rollback: rollback},
 		},
 	})
 }

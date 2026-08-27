@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/tbdavid2019/888a2a/backend/agent/provider"
@@ -51,6 +52,13 @@ type runtimeMeta struct {
 	BinarySha256     string `json:"binary_sha256"`
 	BinarySizeBytes  int64  `json:"binary_size_bytes"`
 	PreparedAtUnix   int64  `json:"prepared_at_unix"`
+	ManifestJSON     string `json:"manifest_json"`
+	PlatformOS       string `json:"platform_os"`
+	PlatformArch     string `json:"platform_arch"`
+}
+
+type runtimeHistory struct {
+	Entries []runtimeMeta `json:"entries"`
 }
 
 type npmLockPackage struct {
@@ -110,6 +118,11 @@ func (p *Preparer) Prepare(ctx context.Context, manifest *a2a888pb.ProviderManif
 	if err := provider.ValidateManifest(manifest); err != nil {
 		p.recordAudit("VALIDATE", manifest.GetProviderId(), "", false, "invalid manifest", err.Error())
 		return nil, errors.Wrap(err, "validate manifest")
+	}
+	if overridden, ok := p.loadActiveRuntime(manifest, platform); ok {
+		if prepared, valid := p.prepareOverriddenRuntime(overridden); valid {
+			return prepared, nil
+		}
 	}
 
 	identity, err := ComputeCacheIdentity(manifest, platform)
@@ -276,6 +289,7 @@ func (p *Preparer) prepareNpmPackage(ctx context.Context, manifest *a2a888pb.Pro
 				sha, size, err := computeFileSha256(binPath)
 				if err == nil && sha == meta.BinarySha256 {
 					// Perfectly verified cached binary!
+					_ = p.recordVerifiedRuntime(meta)
 					return &a2a888pb.PreparedRuntime{
 						ProviderId:    manifest.GetProviderId(),
 						CacheIdentity: identity,
@@ -407,7 +421,14 @@ func (p *Preparer) prepareNpmPackage(ctx context.Context, manifest *a2a888pb.Pro
 		BinarySha256:     resolvedBin.GetSha256(),
 		BinarySizeBytes:  int64(resolvedBin.GetSizeBytes()),
 		PreparedAtUnix:   now.GetSeconds(),
+		PlatformOS:       identity.GetPlatform().GetOperatingSystem(),
+		PlatformArch:     identity.GetPlatform().GetArchitecture(),
 	}
+	manifestJSON, err := protojson.Marshal(manifest)
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal provider manifest")
+	}
+	meta.ManifestJSON = string(manifestJSON)
 	metaBytes, err := json.MarshalIndent(meta, "", "  ")
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal runtime meta")
@@ -429,6 +450,9 @@ func (p *Preparer) prepareNpmPackage(ctx context.Context, manifest *a2a888pb.Pro
 	resolvedBin.Path = filepath.Join(pkgDir, relPath)
 
 	p.recordAudit("PUBLISHED", manifest.GetProviderId(), identity.GetIdentityDigest(), true, "published verified npm package to cache", pkgDir)
+	if err := p.recordVerifiedRuntime(*meta); err != nil {
+		return nil, errors.Wrap(err, "record verified runtime")
+	}
 
 	return &a2a888pb.PreparedRuntime{
 		ProviderId:     manifest.GetProviderId(),
@@ -581,6 +605,262 @@ func (p *Preparer) RetryPreparation(ctx context.Context, manifest *a2a888pb.Prov
 	p.mu.Lock()
 	pkgDir := p.paths.PackageDir(identity)
 	_ = os.RemoveAll(pkgDir)
+	_ = p.removeActiveRuntime(manifest, platform)
 	p.mu.Unlock()
 	return p.Prepare(ctx, manifest, platform)
+}
+
+// Rollback selects the previous verified package for a provider and makes it
+// the active runtime. The selected package is still verified from disk before
+// the override is published, so a stale or tampered history entry cannot be
+// launched.
+func (p *Preparer) Rollback(_ context.Context, providerID string, platform *a2a888pb.PlatformTarget) (*a2a888pb.PreparedRuntime, error) {
+	if strings.TrimSpace(providerID) == "" {
+		return nil, errors.New("provider id is required for rollback")
+	}
+	if platform == nil {
+		platform = CurrentPlatform()
+	}
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	history, err := p.readRuntimeHistory(providerID, platform)
+	if err != nil {
+		return nil, err
+	}
+	if len(history.Entries) < 2 {
+		return nil, errors.Errorf("no previous verified runtime is available for provider %q", providerID)
+	}
+	previous := history.Entries[len(history.Entries)-2]
+	manifest, err := manifestFromMeta(previous)
+	if err != nil {
+		return nil, errors.Wrap(err, "load previous provider manifest")
+	}
+	identity, err := ComputeCacheIdentity(manifest, platform)
+	if err != nil {
+		return nil, errors.Wrap(err, "compute previous runtime identity")
+	}
+	if identity.GetIdentityDigest() != previous.IdentityDigest {
+		return nil, errors.New("previous runtime identity no longer matches its manifest")
+	}
+	if err := p.verifyRuntimeMeta(previous); err != nil {
+		return nil, errors.Wrap(err, "verify previous runtime")
+	}
+	if err := p.writeActiveRuntime(previous, providerID, platform); err != nil {
+		return nil, errors.Wrap(err, "activate previous runtime")
+	}
+	p.recordAudit("ROLLBACK", providerID, previous.IdentityDigest, true, "activated previous verified runtime", previous.PackageVersion)
+	return preparedRuntimeFromMeta(previous, manifest, p.paths.PackageDir(identity), "npm_rollback_cache"), nil
+}
+
+func (p *Preparer) prepareOverriddenRuntime(meta runtimeMeta) (*a2a888pb.PreparedRuntime, bool) {
+	manifest, err := manifestFromMeta(meta)
+	if err != nil || manifest.GetRuntimeKind() != a2a888pb.RuntimeKind_NPM_PACKAGE {
+		return nil, false
+	}
+	if err := p.verifyRuntimeMeta(meta); err != nil {
+		p.recordAudit("ROLLBACK_VERIFY_FAILED", manifest.GetProviderId(), meta.IdentityDigest, false, "active runtime verification failed", err.Error())
+		return nil, false
+	}
+	identity, err := ComputeCacheIdentity(manifest, runtimePlatformFromMeta(meta))
+	if err != nil || identity.GetIdentityDigest() != meta.IdentityDigest {
+		return nil, false
+	}
+	return preparedRuntimeFromMeta(meta, manifest, p.paths.PackageDir(identity), "npm_rollback_cache"), true
+}
+
+func preparedRuntimeFromMeta(meta runtimeMeta, manifest *a2a888pb.ProviderManifest, packageDir, source string) *a2a888pb.PreparedRuntime {
+	return &a2a888pb.PreparedRuntime{
+		ProviderId: manifest.GetProviderId(),
+		CacheIdentity: &a2a888pb.CacheIdentity{
+			ProviderId:     manifest.GetProviderId(),
+			ManifestDigest: meta.ManifestDigest,
+			PackageName:    meta.PackageName,
+			PackageVersion: meta.PackageVersion,
+			RuntimeVersion: meta.PackageVersion,
+			Integrity:      meta.PackageIntegrity,
+			IdentityDigest: meta.IdentityDigest,
+			Platform:       runtimePlatformFromMeta(meta),
+		},
+		ResolvedBinary: &a2a888pb.ResolvedBinary{
+			Path:      filepath.Join(packageDir, meta.BinaryRelPath),
+			Binary:    meta.BinaryName,
+			Sha256:    meta.BinarySha256,
+			SizeBytes: uint64(meta.BinarySizeBytes),
+			Source:    source,
+			Arguments: manifest.GetNpmPackage().GetArguments(),
+		},
+		Status: &a2a888pb.RuntimeStatus{
+			State:           a2a888pb.RuntimeState_READY,
+			ObservedVersion: meta.PackageVersion,
+			FailureCode:     "",
+		},
+		Compatibility: &a2a888pb.CompatibilityReport{
+			Level: a2a888pb.CompatibilityLevel_FULL_LOOP_VERIFIED,
+			Evidence: []*a2a888pb.CompatibilityEvidence{{
+				Version: meta.PackageVersion,
+				Details: "verified previous npm runtime selected by operator rollback",
+			}},
+		},
+	}
+}
+
+func manifestFromMeta(meta runtimeMeta) (*a2a888pb.ProviderManifest, error) {
+	if strings.TrimSpace(meta.ManifestJSON) == "" {
+		return nil, errors.New("runtime history entry has no manifest snapshot")
+	}
+	manifest := &a2a888pb.ProviderManifest{}
+	if err := protojson.Unmarshal([]byte(meta.ManifestJSON), manifest); err != nil {
+		return nil, err
+	}
+	if err := provider.ValidateManifest(manifest); err != nil {
+		return nil, err
+	}
+	digest, err := provider.ComputeManifestDigest(manifest)
+	if err != nil || digest != meta.ManifestDigest {
+		return nil, errors.New("runtime history manifest digest mismatch")
+	}
+	return manifest, nil
+}
+
+func (p *Preparer) verifyRuntimeMeta(meta runtimeMeta) error {
+	if meta.IdentityDigest == "" || meta.ManifestDigest == "" || meta.BinaryRelPath == "" || meta.BinarySha256 == "" {
+		return errors.New("runtime history entry is incomplete")
+	}
+	cleanRel := filepath.Clean(meta.BinaryRelPath)
+	if cleanRel == "." || cleanRel == ".." || strings.HasPrefix(cleanRel, ".."+string(filepath.Separator)) || filepath.IsAbs(cleanRel) {
+		return errors.New("runtime history binary path escapes package directory")
+	}
+	path := filepath.Join(p.paths.PackageDir(&a2a888pb.CacheIdentity{IdentityDigest: meta.IdentityDigest}), cleanRel)
+	sha, size, err := computeFileSha256(path)
+	if err != nil {
+		return err
+	}
+	if sha != meta.BinarySha256 || size != meta.BinarySizeBytes {
+		return errors.Errorf("runtime binary digest mismatch: got %s/%d, want %s/%d", sha, size, meta.BinarySha256, meta.BinarySizeBytes)
+	}
+	return nil
+}
+
+func runtimeHistoryKey(providerID string, platform *a2a888pb.PlatformTarget) string {
+	h := sha256.Sum256([]byte(providerID + "\n" + platform.GetOperatingSystem() + "\n" + platform.GetArchitecture()))
+	return hex.EncodeToString(h[:])
+}
+
+func runtimePlatformFromMeta(meta runtimeMeta) *a2a888pb.PlatformTarget {
+	if meta.PlatformOS != "" && meta.PlatformArch != "" {
+		return &a2a888pb.PlatformTarget{OperatingSystem: meta.PlatformOS, Architecture: meta.PlatformArch}
+	}
+	manifest := &a2a888pb.ProviderManifest{}
+	if err := protojson.Unmarshal([]byte(meta.ManifestJSON), manifest); err == nil && len(manifest.GetPlatformTargets()) > 0 {
+		return manifest.GetPlatformTargets()[0]
+	}
+	return CurrentPlatform()
+}
+
+func (p *Preparer) runtimeHistoryPath(providerID string, platform *a2a888pb.PlatformTarget) string {
+	return filepath.Join(p.paths.Root, "verified-history", runtimeHistoryKey(providerID, platform)+".json")
+}
+
+func (p *Preparer) activeRuntimePath(providerID string, platform *a2a888pb.PlatformTarget) string {
+	return filepath.Join(p.paths.Root, "active", runtimeHistoryKey(providerID, platform)+".json")
+}
+
+func (p *Preparer) readRuntimeHistory(providerID string, platform *a2a888pb.PlatformTarget) (runtimeHistory, error) {
+	data, err := os.ReadFile(p.runtimeHistoryPath(providerID, platform))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return runtimeHistory{}, nil
+		}
+		return runtimeHistory{}, err
+	}
+	var history runtimeHistory
+	if err := json.Unmarshal(data, &history); err != nil {
+		return runtimeHistory{}, errors.Wrap(err, "parse runtime history")
+	}
+	return history, nil
+}
+
+func (p *Preparer) recordVerifiedRuntime(meta runtimeMeta) error {
+	platform := runtimePlatformFromMeta(meta)
+	manifest, err := manifestFromMeta(meta)
+	if err != nil {
+		// Older cache entries are still usable, but cannot participate in
+		// rollback until a subsequent preparation records a manifest snapshot.
+		return nil
+	}
+	history, err := p.readRuntimeHistory(manifest.GetProviderId(), platform)
+	if err != nil {
+		return err
+	}
+	filtered := history.Entries[:0]
+	for _, entry := range history.Entries {
+		if entry.IdentityDigest != meta.IdentityDigest {
+			filtered = append(filtered, entry)
+		}
+	}
+	filtered = append(filtered, meta)
+	if len(filtered) > 8 {
+		filtered = filtered[len(filtered)-8:]
+	}
+	return writeJSONAtomically(filepath.Join(p.paths.Root, "verified-history"), p.runtimeHistoryPath(manifest.GetProviderId(), platform), runtimeHistory{Entries: filtered})
+}
+
+func (p *Preparer) loadActiveRuntime(manifest *a2a888pb.ProviderManifest, platform *a2a888pb.PlatformTarget) (runtimeMeta, bool) {
+	if platform == nil {
+		platform = CurrentPlatform()
+	}
+	data, err := os.ReadFile(p.activeRuntimePath(manifest.GetProviderId(), platform))
+	if err != nil {
+		return runtimeMeta{}, false
+	}
+	var meta runtimeMeta
+	if json.Unmarshal(data, &meta) != nil || meta.ManifestDigest == manifest.GetManifestIntegritySha256() {
+		return runtimeMeta{}, false
+	}
+	return meta, true
+}
+
+func (p *Preparer) writeActiveRuntime(meta runtimeMeta, providerID string, platform *a2a888pb.PlatformTarget) error {
+	return writeJSONAtomically(filepath.Join(p.paths.Root, "active"), p.activeRuntimePath(providerID, platform), meta)
+}
+
+func (p *Preparer) removeActiveRuntime(manifest *a2a888pb.ProviderManifest, platform *a2a888pb.PlatformTarget) error {
+	if platform == nil {
+		platform = CurrentPlatform()
+	}
+	err := os.Remove(p.activeRuntimePath(manifest.GetProviderId(), platform))
+	if os.IsNotExist(err) {
+		return nil
+	}
+	return err
+}
+
+func writeJSONAtomically(parentDir, path string, value any) error {
+	data, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(parentDir, 0o755); err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(parentDir, ".runtime-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer func() { _ = os.Remove(tmpName) }()
+	if err := tmp.Chmod(0o644); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpName, path)
 }

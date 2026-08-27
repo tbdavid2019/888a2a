@@ -305,7 +305,7 @@ func (c *MachineClient) handleDiscoverProviders(ctx context.Context, send func(*
 		return
 	}
 	probeCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-	discovered := c.refreshProvidersWithOptions(probeCtx, request.GetProviderId(), request.GetForcePreparation())
+	discovered := c.refreshProvidersWithOptions(probeCtx, request.GetProviderId(), request.GetForcePreparation(), request.GetRollback())
 	cancel()
 	if err := send(&v1pb.MachineStreamMessage{
 		Message: &v1pb.MachineStreamMessage_ProvidersDiscovered{

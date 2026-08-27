@@ -209,6 +209,13 @@ export declare type RefreshMachineProvidersRequest = Message<"laelia.v1.RefreshM
    * @generated from field: string provider_id = 3;
    */
   providerId: string;
+
+  /**
+   * When true, activate the previous verified runtime identity for provider_id.
+   *
+   * @generated from field: bool rollback = 4;
+   */
+  rollback: boolean;
 };
 
 /**

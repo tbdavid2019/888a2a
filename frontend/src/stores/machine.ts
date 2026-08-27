@@ -112,13 +112,18 @@ export const createMachineSlice: AppSliceCreator<MachineSlice> = (
 
   async refreshMachineProviders(
     name: string,
-    options?: { providerId?: string; forcePreparation?: boolean }
+    options?: {
+      providerId?: string;
+      forcePreparation?: boolean;
+      rollback?: boolean;
+    }
   ): Promise<AgentProviderInfo[]> {
     const res = await machineServiceClient.refreshMachineProviders(
       create(RefreshMachineProvidersRequestSchema, {
         name,
         providerId: options?.providerId ?? "",
         forcePreparation: options?.forcePreparation ?? false,
+        rollback: options?.rollback ?? false,
       })
     );
     return res.providers;

@@ -478,6 +478,34 @@ describe("MachineProfilePage", () => {
     });
   });
 
+  it("offers rollback for an update and selects the previous verified runtime", async () => {
+    mock.getMachine.mockResolvedValue(
+      machine({
+        info: {
+          ...machine().info,
+          availableProviders: [
+            {
+              ...machine().info?.availableProviders?.[0],
+              runtimeStatus: "UPDATE_AVAILABLE",
+              packageVersion: "1.2.3",
+            },
+          ],
+        } as unknown as MachineInfo,
+      })
+    );
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "machine.provider-rollback" })
+    );
+    await waitFor(() => {
+      expect(mock.refreshMachineProviders).toHaveBeenCalledWith("machines/m1", {
+        providerId: "opencode",
+        rollback: true,
+      });
+    });
+  });
+
   it("shows the no-providers hint and the refresh error", async () => {
     mock.getMachine.mockResolvedValue(
       machine({

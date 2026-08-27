@@ -232,6 +232,8 @@ message RefreshMachineProvidersRequest {
   // Empty means all providers. A non-empty value limits preparation to this
   // provider while the response still reports the complete discovery list.
   string provider_id = 3;
+  // When true, activate the previous verified runtime identity for provider_id.
+  bool rollback = 4;
 }
 
 message RefreshMachineProvidersResponse {

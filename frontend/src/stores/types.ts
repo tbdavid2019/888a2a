@@ -320,7 +320,11 @@ export interface MachineSlice {
   forceDisconnectMachine: (name: string, reason?: string) => Promise<void>;
   refreshMachineProviders: (
     name: string,
-    options?: { providerId?: string; forcePreparation?: boolean }
+    options?: {
+      providerId?: string;
+      forcePreparation?: boolean;
+      rollback?: boolean;
+    }
   ) => Promise<AgentProviderInfo[]>;
   upgradeMachine: (name: string, reason?: string) => Promise<void>;
   listMachineAgents: (name: string) => Promise<AgentSummary[]>;

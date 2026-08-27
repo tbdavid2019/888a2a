@@ -19,13 +19,17 @@ type mockRunner struct {
 }
 
 func writePackageLock(t *testing.T, dir, integrity string) {
+	writePackageLockVersion(t, dir, "0.70.0", integrity)
+}
+
+func writePackageLockVersion(t *testing.T, dir, version, integrity string) {
 	t.Helper()
 	lock := map[string]any{
 		"lockfileVersion": 3,
 		"packages": map[string]any{
 			"": map[string]any{},
 			"node_modules/@agentclientprotocol/claude-agent-acp": map[string]any{
-				"version":   "0.70.0",
+				"version":   version,
 				"integrity": integrity,
 			},
 		},
@@ -36,6 +40,67 @@ func writePackageLock(t *testing.T, dir, integrity string) {
 	}
 	if err := os.WriteFile(filepath.Join(dir, "node_modules", ".package-lock.json"), data, 0o644); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestPreparerRollbackActivatesPreviousVerifiedRuntime(t *testing.T) {
+	root := t.TempDir()
+	platform := &a2a888pb.PlatformTarget{OperatingSystem: "linux", Architecture: "amd64"}
+	callCount := 0
+	runner := &mockRunner{onRun: func(_ context.Context, _ string, args []string, dir string) ([]byte, error) {
+		callCount++
+		target := args[len(args)-1]
+		version := target[strings.LastIndex(target, "@")+1:]
+		binDir := filepath.Join(dir, "node_modules", ".bin")
+		if err := os.MkdirAll(binDir, 0o755); err != nil {
+			return nil, err
+		}
+		if err := os.WriteFile(filepath.Join(binDir, "claude-agent-acp"), []byte(version), 0o755); err != nil {
+			return nil, err
+		}
+		writePackageLockVersion(t, dir, version, testManifest().GetNpmPackage().GetIntegrity())
+		return []byte("ok"), nil
+	}}
+
+	preparer := NewPreparer(root, runner)
+	first := testManifest()
+	first.GetNpmPackage().PackageVersion = "0.70.0"
+	if _, err := preparer.Prepare(context.Background(), first, platform); err != nil {
+		t.Fatalf("prepare first runtime: %v", err)
+	}
+	second := testManifest()
+	second.GetNpmPackage().PackageVersion = "0.71.0"
+	if err := provider.SetManifestDigest(second); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := preparer.Prepare(context.Background(), second, platform); err != nil {
+		t.Fatalf("prepare second runtime: %v", err)
+	}
+
+	rolledBack, err := preparer.Rollback(context.Background(), second.GetProviderId(), platform)
+	if err != nil {
+		t.Fatalf("rollback: %v", err)
+	}
+	if got := rolledBack.GetCacheIdentity().GetPackageVersion(); got != "0.70.0" {
+		t.Fatalf("rollback package version = %q, want 0.70.0", got)
+	}
+	if got, err := os.ReadFile(rolledBack.GetResolvedBinary().GetPath()); err != nil || string(got) != "0.70.0" {
+		t.Fatalf("rollback binary = %q, err=%v", got, err)
+	}
+
+	preparedAgain, err := preparer.Prepare(context.Background(), second, platform)
+	if err != nil {
+		t.Fatalf("prepare after rollback: %v", err)
+	}
+	if got := preparedAgain.GetCacheIdentity().GetPackageVersion(); got != "0.70.0" {
+		t.Fatalf("active rollback version = %q, want 0.70.0", got)
+	}
+
+	if _, err := preparer.RetryPreparation(context.Background(), second, platform); err != nil {
+		t.Fatalf("repair after rollback: %v", err)
+	}
+	if callCount != 3 {
+		t.Fatalf("npm calls = %d, want 3 (two prepares plus repair)", callCount)
 	}
 }
 
