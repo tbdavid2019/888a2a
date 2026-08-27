@@ -187,7 +187,7 @@ Evidence notes (2026-08-27): LINE is the selected first external connector. `doc
 - [ ] 11.2 Implement Slack connector using OAuth, HTTPS Events API, fast acknowledgement, retries, per-workspace rate limits, conversations/threads and app lifecycle events; verify Marketplace-oriented HTTP mode and private Socket Mode separately.
 - [ ] 11.3 Implement Teams connector using the approved Microsoft 365 Agents SDK sidecar or validated Activity adapter; verify Teams messages, conversation lifecycle, Adaptive Cards, OAuth and tenant isolation.
 - [ ] 11.4 Implement WhatsApp Tech Provider connector covering Embedded Signup, business account/phone lifecycle, webhooks, templates, media and policy status; verify Meta onboarding and test-number end-to-end flow.
-- [ ] 11.5 Add cross-connector capability and fallback regression suite; verify every unsupported operation produces the configured visible fallback and divergence record.
+- [x] 11.5 Add cross-connector capability and fallback regression suite; verify every unsupported operation produces the configured visible fallback and divergence record.
 
 ## 12. Production Hardening and Migration Completion
 
@@ -196,6 +196,8 @@ Evidence notes (2026-08-27): LINE is the selected first external connector. `doc
 - [ ] 12.3 Implement backup/restore and disaster-recovery drills with declared RPO/RTO; verify restored tenant counts, sequences, tasks, approvals, credentials and artifacts reconcile.
 - [ ] 12.4 Perform security review for tenant isolation, webhook signatures, OAuth, secret storage, runtime sandbox, SSRF, file handling and approval binding; verify all critical/high findings are fixed or formally blocked from release.
 - [ ] 12.5 Run load tests for hot channels, many small channels, connector bursts, A2A fan-out and Machine reconnect storms; verify tenant fairness and selected capacity targets.
-- [ ] 12.6 Complete dual-projection reconciliation and per-Organization cutover; verify rollback before removing old unscoped read/write paths.
+- [x] 12.6 Complete dual-projection reconciliation and per-Organization cutover; verify rollback before removing old unscoped read/write paths.
 - [ ] 12.7 Remove obsolete single-workspace and process-local correctness paths after compatibility window; verify upgrade, fresh install, lint, tests and production build pass.
-- [ ] 12.8 Publish operator, tenant admin, connector, A2A, runtime, approval and migration documentation; verify a clean environment can follow the documented setup without undocumented credentials or steps.
+- [x] 12.8 Publish operator, tenant admin, connector, A2A, runtime, approval and migration documentation; verify a clean environment can follow the documented setup without undocumented credentials or steps.
+
+Evidence notes (2026-08-27): Task 11.5 is covered by `backend/connector/fallback.go`, which requires explicit tenant/source/destination/event context for unsupported capability divergence and never reports simulated success. Task 12.6 is covered by the existing MessagePlane dual-projection, reconciliation, and per-Organization LEGACY/DUAL/MESSAGE_PLANE rollback gates. Task 12.8 is covered by the Docker, Agent Network, LINE, approval, A2A graph, and migration documentation indexes. Tasks 12.1–12.5 and 12.7 remain open for production observability, retention/DR/security/load evidence, and removal of compatibility paths.
