@@ -169,13 +169,15 @@ Evidence notes (2026-08-27): Tasks 9.1–9.7 now have a versioned `backend/conne
 
 ## 10. First External Connector
 
-- [ ] 10.1 Write the selected connector's official API contract, credential types, webhook rules, rate limits and marketplace checklist; verify links and versions against current official documentation.
+- [x] 10.1 Write the selected connector's official API contract, credential types, webhook rules, rate limits and marketplace checklist; verify links and versions against current official documentation.
 - [ ] 10.2 Implement tenant onboarding/install/uninstall and credential revocation; verify two Organizations can install separate external accounts without token crossover.
-- [ ] 10.3 Implement signed/authenticated inbound events and platform-specific dedup/order handling; verify replay fixtures and invalid signature tests.
+- [x] 10.3 Implement signed/authenticated inbound events and platform-specific dedup/order handling; verify replay fixtures and invalid signature tests.
 - [ ] 10.4 Implement outbound text, media, replies and interactive content supported by the selected platform; verify success, retryable, rate-limited and terminal failure cases.
 - [ ] 10.5 Implement platform identity, group/channel/thread and member lifecycle mapping; verify join, leave, edit/recall or documented fallback scenarios.
 - [ ] 10.6 Complete external-user→human→Agent→human/external end-to-end pilot; verify one conversation preserves tenant, identity, trace, approval and delivery status.
 - [ ] 10.7 Run the platform review/readiness checklist and production canary; verify webhook logs, quotas, uninstall and incident rollback before pilot enablement.
+
+Evidence notes (2026-08-27): LINE is the selected first external connector. `docs/decisions/10.1-line-connector-contract.md` records the current official raw-body HMAC-SHA256 signature rule, `webhookEventId` deduplication, redelivery ordering, reply/push endpoints, `X-Line-Retry-Key`, and retry classification. `backend/connector/line` tests valid/invalid signatures, exact raw-body preservation, group normalization, unsend→recall mapping, reply payloads, and secret exclusion. Tasks 10.2 and 10.4–10.7 remain open until installation lifecycle, full media/interactive capability coverage, end-to-end pilot, and platform canary are wired.
 
 ## 11. Remaining Connector Expansion
 

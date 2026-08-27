@@ -28,6 +28,7 @@ This project records changes by calendar date and does not maintain release vers
 - Added the Connector inbound verification/normalization pipeline, which persists only authenticated tenant envelopes before asynchronous routing.
 - Added per-installation outbound connector delivery scheduling through the durable outbox, retry/terminal classification, explicit bridge policy, and tenant-scoped delivery-divergence records.
 - Added tenant-admin Connector Status API/UI with installation capabilities, health, pending delivery, and dead-letter projections.
+- Added the first LINE connector adapter and decision record with official raw-body signature verification, event dedup/order handling, reply/push delivery, retry keys, and safe failure classification.
 
 ## [2026-08-26]
 
