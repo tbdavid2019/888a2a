@@ -44,6 +44,63 @@ func NewOrganizationStore(db *sql.DB) *OrganizationStore {
 	return &OrganizationStore{db: db}
 }
 
+// EnsureDefaultOrganizationMembership creates the default-tenant membership
+// used by the bootstrap signup path. It is idempotent so a retry cannot create
+// duplicate membership or workspace-grant rows.
+func (s *Store) EnsureDefaultOrganizationMembership(ctx context.Context, principalID int, role string) error {
+	if principalID <= 0 {
+		return errors.New("principal id must be positive")
+	}
+	if role == "" {
+		role = "MEMBER"
+	}
+	switch role {
+	case "OWNER", "ADMIN", "MEMBER", "GUEST", "BILLING_ADMIN", "AGENT_ADMIN", "APPROVER":
+	default:
+		return errors.Errorf("invalid organization role %q", role)
+	}
+
+	tx, err := s.GetDB().BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "begin default organization membership transaction")
+	}
+	defer tx.Rollback()
+
+	var defaultWorkspaceExists bool
+	if err := tx.QueryRowContext(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM organizations o
+			JOIN workspaces w ON w.organization_id = o.id
+			WHERE o.id = 'default' AND o.state = 'ACTIVE' AND w.id = 'default'
+		)`).Scan(&defaultWorkspaceExists); err != nil {
+		return errors.Wrap(err, "check default organization workspace")
+	}
+	if !defaultWorkspaceExists {
+		return errors.New("default organization workspace is not available")
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO organization_memberships
+			(organization_id, principal_id, role, state, workspace_ids)
+		VALUES ('default', $1, $2, 'ACTIVE', ARRAY['default'])
+		ON CONFLICT (organization_id, principal_id) DO NOTHING
+	`, principalID, role); err != nil {
+		return errors.Wrap(err, "create default organization membership")
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO organization_membership_workspaces
+			(organization_id, principal_id, workspace_id)
+		VALUES ('default', $1, 'default')
+		ON CONFLICT DO NOTHING
+	`, principalID); err != nil {
+		return errors.Wrap(err, "grant default workspace membership")
+	}
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "commit default organization membership")
+	}
+	return nil
+}
+
 // GetMembership exposes the tenant membership lookup through Store so auth
 // interceptors can enforce an explicitly selected organization on the real
 // production store. The dedicated OrganizationStore remains available for

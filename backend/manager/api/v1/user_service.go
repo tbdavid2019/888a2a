@@ -463,6 +463,13 @@ func (s *UserService) CreateUser(ctx context.Context, request *connect.Request[v
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.Errorf("failed to create user, error: %v", err))
 	}
+	organizationRole := "MEMBER"
+	if firstEndUser {
+		organizationRole = "OWNER"
+	}
+	if err := s.store.EnsureDefaultOrganizationMembership(ctx, user.ID, organizationRole); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to create default organization membership"))
+	}
 
 	if firstEndUser {
 		// The first end user should be workspace admin.

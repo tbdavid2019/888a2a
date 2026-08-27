@@ -32,6 +32,13 @@ func seedUsers(ctx context.Context, pgURL string, users []seedUser) error {
 			if u.Admin {
 				admin = existing
 			}
+			role := "MEMBER"
+			if u.Admin {
+				role = "OWNER"
+			}
+			if err := st.EnsureDefaultOrganizationMembership(ctx, existing.ID, role); err != nil {
+				return fmt.Errorf("failed to ensure organization membership for %q: %w", u.Email, err)
+			}
 			continue
 		}
 
@@ -52,6 +59,13 @@ func seedUsers(ctx context.Context, pgURL string, users []seedUser) error {
 		}
 		if u.Admin {
 			admin = created
+		}
+		role := "MEMBER"
+		if u.Admin {
+			role = "OWNER"
+		}
+		if err := st.EnsureDefaultOrganizationMembership(ctx, created.ID, role); err != nil {
+			return fmt.Errorf("failed to create organization membership for %q: %w", u.Email, err)
 		}
 	}
 
