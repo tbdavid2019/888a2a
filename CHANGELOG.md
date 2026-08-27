@@ -45,6 +45,7 @@ This project records changes by calendar date and does not maintain release vers
 - Accepted the runtime approval architecture spike after fake ACP allow/deny/expiry/changed-intent tests and durable wait/resume evidence passed.
 - Accepted the canonical connector envelope prototype after LINE, Slack, and Web Widget duplicate/out-of-order fixtures converged deterministically.
 - Added an official A2A Go SDK streaming interoperability test; authenticated tenant routing remains an open spike item.
+- Added an injectable authenticated A2A tenant-routing boundary and accepted the official SDK Card/send/stream/get/list/cancel interoperability spike.
 
 ## [2026-08-26]
 

@@ -20,6 +20,9 @@ type GatewayOptions struct {
 	BaseURL         string
 	DefaultAgentID  string
 	ExecutorFactory func(agentID string) a2asrv.AgentExecutor
+	// Authenticate verifies the caller before a tenant-scoped task operation is
+	// forwarded. Public Agent Card requests remain available without it.
+	Authenticate func(context.Context, *http.Request, string, string) (context.Context, error)
 }
 
 type targetAgentContextKey struct{}
@@ -124,7 +127,18 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Forward request to agent REST handler
-			ctx := a2a.AttachTenant(r.Context(), tenant)
+			ctx := r.Context()
+			if g.opts.Authenticate != nil {
+				var authErr error
+				ctx, authErr = g.opts.Authenticate(ctx, r, tenant, agentID)
+				if authErr != nil {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusUnauthorized)
+					_ = json.NewEncoder(w).Encode(map[string]string{"error": "A2A authentication failed"})
+					return
+				}
+			}
+			ctx = a2a.AttachTenant(ctx, tenant)
 			ctx = context.WithValue(ctx, targetAgentContextKey{}, agentID)
 
 			reqClone := r.Clone(ctx)

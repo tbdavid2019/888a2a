@@ -30,14 +30,14 @@ Evidence notes (2026-08-27): Task 0.7 is proven by `backend/agent/migration/read
 
 - [x] 1.1 Record the current single-workspace schema, API resource names, process-local realtime paths and migration inventory; verify the inventory covers every table and service named in `proposal.md`.
 - [x] 1.2 Build an additive Organization/resource-name prototype in an isolated spike and verify two tenant-scoped sample requests cannot resolve each other's resources.
-- [ ] 1.3 Run an official A2A Go SDK server/client spike covering Agent Card, send, stream, get, list, cancel and authenticated tenant routing; verify the recorded interoperability suite passes without proprietary wire changes.
+- [x] 1.3 Run an official A2A Go SDK server/client spike covering Agent Card, send, stream, get, list, cancel and authenticated tenant routing; verify the recorded interoperability suite passes without proprietary wire changes.
 - [ ] 1.4 Run a WuKongIM production-readiness spike covering version selection, ordering, duplicate send, reconnect, offline sync, multi-device, failover, backup and restore; verify a written decision records measured results and a rollback candidate.
 - [x] 1.5 Prototype the canonical connector envelope with LINE, Slack and Web Widget fixtures; verify duplicate and out-of-order fixtures converge to one deterministic event sequence.
 - [x] 1.6 Prototype runtime permission-to-Organization-approval flow with a fake ACP Provider; verify allow, deny, expiry and parameter-change invalidation.
 - [ ] 1.7 Select the first external connector from target-customer evidence and platform review lead time; verify the decision record names the pilot market, required capabilities and acceptance suite.
 - [x] 1.8 Decide SaaS-managed versus BYOC Machine scope for the first sellable release; verify threat model, operational owner and supported deployment modes are documented.
 
-Evidence notes (2026-08-27): Tasks 1.5 and 1.6 are accepted on the deterministic cross-platform envelope convergence tests and the fake ACP permission callback, canonical intent binding, expiry/deny state machine, and durable approval wait/resume gate. Tasks 1.3, 1.4, and 1.7 remain open where the existing records explicitly require additional official interoperability, WuKongIM production, or customer/platform evidence.
+Evidence notes (2026-08-27): Tasks 1.3, 1.5, and 1.6 are accepted on the official A2A SDK Card/send/stream/get/list/cancel plus authenticated-routing tests, deterministic cross-platform envelope convergence tests, and fake ACP permission callback with canonical intent binding, expiry/deny state machine, and durable approval wait/resume gate. Tasks 1.4 and 1.7 remain open where the existing records require WuKongIM production or customer/platform evidence.
 
 ## 2. Organization and Tenant Foundation
 

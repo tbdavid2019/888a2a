@@ -12,6 +12,7 @@ import (
 	"github.com/a2aproject/a2a-go/v2/a2aclient"
 	"github.com/a2aproject/a2a-go/v2/a2asrv"
 	"github.com/a2aproject/a2a-go/v2/a2asrv/taskstore"
+	"github.com/pkg/errors"
 )
 
 func TestGateway_ProtocolVersionNegotiation(t *testing.T) {
@@ -270,5 +271,46 @@ func TestGateway_OfficialSDKStreamingAndTenantRouting(t *testing.T) {
 	}
 	if eventCount < 2 {
 		t.Fatalf("streamed event count = %d, want at least 2", eventCount)
+	}
+}
+
+func TestGateway_AuthenticatedTenantTaskRouting(t *testing.T) {
+	called := false
+	gw := NewGateway(GatewayOptions{
+		Authenticate: func(ctx context.Context, request *http.Request, tenant, agentID string) (context.Context, error) {
+			called = true
+			if request.Header.Get("Authorization") != "Bearer tenant-token" || tenant != "tenant-a" || agentID != "agent-a" {
+				return ctx, errors.New("invalid tenant credentials")
+			}
+			return ctx, nil
+		},
+	})
+	server := httptest.NewServer(gw)
+	defer server.Close()
+	unauthorized, err := http.NewRequest(http.MethodPost, server.URL+"/a2a/v1/tenant-a/agents/agent-a/tasks", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := server.Client().Do(unauthorized)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusUnauthorized || !called {
+		t.Fatalf("missing auth status=%d called=%v", response.StatusCode, called)
+	}
+	called = false
+	authorized, err := http.NewRequest(http.MethodPost, server.URL+"/a2a/v1/tenant-a/agents/agent-a/tasks", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	authorized.Header.Set("Authorization", "Bearer tenant-token")
+	response, err = server.Client().Do(authorized)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = response.Body.Close()
+	if response.StatusCode == http.StatusUnauthorized || !called {
+		t.Fatalf("authorized status=%d called=%v", response.StatusCode, called)
 	}
 }
