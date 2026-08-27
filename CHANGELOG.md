@@ -28,6 +28,7 @@
 ### Documentation
 
 - Recorded the controlled PostgreSQL backup/restore drill and its production-scope limitations.
+- Recorded the controlled WuKongIM live check and rejected the tested HTTP image until duplicate delivery is guaranteed.
 
 
 All notable changes to 888a2a are documented in this file.

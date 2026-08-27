@@ -30,9 +30,9 @@ func TestWuKongIMAdapterUsesInternalBusinessEndpoints(t *testing.T) {
 				handlerErrors <- fmt.Errorf("unexpected send request: %+v", request)
 				return
 			}
-			_, _ = w.Write([]byte(`{"message_id":42,"message_seq":7,"client_msg_no":"client-1"}`))
+			_, _ = w.Write([]byte(`{"data":{"message_id":42,"client_msg_no":"client-1"},"status":200}`))
 		case "/channel/messagesync":
-			_, _ = w.Write([]byte(`[{"message_id":42,"message_seq":7,"client_msg_no":"client-1","from_uid":"user-1","payload":"eyJ0eXBlIjoxfQ=="}]`))
+			_, _ = w.Write([]byte(`{"messages":[{"message_id":42,"message_seq":7,"client_msg_no":"client-1","from_uid":"user-1","payload":"eyJ0eXBlIjoxfQ=="}]}`))
 		case "/channel/subscriber_add":
 			_, _ = w.Write([]byte(`{"status":"ok"}`))
 		case "/readyz":

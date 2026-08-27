@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -127,6 +128,12 @@ type wuKongSendResponse struct {
 	MessageID       json.RawMessage `json:"message_id"`
 	MessageSeq      json.RawMessage `json:"message_seq"`
 	ClientMessageNo string          `json:"client_msg_no"`
+	Data            *wuKongSendData `json:"data"`
+}
+
+type wuKongSendData struct {
+	MessageID  json.RawMessage `json:"message_id"`
+	MessageSeq json.RawMessage `json:"message_seq"`
 }
 
 // Append sends one message to WuKongIM. The vendor receives base64 payloads
@@ -153,13 +160,32 @@ func (a *WuKongIMAdapter) Append(ctx context.Context, input MessageInput) (Messa
 	if err := a.postJSON(ctx, "/message/send", body, &response); err != nil {
 		return Message{}, err
 	}
-	messageID, err := rawNumberString(response.MessageID)
+	messageIDRaw := response.MessageID
+	messageSeqRaw := response.MessageSeq
+	if response.Data != nil {
+		if len(messageIDRaw) == 0 {
+			messageIDRaw = response.Data.MessageID
+		}
+		if len(messageSeqRaw) == 0 {
+			messageSeqRaw = response.Data.MessageSeq
+		}
+	}
+	messageID, err := rawNumberString(messageIDRaw)
 	if err != nil {
 		return Message{}, errors.Wrap(err, "decode WuKongIM message_id")
 	}
-	messageSeq, err := rawUint64(response.MessageSeq)
-	if err != nil {
-		return Message{}, errors.Wrap(err, "decode WuKongIM message_seq")
+	messageSeq := uint64(0)
+	if len(messageSeqRaw) > 0 {
+		messageSeq, err = rawUint64(messageSeqRaw)
+		if err != nil {
+			return Message{}, errors.Wrap(err, "decode WuKongIM message_seq")
+		}
+	}
+	if messageSeq == 0 {
+		messageSeq, err = a.findMessageSequence(ctx, input, messageID)
+		if err != nil {
+			return Message{}, errors.Wrap(err, "resolve WuKongIM message_seq")
+		}
 	}
 	if response.ClientMessageNo == "" {
 		response.ClientMessageNo = input.ClientMessageNo
@@ -207,12 +233,26 @@ func (a *WuKongIMAdapter) History(ctx context.Context, request HistoryRequest) (
 	if loginUID == "" {
 		return HistoryResponse{}, errors.New("WuKongIM history login UID is not configured")
 	}
-	var messages []wuKongHistoryMessage
+	var rawResponse json.RawMessage
 	if err := a.postJSON(ctx, "/channel/messagesync", wuKongHistoryRequest{
 		LoginUID: loginUID, ChannelID: request.ConversationID, ChannelType: a.channelType,
-		StartMessageSeq: request.After.MessageSeq + 1, Limit: request.Limit, PullMode: 0,
-	}, &messages); err != nil {
+		StartMessageSeq: request.After.MessageSeq + 1, Limit: request.Limit, PullMode: 1,
+	}, &rawResponse); err != nil {
 		return HistoryResponse{}, err
+	}
+	var messages []wuKongHistoryMessage
+	if len(rawResponse) > 0 && rawResponse[0] == '[' {
+		if err := json.Unmarshal(rawResponse, &messages); err != nil {
+			return HistoryResponse{}, errors.Wrap(err, "decode WuKongIM history list")
+		}
+	} else {
+		var envelope struct {
+			Messages []wuKongHistoryMessage `json:"messages"`
+		}
+		if err := json.Unmarshal(rawResponse, &envelope); err != nil {
+			return HistoryResponse{}, errors.Wrap(err, "decode WuKongIM history envelope")
+		}
+		messages = envelope.Messages
 	}
 	response := HistoryResponse{NextCursor: request.After}
 	for _, raw := range messages {
@@ -231,6 +271,34 @@ func (a *WuKongIMAdapter) History(ctx context.Context, request HistoryRequest) (
 		response.NextCursor = Cursor{OrganizationID: last.OrganizationID, ConversationID: last.ConversationID, MessageSeq: last.MessageSeq}
 	}
 	return response, nil
+}
+
+func (a *WuKongIMAdapter) findMessageSequence(ctx context.Context, input MessageInput, messageID string) (uint64, error) {
+	const attempts = 10
+	for attempt := 0; attempt < attempts; attempt++ {
+		history, err := a.History(ctx, HistoryRequest{
+			OrganizationID: input.OrganizationID, ConversationID: input.ConversationID,
+			Limit: 10000,
+		})
+		if err != nil {
+			return 0, err
+		}
+		for _, message := range history.Messages {
+			if message.MessageID == messageID || message.ClientMessageNo == input.ClientMessageNo {
+				return message.MessageSeq, nil
+			}
+		}
+		if attempt+1 < attempts {
+			timer := time.NewTimer(100 * time.Millisecond)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return 0, ctx.Err()
+			case <-timer.C:
+			}
+		}
+	}
+	return 0, errors.New("sent message was not returned by WuKongIM history")
 }
 
 // ProjectMembership updates channel subscribers through the internal channel
