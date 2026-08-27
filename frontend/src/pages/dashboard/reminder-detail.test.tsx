@@ -125,7 +125,9 @@ describe("reminder-detail", () => {
     expect(screen.getByText("reminders.once")).toBeInTheDocument();
     expect(screen.getByText("Alice")).toBeInTheDocument();
     expect(screen.getByText("reminders.retry-count:2")).toBeInTheDocument();
-    expect(mock.openThread).toHaveBeenCalledWith("conversations/c1", "m1");
+    await waitFor(() =>
+      expect(mock.openThread).toHaveBeenCalledWith("conversations/c1", "m1")
+    );
     const props = JSON.parse(
       screen.getByTestId("thread-panel").getAttribute("data-props") ?? "{}"
     );

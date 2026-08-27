@@ -41,6 +41,8 @@ This project records changes by calendar date and does not maintain release vers
 - Added tenant-admin connector install/uninstall RPCs with bounded credential input, encrypted vault rotation, and tenant-scoped credential revocation.
 - Added LINE typed media and validated interactive outbound payloads, retry/terminal HTTP tests, and explicit group/lifecycle mapping with documented edit fallback.
 - Added cross-connector capability fallback tests and an operations index linking deployment, Agent Network, LINE, A2A, and migration runbooks.
+- Added the dated security review covering tenant isolation, webhook signatures, vault binding, runtime sandbox, approval binding, and explicit release blockers.
+- Hardened the reminder detail test to await its asynchronous thread-opening effect under the full parallel frontend suite.
 - Added the human-facing A2A task graph/trace view with collapsible delegation descendants, status, requester/delegate, artifacts, approvals, budget, and failure details.
 - Accepted the runtime approval architecture spike after fake ACP allow/deny/expiry/changed-intent tests and durable wait/resume evidence passed.
 - Accepted the canonical connector envelope prototype after LINE, Slack, and Web Widget duplicate/out-of-order fixtures converged deterministically.
