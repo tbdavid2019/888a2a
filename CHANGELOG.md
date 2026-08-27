@@ -25,6 +25,10 @@ This project records changes by calendar date and does not maintain release vers
 
 - Fixed frontend locale key ordering so the project-rules gate passes in GitHub Actions.
 - Fixed LINE connector tests to pass explicit contexts required by the CI staticcheck gate.
+
+### Security
+
+- Bound encrypted connector credentials to their tenant and installation with AES-GCM associated data, and added explicit revoke/uninstall primitives.
 - Added the versioned Connector v1 contract and capability matrix, tenant-scoped AES-GCM credential vault with rotation metadata, and explicit external identity mappings with no display-name merging.
 - Added the Connector inbound verification/normalization pipeline, which persists only authenticated tenant envelopes before asynchronous routing.
 - Added per-installation outbound connector delivery scheduling through the durable outbox, retry/terminal classification, explicit bridge policy, and tenant-scoped delivery-divergence records.

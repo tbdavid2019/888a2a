@@ -43,7 +43,7 @@ func TestNormalizePreservesGroupAndEventIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	envelope, err := adapter.Normalize(nil, verified)
+	envelope, err := adapter.Normalize(context.Background(), verified)
 	if err != nil || envelope.ExternalConversation != "group-1" || envelope.ExternalEventID != "event-1" || envelope.Text != "hello" {
 		t.Fatalf("envelope = %+v, err = %v", envelope, err)
 	}

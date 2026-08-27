@@ -72,6 +72,16 @@ func (s *Store) ListConnectorInstallations(ctx context.Context, organizationID s
 	return result, nil
 }
 
+// DeleteConnectorInstallation is the idempotent metadata half of uninstall.
+// Credential revocation is performed by connectorvault.Revoke first.
+func (s *Store) DeleteConnectorInstallation(ctx context.Context, organizationID, installationID string) error {
+	if organizationID == "" || installationID == "" {
+		return errors.New("connector uninstall organization and installation_id are required")
+	}
+	_, err := s.GetDB().ExecContext(ctx, `DELETE FROM a2a888_connector_installation WHERE organization_id=$1 AND installation_id=$2`, organizationID, installationID)
+	return errors.Wrap(err, "delete connector installation")
+}
+
 func connectorHealthDB(value a2a888.ConnectorHealth) string {
 	switch value {
 	case a2a888.ConnectorHealth_CONNECTOR_HEALTH_HEALTHY:

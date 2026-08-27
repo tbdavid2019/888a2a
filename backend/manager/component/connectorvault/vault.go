@@ -34,7 +34,8 @@ func (v *Vault) Put(ctx context.Context, organizationID, installationID string, 
 	if len(plaintext) == 0 {
 		return errors.New("connector credential cannot be empty")
 	}
-	ciphertext, err := encrypt(v.key, plaintext)
+	aad := []byte(organizationID + "\x00" + installationID)
+	ciphertext, err := encrypt(v.key, plaintext, aad)
 	if err != nil {
 		return err
 	}
@@ -58,11 +59,22 @@ func (v *Vault) Get(ctx context.Context, organizationID, installationID string) 
 	if keyVersion != v.keyVersion {
 		return nil, errors.Errorf("connector credential key version %q requires rotation", keyVersion)
 	}
-	return decrypt(v.key, ciphertext)
+	return decrypt(v.key, ciphertext, []byte(organizationID+"\x00"+installationID))
 }
 
 func (v *Vault) Rotate(ctx context.Context, organizationID, installationID string, plaintext []byte) error {
 	return v.Put(ctx, organizationID, installationID, plaintext)
+}
+
+// Revoke permanently removes one installation's encrypted credential. The
+// installation status is managed separately so uninstall can be retried
+// safely without ever returning the former secret.
+func (v *Vault) Revoke(ctx context.Context, organizationID, installationID string) error {
+	if err := validateIdentity(organizationID, installationID); err != nil {
+		return err
+	}
+	_, err := v.db.ExecContext(ctx, `DELETE FROM a2a888_connector_credential WHERE organization_id=$1 AND installation_id=$2`, organizationID, installationID)
+	return errors.Wrap(err, "revoke connector credential")
 }
 
 func validateIdentity(organizationID, installationID string) error {
@@ -72,7 +84,7 @@ func validateIdentity(organizationID, installationID string) error {
 	return nil
 }
 
-func encrypt(key, plaintext []byte) ([]byte, error) {
+func encrypt(key, plaintext, aad []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, errors.Wrap(err, "create connector credential cipher")
@@ -85,10 +97,10 @@ func encrypt(key, plaintext []byte) ([]byte, error) {
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, errors.Wrap(err, "generate connector credential nonce")
 	}
-	return gcm.Seal(nonce, nonce, plaintext, nil), nil
+	return gcm.Seal(nonce, nonce, plaintext, aad), nil
 }
 
-func decrypt(key, ciphertext []byte) ([]byte, error) {
+func decrypt(key, ciphertext, aad []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, errors.Wrap(err, "create connector credential cipher")
@@ -101,7 +113,7 @@ func decrypt(key, ciphertext []byte) ([]byte, error) {
 		return nil, fmt.Errorf("connector credential ciphertext is truncated")
 	}
 	nonce, payload := ciphertext[:gcm.NonceSize()], ciphertext[gcm.NonceSize():]
-	plaintext, err := gcm.Open(nil, nonce, payload, nil)
+	plaintext, err := gcm.Open(nil, nonce, payload, aad)
 	if err != nil {
 		return nil, errors.Wrap(err, "decrypt connector credential")
 	}
