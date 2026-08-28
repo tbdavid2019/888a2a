@@ -4,6 +4,9 @@
 
 ### Added
 
+- Added the Open Agent Hub modes change specification for closed, bootstrap-token open, and explicitly confirmed public registration.
+- Added Hub mode protobuf contracts and fail-closed configuration parsing with closed mode as the default.
+
 - Added a conservative Provider catalog covering the requested local Agent families, explicit transport metadata, readiness states, aliases, and installation hints.
 - Added a Machine UI Provider catalog grid that distinguishes verified runtimes from bridge-required, Pull-only, and pending providers.
 - Added sanitized Provider catalog projections that preserve transport boundaries without exposing local paths, native sessions, or secrets.

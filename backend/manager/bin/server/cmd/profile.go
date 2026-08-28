@@ -8,6 +8,7 @@ import (
 )
 
 func getBaseProfile(_ string) *config.Profile {
+	hubConfig, hubErr := config.LoadHubConfig()
 	cfg := &config.Profile{
 		Mode:           common.ReleaseModeProd,
 		Port:           flags.port,
@@ -18,6 +19,8 @@ func getBaseProfile(_ string) *config.Profile {
 		PprofAddr:      flags.pprofAddr,
 		AllowedOrigins: splitCSV(config.ReadEnv("A2A888_ALLOWED_ORIGINS")),
 		CookieSameSite: config.ReadEnv("A2A888_COOKIE_SAMESITE"),
+		Hub:            hubConfig,
+		HubConfigError: hubErr,
 	}
 
 	if flags.tlsHost != "" {

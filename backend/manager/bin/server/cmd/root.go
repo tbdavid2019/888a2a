@@ -109,6 +109,10 @@ func start() {
 	log.SetSlog()
 
 	profile := activeProfile(flags.dataDir)
+	if profile.HubConfigError != nil {
+		slog.Error("invalid Hub configuration", log.WithError(profile.HubConfigError))
+		return
+	}
 
 	if profile.PgURL == "" {
 		slog.Error("must set PG_URL environment variable")

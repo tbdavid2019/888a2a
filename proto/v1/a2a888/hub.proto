@@ -1,0 +1,156 @@
+syntax = "proto3";
+
+package a2a888.v1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/tbdavid2019/888a2a/backend/generated-go/a2a888";
+
+// HubMode controls how external Agents are enrolled.
+enum HubMode {
+  HUB_MODE_UNSPECIFIED = 0;
+  HUB_MODE_CLOSED = 1;
+  HUB_MODE_OPEN = 2;
+  HUB_MODE_PUBLIC = 3;
+}
+
+// HubAgentState is the lifecycle state of a Hub-registered Agent.
+enum HubAgentState {
+  HUB_AGENT_STATE_UNSPECIFIED = 0;
+  HUB_AGENT_STATE_PENDING = 1;
+  HUB_AGENT_STATE_ONLINE = 2;
+  HUB_AGENT_STATE_OFFLINE = 3;
+  HUB_AGENT_STATE_REVOKED = 4;
+  HUB_AGENT_STATE_EXPIRED = 5;
+}
+
+message HubPolicy {
+  HubMode mode = 1;
+  string hub_id = 2;
+  google.protobuf.Duration registration_ttl = 3;
+  google.protobuf.Duration peer_lease = 4;
+  int32 max_registered_agents = 5;
+  int32 max_tasks_per_minute = 6;
+  int32 max_concurrent_tasks = 7;
+  int64 max_payload_bytes = 8;
+  bool registration_enabled = 9;
+}
+
+message AgentDeclaration {
+  string display_name = 1;
+  string provider_family = 2;
+  string transport_id = 3;
+  repeated string capabilities = 4;
+  string agent_card_json = 5;
+  string registration_idempotency_key = 6;
+}
+
+message HubAgentIdentity {
+  string hub_id = 1;
+  string agent_id = 2;
+  string agent_token = 3;
+  string connect_url = 4;
+  google.protobuf.Timestamp expires_at = 5;
+}
+
+message RegisterHubAgentRequest {
+  string bootstrap_token = 1;
+  AgentDeclaration declaration = 2;
+}
+
+message RegisterHubAgentResponse {
+  HubAgentIdentity identity = 1;
+  HubPolicy policy = 2;
+}
+
+message HubAgent {
+  string hub_id = 1;
+  string agent_id = 2;
+  string display_name = 3;
+  string provider_family = 4;
+  string transport_id = 5;
+  repeated string capabilities = 6;
+  HubAgentState state = 7;
+  google.protobuf.Timestamp last_seen_at = 8;
+  google.protobuf.Timestamp expires_at = 9;
+  bool automatic_execution = 10;
+}
+
+message HeartbeatHubAgentRequest {
+  string agent_id = 1;
+}
+
+message HeartbeatHubAgentResponse {
+  HubAgent agent = 1;
+}
+
+message DisconnectHubAgentRequest {
+  string agent_id = 1;
+}
+
+message RevokeHubAgentRequest {
+  string agent_id = 1;
+  string reason = 2;
+}
+
+message GetHubAgentRequest {
+  string agent_id = 1;
+}
+
+message ListHubAgentsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message ListHubAgentsResponse {
+  repeated HubAgent agents = 1;
+  string next_page_token = 2;
+}
+
+message SendPeerTaskRequest {
+  string target_agent_id = 1;
+  string context_id = 2;
+  string idempotency_key = 3;
+  string message = 4;
+  int64 max_output_bytes = 5;
+}
+
+message SendPeerTaskResponse {
+  string task_id = 1;
+  string context_id = 2;
+  string target_agent_id = 3;
+  string state = 4;
+  string delivery_outcome = 5;
+}
+
+message PollHubInboxRequest {
+  string agent_id = 1;
+  uint64 after_sequence = 2;
+  int32 wait_ms = 3;
+}
+
+message HubInboxItem {
+  uint64 sequence = 1;
+  string task_id = 2;
+  string context_id = 3;
+  string requester_agent_id = 4;
+  string message = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message PollHubInboxResponse {
+  repeated HubInboxItem items = 1;
+  uint64 next_sequence = 2;
+}
+
+service AgentHubService {
+  rpc RegisterAgent(RegisterHubAgentRequest) returns (RegisterHubAgentResponse);
+  rpc Heartbeat(HeartbeatHubAgentRequest) returns (HeartbeatHubAgentResponse);
+  rpc Disconnect(DisconnectHubAgentRequest) returns (HubAgent);
+  rpc RevokeAgent(RevokeHubAgentRequest) returns (HubAgent);
+  rpc GetAgent(GetHubAgentRequest) returns (HubAgent);
+  rpc ListAgents(ListHubAgentsRequest) returns (ListHubAgentsResponse);
+  rpc SendPeerTask(SendPeerTaskRequest) returns (SendPeerTaskResponse);
+  rpc PollInbox(PollHubInboxRequest) returns (PollHubInboxResponse);
+}

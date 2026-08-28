@@ -16,6 +16,13 @@ type Profile struct {
 
 	ExternalURL string
 
+	// Hub controls external Agent enrollment. Its zero value is not used by
+	// the server; command startup loads and validates it from A2A888_* env vars.
+	Hub HubConfig
+	// HubConfigError is populated when startup configuration is invalid so the
+	// command can fail closed before opening the HTTP listener.
+	HubConfigError error
+
 	// TLS config
 	TLSDomain  string
 	TLSCertDir string
