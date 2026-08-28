@@ -19,9 +19,9 @@
 
 ## 4. A2A integration
 
-- [ ] 4.1 Connect A2A task execution to the selected AgentBridge while preserving durable task state, correlation, idempotency, and terminal event ordering; verify fake bridge A2A send/stream/get/cancel/subscribe flows.
+- [x] 4.1 Connect A2A task execution to the selected AgentBridge while preserving durable task state, correlation, idempotency, and terminal event ordering; verify fake bridge A2A send/stream/get/cancel/subscribe flows.
 - [x] 4.2 Project bridge readiness and supported capabilities into public and authenticated Agent Cards; verify non-ready transports are not advertised as executable.
-- [ ] 4.3 Add external A2A client interoperability gates for Agent Card, send, stream, get, list, cancel, and subscribe; verify cross-tenant credentials cannot enumerate or execute another tenant's work.
+- [x] 4.3 Add external A2A client interoperability gates for Agent Card, send, stream, get, list, cancel, and subscribe; verify cross-tenant credentials cannot enumerate or execute another tenant's work.
 
 ## 5. Operator UI and evidence
 

@@ -352,6 +352,34 @@ func TestGatewayExecutesConfiguredBridgeThroughOfficialClient(t *testing.T) {
 	}
 }
 
+func TestGatewayRejectsCrossTenantCredentialsBeforeTaskExecution(t *testing.T) {
+	called := 0
+	gateway := NewGateway(GatewayOptions{
+		Authenticate: func(ctx context.Context, request *http.Request, tenant, _ string) (context.Context, error) {
+			called++
+			if request.Header.Get("X-Organization-ID") != tenant {
+				return nil, errors.New("organization credential does not match route")
+			}
+			return ctx, nil
+		},
+	})
+	server := httptest.NewServer(gateway)
+	defer server.Close()
+	request, err := http.NewRequest(http.MethodGet, server.URL+"/a2a/v1/tenant-a/agents/agent-a/tasks", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("X-Organization-ID", "tenant-b")
+	response, err := server.Client().Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusUnauthorized || called != 1 {
+		t.Fatalf("cross-tenant list status=%d auth-calls=%d, want 401/1", response.StatusCode, called)
+	}
+}
+
 func TestGateway_AuthenticatedTenantTaskRouting(t *testing.T) {
 	called := false
 	gw := NewGateway(GatewayOptions{

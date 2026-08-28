@@ -4,18 +4,31 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
 
 type fakeBridgeSession struct {
-	result    BridgeResult
-	invokeErr error
-	cancelled bool
-	stopped   bool
+	result     BridgeResult
+	invokeErr  error
+	cancelled  bool
+	stopped    bool
+	release    <-chan struct{}
+	cancelCh   chan struct{}
+	cancelOnce sync.Once
 }
 
-func (s *fakeBridgeSession) Invoke(_ context.Context, _ BridgeRequest, emit func(BridgeEvent) error) (BridgeResult, error) {
+func (s *fakeBridgeSession) Invoke(ctx context.Context, _ BridgeRequest, emit func(BridgeEvent) error) (BridgeResult, error) {
+	if s.release != nil {
+		select {
+		case <-s.release:
+		case <-s.cancelCh:
+			return BridgeResult{Outcome: DeliveryOutcomeUnknown, Reason: "fake session canceled"}, context.Canceled
+		case <-ctx.Done():
+			return BridgeResult{Outcome: DeliveryOutcomeUnknown, Reason: "fake context canceled"}, ctx.Err()
+		}
+	}
 	for _, event := range s.result.Events {
 		if err := emit(event); err != nil {
 			return BridgeResult{Outcome: DeliveryOutcomeUnknown, Reason: "stream consumer failed"}, err
@@ -26,6 +39,9 @@ func (s *fakeBridgeSession) Invoke(_ context.Context, _ BridgeRequest, emit func
 
 func (s *fakeBridgeSession) Cancel(context.Context) error {
 	s.cancelled = true
+	if s.cancelCh != nil {
+		s.cancelOnce.Do(func() { close(s.cancelCh) })
+	}
 	return nil
 }
 
@@ -35,9 +51,13 @@ func (s *fakeBridgeSession) Stop(context.Context) error {
 }
 
 type fakeBridge struct {
-	preflightErr error
-	startErr     error
-	session      *fakeBridgeSession
+	preflightErr   error
+	startErr       error
+	session        *fakeBridgeSession
+	waitForRelease bool
+	release        chan struct{}
+	releaseOnce    sync.Once
+	mu             sync.Mutex
 }
 
 func (*fakeBridge) ID() string                                       { return "fake" }
@@ -46,10 +66,29 @@ func (f *fakeBridge) Start(context.Context, BridgeRequest) (BridgeSession, error
 	if f.startErr != nil {
 		return nil, f.startErr
 	}
+	if f.waitForRelease {
+		f.mu.Lock()
+		if f.release == nil {
+			f.release = make(chan struct{})
+		}
+		release := f.release
+		f.mu.Unlock()
+		return &fakeBridgeSession{result: f.session.result, release: release, cancelCh: make(chan struct{})}, nil
+	}
 	return f.session, nil
 }
 func (*fakeBridge) Health(context.Context) (BridgeHealth, error) {
 	return BridgeHealth{Ready: true}, nil
+}
+
+func (f *fakeBridge) Release() {
+	f.mu.Lock()
+	if f.release == nil {
+		f.release = make(chan struct{})
+	}
+	release := f.release
+	f.mu.Unlock()
+	f.releaseOnce.Do(func() { close(release) })
 }
 
 func validBridgeRequest() BridgeRequest {

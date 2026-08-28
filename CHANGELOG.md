@@ -19,6 +19,7 @@
 - Added an opt-in Codex ACP v2 real-runtime gate that uses the local app-server without exposing credentials.
 - Added provider compatibility evidence documentation for Codex, OpenClaw, agy, and Pull-only catalog families.
 - Added bridge-backed A2A client coverage for send, stream, get, list, and cancel flows.
+- Added active A2A subscription coverage and a cross-tenant credential rejection gate.
 
 ### Changed
 
