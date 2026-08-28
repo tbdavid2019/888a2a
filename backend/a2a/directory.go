@@ -61,9 +61,10 @@ type AgentDirectoryStore interface {
 
 // DirectoryService handles discovery and directory queries for peer agents.
 type DirectoryService struct {
-	store   AgentDirectoryStore
-	baseURL string
-	skills  map[string][]SkillInput
+	store         AgentDirectoryStore
+	baseURL       string
+	skills        map[string][]SkillInput
+	runtimeStatus func(context.Context, string) ProviderRuntimeStatus
 }
 
 type requestBaseURLContextKey struct{}
@@ -75,6 +76,12 @@ func NewDirectoryService(store AgentDirectoryStore, baseURL string, skills map[s
 		baseURL: baseURL,
 		skills:  skills,
 	}
+}
+
+// SetRuntimeStatusProvider supplies bridge evidence for Agent Card
+// projection. A nil provider keeps cards conservative and non-automatic.
+func (d *DirectoryService) SetRuntimeStatusProvider(provider func(context.Context, string) ProviderRuntimeStatus) {
+	d.runtimeStatus = provider
 }
 
 // ComputeReadiness determines the operational readiness of an agent.
@@ -141,6 +148,7 @@ func (d *DirectoryService) ListPeers(ctx context.Context, caller CallerPrincipal
 			Skills:  agentSkills,
 			BaseURL: baseURL,
 			Tenant:  tenant,
+			Runtime: d.getRuntimeStatus(ctx, ag.ResourceID),
 		})
 		if err != nil {
 			continue
@@ -193,6 +201,7 @@ func (d *DirectoryService) GetPeer(ctx context.Context, caller CallerPrincipal, 
 		Skills:  agentSkills,
 		BaseURL: baseURL,
 		Tenant:  tenant,
+		Runtime: d.getRuntimeStatus(ctx, agent.ResourceID),
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "project peer agent card")
@@ -205,6 +214,13 @@ func (d *DirectoryService) GetPeer(ctx context.Context, caller CallerPrincipal, 
 		Enabled:         agent.Enabled,
 		Card:            card,
 	}, nil
+}
+
+func (d *DirectoryService) getRuntimeStatus(ctx context.Context, agentID string) ProviderRuntimeStatus {
+	if d.runtimeStatus == nil {
+		return ProviderRuntimeStatus{Readiness: "UNVERIFIED"}
+	}
+	return d.runtimeStatus(ctx, agentID)
 }
 
 func matchesSkillFilter(card *a2a.AgentCard, filter PeerFilter) bool {

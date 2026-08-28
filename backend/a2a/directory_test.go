@@ -2,6 +2,7 @@ package a2a
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	models "github.com/tbdavid2019/888a2a/backend/generated-go/store"
@@ -138,5 +139,23 @@ func TestDirectoryService_ListPeers_FilteringAndReadiness(t *testing.T) {
 	}
 	if len(skillPeers) != 1 || skillPeers[0].AgentResourceID != "agent-review" {
 		t.Fatalf("expected only agent-review matching skill tag 'security', got %d peers", len(skillPeers))
+	}
+}
+
+func TestDirectoryServiceProjectsProviderReadinessIntoCard(t *testing.T) {
+	agent := &store.AgentMessage{
+		ID: 1, ResourceID: "agent-codex", Name: "Codex Agent", Enabled: true,
+		Status: &models.AgentStatus{State: models.AgentStatus_ONLINE},
+	}
+	svc := NewDirectoryService(&fakeDirectoryStore{agents: []*store.AgentMessage{agent}}, "https://api.888a2a.local", nil)
+	svc.SetRuntimeStatusProvider(func(context.Context, string) ProviderRuntimeStatus {
+		return ProviderRuntimeStatus{ProviderID: "codex", TransportID: "codex-acp2", Readiness: "BRIDGE_REQUIRED"}
+	})
+	peers, err := svc.ListPeers(context.Background(), &fakeCaller{id: "caller", authenticated: true}, "tenant-a", PeerFilter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(peers) != 1 || strings.Contains(peers[0].Card.Description, "Automatic execution is enabled") || !strings.Contains(peers[0].Card.Description, "BRIDGE_REQUIRED") {
+		t.Fatalf("provider readiness card = %+v", peers)
 	}
 }

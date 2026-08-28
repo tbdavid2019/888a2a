@@ -1,6 +1,7 @@
 package a2a
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/tbdavid2019/888a2a/backend/generated-go/a2a888"
@@ -56,6 +57,7 @@ func TestProjectAgentCard(t *testing.T) {
 		Skills:   skills,
 		BaseURL:  "https://api.888a2a.local",
 		Tenant:   "tenant-alpha",
+		Runtime:  ProviderRuntimeStatus{ProviderID: "opencode", TransportID: "opencode-acp", Readiness: "READY", Automatic: true, Capabilities: []string{"push", "stream"}},
 	})
 	if err != nil {
 		t.Fatalf("ProjectAgentCard failed: %v", err)
@@ -64,8 +66,8 @@ func TestProjectAgentCard(t *testing.T) {
 	if card.Name != "Code Review Specialist" {
 		t.Errorf("expected name %q, got %q", "Code Review Specialist", card.Name)
 	}
-	if card.Description != agent.Description {
-		t.Errorf("expected description %q, got %q", agent.Description, card.Description)
+	if !strings.HasPrefix(card.Description, agent.Description) || !strings.Contains(card.Description, "opencode-acp") {
+		t.Errorf("expected provider runtime description, got %q", card.Description)
 	}
 	if !card.Capabilities.Streaming {
 		t.Error("expected streaming capability to be true")
@@ -84,5 +86,40 @@ func TestProjectAgentCard(t *testing.T) {
 	}
 	if card.Skills[0].ID != "skill-review" {
 		t.Errorf("expected skill ID 'skill-review', got %q", card.Skills[0].ID)
+	}
+}
+
+func TestProjectAgentCardDoesNotAdvertiseUnverifiedRuntimeAsAutomatic(t *testing.T) {
+	card, err := ProjectAgentCard(ProjectAgentCardOptions{
+		Agent:    &store.AgentMessage{ResourceID: "agent-pending", Name: "Pending Agent", Enabled: true},
+		Manifest: &a2a888.ProviderManifest{Capabilities: &a2a888.ProviderCapabilities{Streaming: true}},
+		BaseURL:  "https://api.888a2a.local", Tenant: "tenant-alpha",
+		Runtime: ProviderRuntimeStatus{ProviderID: "codex", TransportID: "codex-acp2", Readiness: "BRIDGE_REQUIRED"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if card.Capabilities.Streaming {
+		t.Fatal("unverified runtime must not advertise streaming execution")
+	}
+	if strings.Contains(card.Description, "Automatic execution is enabled") || !strings.Contains(card.Description, "BRIDGE_REQUIRED") {
+		t.Fatalf("unverified runtime description = %q", card.Description)
+	}
+}
+
+func TestProjectAgentCardSanitizesRuntimeLabels(t *testing.T) {
+	card, err := ProjectAgentCard(ProjectAgentCardOptions{
+		Agent:   &store.AgentMessage{ResourceID: "agent-safe", Name: "Safe", Enabled: true},
+		BaseURL: "https://api.888a2a.local", Tenant: "tenant-alpha",
+		Runtime: ProviderRuntimeStatus{ProviderID: "codex\nsecret", TransportID: "cli/path", Readiness: "READY\r\n"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(card.Description, "codex\nsecret") || strings.Contains(card.Description, "cli/path") {
+		t.Fatalf("runtime labels were not sanitized: %q", card.Description)
+	}
+	if !strings.Contains(card.Description, "Provider runtime: READY") || !strings.Contains(card.Description, "codexsecret, clipath") {
+		t.Fatalf("sanitized runtime description = %q", card.Description)
 	}
 }

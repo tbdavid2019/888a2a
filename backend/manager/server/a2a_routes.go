@@ -30,6 +30,23 @@ func registerA2ARoutes(e *echo.Echo, stores *store.Store, profileExternalURL str
 	eventManager := a2agateway.NewEventManager(stores)
 	taskStore := a2agateway.NewDurableTaskStore(stores, eventManager)
 	directory := a2agateway.NewDirectoryService(stores, strings.TrimRight(profileExternalURL, "/"), nil)
+	directory.SetRuntimeStatusProvider(func(ctx context.Context, agentID string) a2agateway.ProviderRuntimeStatus {
+		bridge, err := configuredA2ABridge(agentID)
+		if err != nil {
+			return a2agateway.ProviderRuntimeStatus{Readiness: "BRIDGE_REQUIRED"}
+		}
+		health, err := bridge.Health(ctx)
+		if err != nil || !health.Ready {
+			return a2agateway.ProviderRuntimeStatus{ProviderID: strings.TrimSpace(os.Getenv("A2A888_A2A_BRIDGE_PROVIDER")), Readiness: "UNAVAILABLE"}
+		}
+		return a2agateway.ProviderRuntimeStatus{
+			ProviderID:   strings.TrimSpace(os.Getenv("A2A888_A2A_BRIDGE_PROVIDER")),
+			TransportID:  bridge.ID(),
+			Readiness:    "READY",
+			Automatic:    true,
+			Capabilities: []string{"push", "stream", "cancel"},
+		}
+	})
 	gateway := a2agateway.NewGateway(a2agateway.GatewayOptions{
 		TaskStore:    taskStore,
 		EventManager: eventManager,

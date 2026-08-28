@@ -15,12 +15,12 @@
 - [ ] 3.1 Adapt the existing Codex ACP v2 thread executor as an explicit A2A bridge; verify tenant/context/turn propagation and run the opt-in real Codex gate when local `codex app-server` and `CODEX_HOME` are available.
 - [ ] 3.2 Implement an authenticated loopback OpenClaw Gateway bridge using only documented Gateway/ACP surfaces; verify endpoint allowlisting, auth failure, bounded request/response, and opt-in live health/turn tests.
 - [ ] 3.3 Implement a bounded agy/Antigravity CLI/MCP bridge; verify argv construction, workspace confinement, timeout, output parsing, and opt-in local smoke test without exposing credentials.
-- [ ] 3.4 Register Pull-only or bridge-required fallbacks for the remaining catalog providers; verify detected binaries cannot be selected for automatic execution without transport evidence.
+- [x] 3.4 Register Pull-only or bridge-required fallbacks for the remaining catalog providers; verify detected binaries cannot be selected for automatic execution without transport evidence.
 
 ## 4. A2A integration
 
 - [ ] 4.1 Connect A2A task execution to the selected AgentBridge while preserving durable task state, correlation, idempotency, and terminal event ordering; verify fake bridge A2A send/stream/get/cancel/subscribe flows.
-- [ ] 4.2 Project bridge readiness and supported capabilities into public and authenticated Agent Cards; verify non-ready transports are not advertised as executable.
+- [x] 4.2 Project bridge readiness and supported capabilities into public and authenticated Agent Cards; verify non-ready transports are not advertised as executable.
 - [ ] 4.3 Add external A2A client interoperability gates for Agent Card, send, stream, get, list, cancel, and subscribe; verify cross-tenant credentials cannot enumerate or execute another tenant's work.
 
 ## 5. Operator UI and evidence

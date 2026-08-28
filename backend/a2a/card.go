@@ -31,6 +31,17 @@ type ProjectAgentCardOptions struct {
 	Skills   []SkillInput
 	BaseURL  string
 	Tenant   string
+	Runtime  ProviderRuntimeStatus
+}
+
+// ProviderRuntimeStatus is the safe provider evidence projected into an Agent
+// Card. It contains no executable path, credential, or native session ID.
+type ProviderRuntimeStatus struct {
+	ProviderID   string
+	TransportID  string
+	Readiness    string
+	Automatic    bool
+	Capabilities []string
 }
 
 // ProjectAgentCard builds a standard A2A 1.0 AgentCard from 888a2a agent metadata,
@@ -66,13 +77,13 @@ func ProjectAgentCard(opts ProjectAgentCardOptions) (*a2a.AgentCard, error) {
 
 	card := &a2a.AgentCard{
 		Name:        name,
-		Description: opts.Agent.Description,
+		Description: providerCardDescription(opts.Agent.Description, opts.Runtime),
 		Version:     ProtocolVersion1_0,
 		SupportedInterfaces: []*a2a.AgentInterface{
 			a2a.NewAgentInterface(interfaceURL, a2a.TransportProtocolHTTPJSON),
 		},
 		Capabilities: a2a.AgentCapabilities{
-			Streaming:         streaming,
+			Streaming:         streaming && opts.Runtime.Automatic,
 			ExtendedAgentCard: true,
 		},
 		DefaultInputModes:  []string{"text/plain", "application/json"},
@@ -118,4 +129,42 @@ func ProjectAgentCard(opts ProjectAgentCardOptions) (*a2a.AgentCard, error) {
 	card.Skills = visibleSkills
 
 	return card, nil
+}
+
+func providerCardDescription(description string, runtime ProviderRuntimeStatus) string {
+	status := safeCardLabel(runtime.Readiness)
+	if status == "" {
+		status = "UNVERIFIED"
+	}
+	detail := "Provider runtime: " + status
+	providerID := safeCardLabel(runtime.ProviderID)
+	transportID := safeCardLabel(runtime.TransportID)
+	if providerID != "" {
+		detail += " (" + providerID
+		if transportID != "" {
+			detail += ", " + transportID
+		}
+		detail += ")"
+	}
+	if !runtime.Automatic {
+		detail += ". Automatic execution is disabled."
+	}
+	if strings.TrimSpace(description) == "" {
+		return detail
+	}
+	return strings.TrimSpace(description) + "\n\n" + detail
+}
+
+func safeCardLabel(value string) string {
+	value = strings.TrimSpace(value)
+	var b strings.Builder
+	for _, r := range value {
+		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("._-", r) {
+			b.WriteRune(r)
+		}
+		if b.Len() == 128 {
+			break
+		}
+	}
+	return b.String()
 }
