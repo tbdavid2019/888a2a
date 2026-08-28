@@ -25,7 +25,9 @@ func TestBindingRegistryScopesAndStopsBindings(t *testing.T) {
 	if _, ok := registry.Get(binding.BindingID, request.OrganizationID, request.CallerID); !ok {
 		t.Fatal("matching binding lookup must succeed")
 	}
-	if !registry.Stop(binding.BindingID, request.OrganizationID) || !registry.Stop(binding.BindingID, request.OrganizationID) {
+	firstStop := registry.Stop(binding.BindingID, request.OrganizationID)
+	secondStop := registry.Stop(binding.BindingID, request.OrganizationID)
+	if !firstStop || !secondStop {
 		t.Fatal("stopping a binding must be idempotent")
 	}
 	if _, ok := registry.Get(binding.BindingID, request.OrganizationID, request.CallerID); ok {
