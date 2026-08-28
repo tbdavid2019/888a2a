@@ -125,6 +125,11 @@ func sanitizeCatalogText(value string) string {
 	return value
 }
 
+// SanitizeCatalogText is the boundary helper for machine and manager
+// projections. Discovery errors can contain local paths or credential-shaped
+// strings; those details must not cross the provider status API.
+func SanitizeCatalogText(value string) string { return sanitizeCatalogText(value) }
+
 func nonAutomaticTransport(transports []CatalogTransport) (CatalogTransport, bool) {
 	for _, candidate := range transports {
 		if !candidate.AutoEnabled {

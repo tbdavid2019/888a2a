@@ -9,6 +9,7 @@ import (
 
 	"github.com/tbdavid2019/888a2a/backend/agent/executor"
 	"github.com/tbdavid2019/888a2a/backend/agent/pi"
+	"github.com/tbdavid2019/888a2a/backend/agent/provider"
 	"github.com/tbdavid2019/888a2a/backend/common"
 	storepb "github.com/tbdavid2019/888a2a/backend/generated-go/store"
 	v1pb "github.com/tbdavid2019/888a2a/backend/generated-go/v1"
@@ -246,10 +247,14 @@ func convertToV1Providers(in []*storepb.AgentProviderInfo) []*v1pb.AgentProvider
 			ProviderId:                p.ProviderId,
 			DisplayName:               p.DisplayName,
 			Version:                   p.Version,
-			ExecutablePath:            p.ExecutablePath,
 			Models:                    convertToV1Models(p.Models),
 			SupportsModelConfigOption: p.SupportsModelConfigOption,
 			DetectedAt:                p.DetectedAt,
+			RuntimeStatus:             p.RuntimeStatus,
+			CompatibilityLevel:        p.CompatibilityLevel,
+			FailureMessage:            provider.SanitizeCatalogText(p.FailureMessage),
+			PackageVersion:            p.PackageVersion,
+			ManifestDigest:            p.ManifestDigest,
 		})
 	}
 	return out
@@ -265,10 +270,14 @@ func convertToStoreProviders(in []*v1pb.AgentProviderInfo) []*storepb.AgentProvi
 			ProviderId:                p.ProviderId,
 			DisplayName:               p.DisplayName,
 			Version:                   p.Version,
-			ExecutablePath:            p.ExecutablePath,
 			Models:                    convertToStoreModels(p.Models),
 			SupportsModelConfigOption: p.SupportsModelConfigOption,
 			DetectedAt:                p.DetectedAt,
+			RuntimeStatus:             p.RuntimeStatus,
+			CompatibilityLevel:        p.CompatibilityLevel,
+			FailureMessage:            provider.SanitizeCatalogText(p.FailureMessage),
+			PackageVersion:            p.PackageVersion,
+			ManifestDigest:            p.ManifestDigest,
 		})
 	}
 	return out
