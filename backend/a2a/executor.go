@@ -27,6 +27,22 @@ func NewAgentExecutor(agentID string, handler ExecutionHandler) *AgentExecutorAd
 	}
 }
 
+// NewUnavailableAgentExecutor is the safe production fallback when no
+// provider bridge has been configured. It reports failure instead of
+// fabricating a successful provider response.
+func NewUnavailableAgentExecutor(agentID string) *AgentExecutorAdapter {
+	return NewAgentExecutor(agentID, func(_ context.Context, execCtx *a2asrv.ExecutorContext) iter.Seq2[a2a.Event, error] {
+		return func(yield func(a2a.Event, error) bool) {
+			if execCtx.StoredTask == nil && !yield(a2a.NewSubmittedTask(execCtx, execCtx.Message), nil) {
+				return
+			}
+			yield(a2a.NewStatusUpdateEvent(execCtx, a2a.TaskStateFailed,
+				a2a.NewMessageForTask(a2a.MessageRoleAgent, execCtx,
+					a2a.NewTextPart("no verified provider bridge is configured for "+agentID))), nil)
+		}
+	})
+}
+
 // Execute executes work and yields ordered A2A events.
 func (a *AgentExecutorAdapter) Execute(ctx context.Context, execCtx *a2asrv.ExecutorContext) iter.Seq2[a2a.Event, error] {
 	if a.handler != nil {

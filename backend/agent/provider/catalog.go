@@ -58,10 +58,13 @@ type CatalogProjection struct {
 	Readiness     Readiness
 	TransportID   string
 	TransportMode TransportMode
+	Automatic     bool
 	FailureReason string
 }
 
 var catalogSecretPattern = regexp.MustCompile(`(?i)(bearer\s+|token|password|secret|api[_-]?key)\s*[=:]?\s*[^\s,;]+`)
+var catalogPrivatePathPattern = regexp.MustCompile(`(?:^|[\s=(])(?:~|/[^\s,;)]+|[A-Za-z]:\\[^\s,;)]+)`)
+var catalogSessionPattern = regexp.MustCompile(`(?i)(session[_-]?id|thread[_-]?id|conversation[_-]?id)\s*[=:]\s*[^\s,;]+`)
 
 // ProjectCatalogEntry merges current host evidence into a catalog entry using
 // conservative status rules. Unknown or malformed evidence never upgrades a
@@ -73,17 +76,34 @@ func ProjectCatalogEntry(entry CatalogEntry, discovered *Discovered) CatalogProj
 		InstallHint: sanitizeCatalogText(entry.InstallHint),
 		Readiness:   entry.Readiness,
 	}
-	if len(entry.Transports) > 0 {
+	if fallback, ok := nonAutomaticTransport(entry.Transports); ok {
+		projection.TransportID = fallback.ID
+		projection.TransportMode = fallback.Mode
+	} else if len(entry.Transports) > 0 {
 		projection.TransportID = entry.Transports[0].ID
 		projection.TransportMode = entry.Transports[0].Mode
 	}
-	if discovered == nil || discovered.ProviderID == "" {
+	if discovered == nil || discovered.ProviderID == "" || NormalizeCatalogID(discovered.ProviderID) != entry.ID {
+		if projection.Readiness == ReadinessReady {
+			projection.Readiness = ReadinessPending
+		}
 		return projection
 	}
 	projection.FailureReason = sanitizeCatalogText(discovered.FailureMessage)
 	switch discovered.RuntimeStatus {
 	case "READY":
-		projection.Readiness = ReadinessReady
+		projection.Readiness = ReadinessDetectedOnly
+		if discovered.CompatibilityLevel == "FULL_LOOP_VERIFIED" {
+			for _, candidate := range entry.Transports {
+				if candidate.AutoEnabled {
+					projection.Readiness = ReadinessReady
+					projection.Automatic = true
+					projection.TransportID = candidate.ID
+					projection.TransportMode = candidate.Mode
+					break
+				}
+			}
+		}
 	case "BROKEN", "QUARANTINED", "UNAVAILABLE":
 		projection.Readiness = ReadinessUnavailable
 	case "DETECTED", "":
@@ -91,23 +111,27 @@ func ProjectCatalogEntry(entry CatalogEntry, discovered *Discovered) CatalogProj
 	default:
 		projection.Readiness = ReadinessPending
 	}
-	for _, candidate := range entry.Transports {
-		if discovered.CompatibilityLevel == "FULL_LOOP_VERIFIED" && candidate.AutoEnabled {
-			projection.TransportID = candidate.ID
-			projection.TransportMode = candidate.Mode
-			break
-		}
-	}
 	return projection
 }
 
 func sanitizeCatalogText(value string) string {
 	value = strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(value, "\r", " "), "\n", " "))
 	value = catalogSecretPattern.ReplaceAllString(value, "[redacted]")
+	value = catalogSessionPattern.ReplaceAllString(value, "[redacted]")
+	value = catalogPrivatePathPattern.ReplaceAllString(value, "[private path]")
 	if len(value) > 256 {
 		value = value[:256]
 	}
 	return value
+}
+
+func nonAutomaticTransport(transports []CatalogTransport) (CatalogTransport, bool) {
+	for _, candidate := range transports {
+		if !candidate.AutoEnabled {
+			return candidate, true
+		}
+	}
+	return CatalogTransport{}, false
 }
 
 // Catalog returns the canonical provider catalog. Entries are ordered for a

@@ -92,6 +92,9 @@ func TestGateway_ExternalSDKConnection(t *testing.T) {
 	gw := NewGateway(GatewayOptions{
 		TaskStore: taskStore,
 		BaseURL:   "http://localhost:8181",
+		ExecutorFactory: func(agentID string) a2asrv.AgentExecutor {
+			return NewAgentExecutor(agentID, nil)
+		},
 	})
 	server := httptest.NewServer(gw)
 	defer server.Close()
@@ -187,6 +190,9 @@ func TestGateway_TenantNamespacedRouting(t *testing.T) {
 	gw := NewGateway(GatewayOptions{
 		TaskStore: taskStore,
 		BaseURL:   "http://localhost:8181",
+		ExecutorFactory: func(agentID string) a2asrv.AgentExecutor {
+			return NewAgentExecutor(agentID, nil)
+		},
 	})
 	server := httptest.NewServer(gw)
 	defer server.Close()

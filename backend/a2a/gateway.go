@@ -83,7 +83,7 @@ func (g *Gateway) getOrCreateAgentHandler(tenant, agentID string) http.Handler {
 	if g.opts.ExecutorFactory != nil {
 		executor = g.opts.ExecutorFactory(agentID)
 	} else {
-		executor = NewAgentExecutor(agentID, nil)
+		executor = NewUnavailableAgentExecutor(agentID)
 	}
 
 	var srvOpts []a2asrv.RequestHandlerOption

@@ -33,3 +33,28 @@ gateway stores accepted tasks in PostgreSQL before returning the response.
 Do not expose OpenClaw `/tools/invoke` or an ACP bridge directly to the public
 internet. Keep bridge credentials in the local secret store and pass only
 tenant-scoped A2A credentials to the Manager.
+
+## Local provider bridges
+
+The Gateway only executes a local provider when an explicit bridge is
+configured. Without one, a task fails with a clear `no verified provider
+bridge is configured` result; it is never completed by a placeholder executor.
+
+The first bridges are:
+
+- Codex CLI: set `A2A888_A2A_BRIDGE_PROVIDER=codex` and an absolute
+  `A2A888_A2A_BRIDGE_WORKDIR`.
+- agy / Antigravity CLI: set `A2A888_A2A_BRIDGE_PROVIDER=agy` and an absolute
+  `A2A888_A2A_BRIDGE_WORKDIR`.
+- OpenClaw Gateway: set `A2A888_A2A_BRIDGE_PROVIDER=openclaw`,
+  `A2A888_OPENCLAW_GATEWAY_URL` to a private or loopback Gateway URL, and
+  `A2A888_OPENCLAW_GATEWAY_TOKEN`. The optional
+  `A2A888_OPENCLAW_AGENT_ID` selects the OpenClaw agent; otherwise the Gateway
+  default agent is used.
+
+`A2A888_A2A_BRIDGE_AGENT_ID` limits the bridge to one 888a2a Agent resource and
+defaults to `default`. Provider credentials remain local process configuration;
+they are not stored in the Manager database, Agent Card, task metadata, or
+logs. Codex and agy currently use the bounded CLI bridge. The native Codex ACP
+v2 session adapter remains a separate compatibility path until its full A2A
+session mapping gate passes.

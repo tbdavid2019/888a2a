@@ -12,6 +12,14 @@
 - Added an authenticated, private-host OpenClaw OpenResponses bridge with bounded response handling and truthful failure outcomes.
 - Added deterministic ACP, Gateway, and CLI bridge test doubles for cross-transport contract verification without external credentials.
 - Registered the production A2A 1.0 HTTP+JSON gateway and added the A2A client compatibility guide for Codex, OpenClaw, and Antigravity bridge integrations.
+- Added tenant-scoped bridge bindings and an A2A executor adapter for explicitly configured Codex, agy, and OpenClaw bridges.
+- Added deterministic bridge tests for delivery outcomes, duplicate tasks, cancellation, late events, stale leases, and restart behavior.
+
+### Changed
+
+- Provider catalog projections now hide private paths and session identifiers, and only report automatic readiness after full-loop verification.
+- A2A Gateway now fails closed when no verified provider bridge is configured; it no longer fabricates successful provider responses.
+- Documented local bridge environment configuration and safety boundaries.
 
 ### Fixed
 

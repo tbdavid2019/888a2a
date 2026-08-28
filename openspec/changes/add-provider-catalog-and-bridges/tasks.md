@@ -2,13 +2,13 @@
 
 - [x] 1.1 Define canonical ProviderFamily, ProviderTransport, readiness status, capability, and evidence types; verify aliases normalize to one stable identity in unit tests.
 - [x] 1.2 Add catalog entries for OpenClaw, Hermes, Codex, agy/Antigravity, Claude Code, OpenCode, Goose, Cline, Cursor, Gemini, Aider, Pi, Qwen Code, Kiro, GitHub Copilot, ZeroClaw, Grok, Reasonix, WorkBuddy, DeepSeek Harness, Qwen Office, DuMate, TraeWork, and OpenHands; verify every entry has a transport, safety state, and install hint.
-- [ ] 1.3 Add catalog sanitization and status projection; verify secrets, session IDs, private paths, and unverified readiness claims never reach API/UI output.
+- [x] 1.3 Add catalog sanitization and status projection; verify secrets, session IDs, private paths, and unverified readiness claims never reach API/UI output.
 
 ## 2. Bridge contract
 
 - [x] 2.1 Define the tenant-bound AgentBridge interface for preflight, start, invoke, stream, cancel, health, and stop; verify missing identity, deadline, output-size, and cleanup failures are fail-closed.
-- [ ] 2.2 Implement deterministic fake ACP, Gateway, and CLI bridges; verify delivered, rejected, not-delivered, outcome-unknown, idempotency, cancellation, and late-event behavior.
-- [ ] 2.3 Add bridge instance/session binding records without persisting provider secrets or native session IDs in Manager; verify restart and stale-binding behavior.
+- [x] 2.2 Implement deterministic fake ACP, Gateway, and CLI bridges; verify delivered, rejected, not-delivered, outcome-unknown, idempotency, cancellation, and late-event behavior.
+- [x] 2.3 Add bridge instance/session binding records without persisting provider secrets or native session IDs in Manager; verify restart and stale-binding behavior.
 
 ## 3. First real runtimes
 
