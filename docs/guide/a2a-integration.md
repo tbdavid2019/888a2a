@@ -5,7 +5,9 @@
 ```text
 GET  /.well-known/agent-card.json
 GET  /a2a/v1/{organization}/agents/{agent}/agent-card.json
-POST /a2a/v1/{organization}/agents/{agent}/tasks
+POST /a2a/v1/{organization}/agents/{agent}/message:send
+POST /a2a/v1/{organization}/agents/{agent}/message:stream
+GET  /a2a/v1/{organization}/agents/{agent}/tasks/{task}
 ```
 
 Agent Card requests are public. Task operations require an 888a2a access token
