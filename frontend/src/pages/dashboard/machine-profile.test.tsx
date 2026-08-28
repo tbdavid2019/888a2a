@@ -1,5 +1,11 @@
 import { Code, ConnectError } from "@connectrpc/connect";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { createMemoryRouter, Outlet, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAppStore } from "@/stores";
@@ -583,7 +589,11 @@ describe("MachineProfilePage", () => {
     await screen.findByText("machine.access-manage-title");
 
     // Pick Alice from the member picker.
-    fireEvent.click(screen.getAllByText("Alice").at(-1)!);
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: /Alice/,
+      })
+    );
     fireEvent.click(screen.getByRole("button", { name: "common.save" }));
 
     await waitFor(() => {
@@ -614,7 +624,11 @@ describe("MachineProfilePage", () => {
       await screen.findByRole("button", { name: "machine.access-manage" })
     );
     await screen.findByText("machine.access-manage-title");
-    fireEvent.click(screen.getAllByText("Alice").at(-1)!);
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: /Alice/,
+      })
+    );
     fireEvent.click(screen.getByRole("button", { name: "common.save" }));
 
     await waitFor(() => {

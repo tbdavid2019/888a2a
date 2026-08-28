@@ -158,7 +158,6 @@ func (s *codexSession) Invoke(ctx context.Context, request a2apkg.BridgeRequest,
 			}
 		case result, ok := <-resultCh:
 			if !ok {
-				resultCh = nil
 				return a2apkg.BridgeResult{Outcome: a2apkg.DeliveryOutcomeUnknown, Reason: "Codex ACP v2 returned no result"}, errors.New("Codex ACP v2 returned no result")
 			}
 			final = result

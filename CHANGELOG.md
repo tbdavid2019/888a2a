@@ -33,6 +33,8 @@
 - Fixed bridge execution to derive the organization from the authenticated caller when the A2A SDK context omits the tenant field.
 - Fixed A2A live subscriptions to register before historical replay so events published during replay are not lost.
 - Fixed Pi mid-turn process exits to use a consistent lifecycle error for fast-failure and cold-restart handling.
+- Fixed the Machine profile IAM test to select the member-picker control within its dialog instead of relying on unstable document order.
+- Fixed Codex bridge channel handling so closed result channels do not trigger a static-analysis failure.
 - Fixed Provider catalog filter translations so the frontend project-rule scanner recognizes every locale key.
 - Prevented embedded SPA fallback from swallowing A2A Agent Card and task routes.
 
