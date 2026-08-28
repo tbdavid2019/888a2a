@@ -22,9 +22,10 @@ gateway stores accepted tasks in PostgreSQL before returning the response.
   use Codex as a local Provider through its ACP runtime; making Codex an
   external A2A peer requires an explicit A2A↔ACP bridge.
 - OpenClaw's documented local integration surfaces are its Gateway WebSocket,
-  OpenResponses `/v1/responses`, and `/tools/invoke`. It does not become an
-  A2A peer merely by being installed. Use an explicit bridge or an OpenClaw
-  plugin that translates A2A HTTP+JSON to its Gateway API.
+  OpenResponses `/v1/responses`, and `/tools/invoke`. 888a2a now includes an
+  explicit authenticated OpenClaw bridge that uses `/v1/responses`; it does
+  not expose `/tools/invoke`. A live bridge check still requires a running
+  local Gateway and its operator-approved credential.
 - Antigravity (`agy`) provides CLI print/stream and MCP surfaces, not a native
   A2A HTTP server. Use an explicit bridge that owns the A2A Agent Card and
   forwards requests to `agy` with a bounded process and workspace policy.
