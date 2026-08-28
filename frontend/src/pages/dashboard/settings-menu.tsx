@@ -170,6 +170,11 @@ function useSettingsMenuItems(): MenuItem[] {
           icon: ClipboardList,
           label: t("a2a-graph.title"),
         },
+        canSettingsGet && {
+          to: "/settings/hub",
+          icon: Shield,
+          label: t("settings.hub.title"),
+        },
         canViewMachines && {
           to: "/machines",
           icon: Monitor,

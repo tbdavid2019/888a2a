@@ -1,6 +1,7 @@
 package a2a
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net"
@@ -10,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	standarda2a "github.com/a2aproject/a2a-go/v2/a2a"
 	"github.com/google/uuid"
 )
 
@@ -21,6 +23,7 @@ type HubHTTPHandler struct {
 	Registry *HubRegistry
 	Mailbox  HubMailbox
 	Rate     *HubRateLimiter
+	Shutdown func(context.Context) error
 }
 
 type HubRateLimiter struct {
@@ -78,12 +81,21 @@ func (h HubHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.register(w, r)
 	case r.Method == http.MethodGet && path == "/agents":
 		h.list(w, r)
+	case r.Method == http.MethodGet && path == "/status":
+		h.status(w, r)
 	case r.Method == http.MethodPost && path == "/admin/registration":
 		h.setRegistration(w, r)
+	case r.Method == http.MethodPost && path == "/admin/shutdown":
+		h.shutdown(w, r)
 	case r.Method == http.MethodPost && strings.HasPrefix(path, "/admin/agents/") && strings.HasSuffix(path, "/revoke"):
 		h.revoke(w, r, strings.TrimSuffix(strings.TrimPrefix(path, "/admin/agents/"), "/revoke"))
+	case r.Method == http.MethodPost && strings.HasPrefix(path, "/admin/tasks/") && strings.HasSuffix(path, "/cancel"):
+		h.cancelTask(w, r, strings.TrimSuffix(strings.TrimPrefix(path, "/admin/tasks/"), "/cancel"))
 	case r.Method == http.MethodGet && strings.HasPrefix(path, "/agents/") && strings.Count(path, "/") == 2:
 		h.lookup(w, r, strings.TrimPrefix(path, "/agents/"))
+	case r.Method == http.MethodGet && strings.HasPrefix(path, "/agents/") && strings.HasSuffix(path, "/agent-card.json"):
+		agentID := strings.TrimSuffix(strings.TrimPrefix(path, "/agents/"), "/agent-card.json")
+		h.card(w, r, agentID)
 	case r.Method == http.MethodPost && strings.HasPrefix(path, "/agents/") && strings.HasSuffix(path, "/heartbeat"):
 		agentID := strings.TrimSuffix(strings.TrimPrefix(path, "/agents/"), "/heartbeat")
 		h.heartbeat(w, r, agentID)
@@ -155,6 +167,38 @@ func (h HubHTTPHandler) revoke(w http.ResponseWriter, r *http.Request, agentID s
 	writeHubJSON(w, http.StatusOK, view)
 }
 
+func (h HubHTTPHandler) cancelTask(w http.ResponseWriter, r *http.Request, taskID string) {
+	if !h.Registry.AuthorizeOperator(bearerToken(r.Header.Get("Authorization"))) {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub operator credentials are required")
+		return
+	}
+	if h.Mailbox == nil || taskID == "" || strings.ContainsAny(taskID, "/\\") {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "task ID is invalid or Hub mailbox is unavailable")
+		return
+	}
+	if err := h.Mailbox.Cancel(r.Context(), h.Registry.policy.HubID, taskID, time.Now().UTC()); err != nil {
+		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "Hub task not found or already acknowledged")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"taskId": taskID, "state": "CANCELED"})
+}
+
+func (h HubHTTPHandler) shutdown(w http.ResponseWriter, r *http.Request) {
+	if !h.Registry.AuthorizeOperator(bearerToken(r.Header.Get("Authorization"))) {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub operator credentials are required")
+		return
+	}
+	if h.Shutdown == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "SHUTDOWN_UNAVAILABLE", "Hub shutdown control is unavailable")
+		return
+	}
+	if err := h.Shutdown(r.Context()); err != nil {
+		writeHubError(w, http.StatusServiceUnavailable, "SHUTDOWN_FAILED", "Hub shutdown failed")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"shuttingDown": true})
+}
+
 type peerTaskRequest struct {
 	ContextID      string `json:"contextId"`
 	IdempotencyKey string `json:"idempotencyKey"`
@@ -174,8 +218,11 @@ func (h HubHTTPHandler) sendPeerTask(w http.ResponseWriter, r *http.Request, tar
 	if h.Registry.policy.Mode == HubModePublic && !h.allow(w, r, "task") {
 		return
 	}
-	if target, exists := h.Registry.LookupView(targetAgentID); !exists || target.State == HubAgentStateRevoked || target.State == HubAgentStateExpired {
+	if target, exists := h.Registry.LookupView(targetAgentID); !exists {
 		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "target Hub Agent not found")
+		return
+	} else if target.State != HubAgentStateOnline {
+		writeHubError(w, http.StatusConflict, "TARGET_UNAVAILABLE", "target Hub Agent is not online")
 		return
 	}
 	var input peerTaskRequest
@@ -191,6 +238,22 @@ func (h HubHTTPHandler) sendPeerTask(w http.ResponseWriter, r *http.Request, tar
 	if input.ContextID == "" {
 		input.ContextID = uuid.NewString()
 	}
+	if existing, found, err := h.Mailbox.Find(r.Context(), h.Registry.policy.HubID, targetAgentID, caller.AgentID, input.IdempotencyKey); err != nil {
+		writeHubError(w, http.StatusServiceUnavailable, "HUB_MAILBOX_UNAVAILABLE", "Hub mailbox lookup failed")
+		return
+	} else if found {
+		writeHubJSON(w, http.StatusOK, HubInboxEnqueueResult{Item: existing, Duplicate: true})
+		return
+	}
+	pending, err := h.Mailbox.PendingCount(r.Context(), h.Registry.policy.HubID)
+	if err != nil {
+		writeHubError(w, http.StatusServiceUnavailable, "HUB_MAILBOX_UNAVAILABLE", "Hub mailbox capacity is unavailable")
+		return
+	}
+	if int32(pending) >= h.Registry.policy.MaxConcurrentTasks {
+		writeHubError(w, http.StatusTooManyRequests, "CONCURRENCY_LIMIT", "Hub task concurrency limit reached")
+		return
+	}
 	result, err := h.Mailbox.Enqueue(r.Context(), HubInboxItem{
 		HubID: h.Registry.policy.HubID, TargetAgentID: targetAgentID, RequesterAgentID: caller.AgentID,
 		TaskID: uuid.NewString(), ContextID: input.ContextID, IdempotencyKey: input.IdempotencyKey, Message: input.Message,
@@ -200,6 +263,55 @@ func (h HubHTTPHandler) sendPeerTask(w http.ResponseWriter, r *http.Request, tar
 		return
 	}
 	writeHubJSON(w, http.StatusOK, result)
+}
+
+func (h HubHTTPHandler) card(w http.ResponseWriter, r *http.Request, agentID string) {
+	if agentID == "" || strings.ContainsAny(agentID, "/\\") {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "agent id is invalid")
+		return
+	}
+	if h.Registry.policy.Mode != HubModePublic {
+		if _, ok := h.authenticateAgent(r); !ok {
+			writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+			return
+		}
+	}
+	view, ok := h.Registry.LookupView(agentID)
+	if !ok {
+		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "Hub Agent not found")
+		return
+	}
+	base := "http://" + r.Host
+	if r.TLS != nil {
+		base = "https://" + r.Host
+	}
+	card := standarda2a.AgentCard{
+		Name:        view.DisplayName,
+		Description: "Hub peer " + view.AgentID + ". Automatic execution is disabled for Hub enrollment.",
+		Version:     view.Card.Version,
+		SupportedInterfaces: []*standarda2a.AgentInterface{
+			standarda2a.NewAgentInterface(base+"/hub/v1/agents/"+agentID+"/tasks", standarda2a.TransportProtocolHTTPJSON),
+		},
+		Capabilities:       standarda2a.AgentCapabilities{},
+		DefaultInputModes:  []string{"text/plain"},
+		DefaultOutputModes: []string{"text/plain"},
+		Skills:             hubCardSkills(view.Capabilities),
+		Provider:           &standarda2a.AgentProvider{Org: "888a2a Hub " + view.HubID, URL: base},
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(card)
+}
+
+func hubCardSkills(capabilities []string) []standarda2a.AgentSkill {
+	skills := make([]standarda2a.AgentSkill, 0, len(capabilities))
+	for _, capability := range capabilities {
+		capability = strings.TrimSpace(capability)
+		if capability == "" {
+			continue
+		}
+		skills = append(skills, standarda2a.AgentSkill{ID: capability, Name: capability, InputModes: []string{"text/plain"}, OutputModes: []string{"text/plain"}})
+	}
+	return skills
 }
 
 func (h HubHTTPHandler) lookup(w http.ResponseWriter, r *http.Request, agentID string) {
@@ -292,11 +404,12 @@ func (h HubHTTPHandler) register(w http.ResponseWriter, r *http.Request) {
 	identity, err := h.Registry.RegisterContext(r.Context(), bearerToken(r.Header.Get("Authorization")), declaration)
 	if err != nil {
 		status, code := http.StatusForbidden, "PERMISSION_DENIED"
-		if errors.Is(err, ErrHubRegistrationDisabled) {
+		switch {
+		case errors.Is(err, ErrHubRegistrationDisabled):
 			code = "REGISTRATION_DISABLED"
-		} else if strings.Contains(err.Error(), "bootstrap token") {
+		case strings.Contains(err.Error(), "bootstrap token"):
 			status, code = http.StatusUnauthorized, "UNAUTHENTICATED"
-		} else if strings.Contains(err.Error(), "required") || strings.Contains(err.Error(), "large") || strings.Contains(err.Error(), "invalid") {
+		case strings.Contains(err.Error(), "required") || strings.Contains(err.Error(), "large") || strings.Contains(err.Error(), "invalid"):
 			status, code = http.StatusBadRequest, "INVALID_ARGUMENT"
 		}
 		writeHubError(w, status, code, err.Error())
@@ -310,12 +423,25 @@ func (h HubHTTPHandler) register(w http.ResponseWriter, r *http.Request) {
 
 func (h HubHTTPHandler) list(w http.ResponseWriter, r *http.Request) {
 	if h.Registry.policy.Mode != HubModePublic {
-		if _, ok := h.authenticateAgent(r); !ok {
+		if _, ok := h.authenticateAgent(r); !ok && !h.Registry.AuthorizeOperator(bearerToken(r.Header.Get("Authorization"))) {
 			writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
 			return
 		}
 	}
 	writeHubJSON(w, http.StatusOK, map[string]any{"hubId": h.Registry.policy.HubID, "agents": h.Registry.ListViews()})
+}
+
+func (h HubHTTPHandler) status(w http.ResponseWriter, _ *http.Request) {
+	writeHubJSON(w, http.StatusOK, map[string]any{
+		"hubId": h.Registry.policy.HubID, "mode": h.Registry.policy.Mode,
+		"registrationEnabled":    h.Registry.policy.RegistrationEnabled,
+		"registrationTTLSeconds": h.Registry.policy.RegistrationTTL,
+		"peerLeaseSeconds":       h.Registry.policy.PeerLeaseSeconds,
+		"maxRegisteredAgents":    h.Registry.policy.MaxRegisteredAgents,
+		"maxTasksPerMinute":      h.Registry.policy.MaxTasksPerMinute,
+		"maxConcurrentTasks":     h.Registry.policy.MaxConcurrentTasks,
+		"maxPayloadBytes":        h.Registry.policy.MaxPayloadBytes,
+	})
 }
 
 func (h HubHTTPHandler) heartbeat(w http.ResponseWriter, r *http.Request, agentID string) {

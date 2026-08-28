@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"time"
 
 	a2agateway "github.com/tbdavid2019/888a2a/backend/a2a"
@@ -80,6 +81,21 @@ func (p hubStorePersistence) Enqueue(ctx context.Context, item a2agateway.HubInb
 	return a2agateway.HubInboxEnqueueResult{Item: convertHubInboxItem(stored), Duplicate: duplicate}, nil
 }
 
+func (p hubStorePersistence) Find(ctx context.Context, hubID, targetAgentID, requesterAgentID, idempotencyKey string) (a2agateway.HubInboxItem, bool, error) {
+	item, err := p.store.FindHubInboxItem(ctx, hubID, targetAgentID, requesterAgentID, idempotencyKey)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return a2agateway.HubInboxItem{}, false, nil
+		}
+		return a2agateway.HubInboxItem{}, false, err
+	}
+	return convertHubInboxItem(item), true, nil
+}
+
+func (p hubStorePersistence) PendingCount(ctx context.Context, hubID string) (int, error) {
+	return p.store.PendingHubInboxCount(ctx, hubID)
+}
+
 func (p hubStorePersistence) Poll(ctx context.Context, hubID, targetAgentID string, afterSequence uint64, limit int) ([]a2agateway.HubInboxItem, error) {
 	items, err := p.store.ListHubInbox(ctx, hubID, targetAgentID, afterSequence, limit)
 	if err != nil {
@@ -94,6 +110,10 @@ func (p hubStorePersistence) Poll(ctx context.Context, hubID, targetAgentID stri
 
 func (p hubStorePersistence) Acknowledge(ctx context.Context, hubID, targetAgentID string, sequence uint64) error {
 	return p.store.AcknowledgeHubInbox(ctx, hubID, targetAgentID, sequence, time.Now().UTC())
+}
+
+func (p hubStorePersistence) Cancel(ctx context.Context, hubID, taskID string, now time.Time) error {
+	return p.store.CancelHubInbox(ctx, hubID, taskID, now)
 }
 
 func convertHubInboxItem(item *store.HubInboxMessage) a2agateway.HubInboxItem {

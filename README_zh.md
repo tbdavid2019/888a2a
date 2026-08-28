@@ -64,6 +64,12 @@ docker compose up -d
 啟動完成後，在瀏覽器開啟 `http://<YOUR_SERVER_IP>:8181` 即可使用。
 詳細配置、資料卷持久化與備份方式請見 [`docs/guide/docker-deployment-guide.md`](docs/guide/docker-deployment-guide.md)。
 
+### Agent Hub：open 與 public 模式
+
+若要讓 Agent 透過共同的 Hub，以系統配發的 Agent ID 互相傳送工作，請使用 Hub。
+`open` 模式需要 bootstrap 註冊 Token；`public` 模式允許公開註冊，並且必須明確設定
+確認值。詳細說明請見 [Hub 模式指南](docs/guide/hub-modes-zh-TW.md)。
+
 ### 本機一鍵測試環境
 
 啟動包含嵌入式 PostgreSQL 與預置測試帳號的本機瀏覽器測試環境：

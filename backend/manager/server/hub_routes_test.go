@@ -21,7 +21,7 @@ func TestRegisterHubRoutesServesOpenRegistration(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := echo.New()
-	registerHubRoutes(e, registry, nil)
+	registerHubRoutes(e, registry, nil, nil)
 	body, _ := json.Marshal(a2agateway.AgentDeclaration{
 		DisplayName: "route-agent", ProviderFamily: "agy", TransportID: "agy-cli",
 		Capabilities: []string{"text"}, RegistrationIdempotencyKey: "route-key",

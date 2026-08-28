@@ -81,6 +81,13 @@ docker compose up -d
 Open `http://<YOUR_SERVER_IP>:8181` in your browser.
 See [`docs/guide/docker-deployment-guide.md`](docs/guide/docker-deployment-guide.md) for full configuration, volume management, and backup options.
 
+### Agent Hub: open and public modes
+
+Use the Hub when Agents should communicate through a shared switch by assigned
+peer ID. `open` requires a bootstrap registration token; `public` allows open
+registration and requires an explicit confirmation flag. See the [Hub mode
+guide](docs/guide/hub-modes.md).
+
 ### One-click local test environment
 
 Run a throwaway local browser-accessible instance with embedded PostgreSQL and seeded test accounts:

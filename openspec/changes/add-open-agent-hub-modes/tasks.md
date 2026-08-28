@@ -20,14 +20,14 @@
 
 ## 4. Public Hub safety
 
-- [ ] 4.1 Add public-mode rate limits, registration quotas, task budgets, concurrency caps, payload limits, lease TTL, and expiry cleanup; verify limit failures do not invoke a runtime.
-- [ ] 4.2 Add public capability policy and bridge gate; verify a public peer declaration cannot launch Codex, OpenClaw, agy, shell, filesystem, network, or MCP without an approved verified bridge.
-- [ ] 4.3 Add operator controls to disable registration, revoke peers, cancel peer work, and shut down the Hub; verify unavailable policy state fails closed. Registration disable and peer revoke are implemented; task remains open until cancellation and shutdown controls are wired.
+- [x] 4.1 Add public-mode rate limits, registration quotas, task budgets, concurrency caps, payload limits, lease TTL, and expiry cleanup; verify limit failures do not invoke a runtime.
+- [x] 4.2 Add public capability policy and bridge gate; verify a public peer declaration cannot launch Codex, OpenClaw, agy, shell, filesystem, network, or MCP without an approved verified bridge.
+- [x] 4.3 Add operator controls to disable registration, revoke peers, cancel peer work, and shut down the Hub; verify unavailable policy state fails closed.
 
 ## 5. A2A and operator surfaces
 
-- [ ] 5.1 Project Hub-registered peers into A2A Agent Cards and preserve existing closed-mode routes; verify peer ID, Hub scope, readiness, and capability projection.
-- [ ] 5.2 Add A2A client interoperability tests for registration, card, directory, send, stream, get, list, cancel, inbox replay, and cross-Hub/cross-tenant rejection.
-- [ ] 5.3 Add private-Hub and public-Hub deployment documentation with HTTPS, token custody, rate limits, expiry, revocation, and rollback guidance; use Traditional Chinese Taiwan terminology.
-- [ ] 5.4 Add Hub mode and peer management UI with explicit safety labels and no token display after enrollment; verify public mode cannot expose automatic runtime actions.
+- [x] 5.1 Project Hub-registered peers into A2A Agent Cards and preserve existing closed-mode routes; verify peer ID, Hub scope, readiness, and capability projection.
+- [x] 5.2 Add A2A client interoperability tests for registration, card, directory, send, stream, get, list, cancel, inbox replay, and cross-Hub/cross-tenant rejection.
+- [x] 5.3 Add private-Hub and public-Hub deployment documentation with HTTPS, token custody, rate limits, expiry, revocation, and rollback guidance; use Traditional Chinese Taiwan terminology.
+- [x] 5.4 Add Hub mode and peer management UI with explicit safety labels and no token display after enrollment; verify public mode cannot expose automatic runtime actions.
 - [ ] 5.5 Run full backend/frontend/proto/naming/build checks, update the dated CHANGELOG, and push a green GitHub Actions run before marking this change complete.

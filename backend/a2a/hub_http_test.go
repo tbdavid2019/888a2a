@@ -2,6 +2,7 @@ package a2a
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -138,6 +139,12 @@ func TestHubHTTPPublicRegistrationAndOpenAuthFailure(t *testing.T) {
 	if lookup.Code != http.StatusOK || !strings.Contains(lookup.Body.String(), "providerFamily") || strings.Contains(lookup.Body.String(), "agentCardJson") {
 		t.Fatalf("public lookup status=%d body=%s", lookup.Code, lookup.Body.String())
 	}
+	card := httptest.NewRecorder()
+	cardReq := httptest.NewRequest(http.MethodGet, "/hub/v1/agents/"+publicIdentity.Identity.AgentID+"/agent-card.json", nil)
+	handler.ServeHTTP(card, cardReq)
+	if card.Code != http.StatusOK || !strings.Contains(card.Body.String(), "supportedInterfaces") || strings.Contains(card.Body.String(), publicIdentity.Identity.AgentToken) {
+		t.Fatalf("public card status=%d body=%s", card.Code, card.Body.String())
+	}
 }
 
 func TestHubHTTPPublicRateLimitReturns429(t *testing.T) {
@@ -174,7 +181,9 @@ func TestHubHTTPOperatorCanDisableRegistrationAndRevokePeer(t *testing.T) {
 		t.Fatal(err)
 	}
 	registry.SetOperatorToken("operator-token")
-	handler := HubHTTPHandler{Registry: registry}
+	mailbox := NewMemoryHubMailbox()
+	shutdownCalled := false
+	handler := HubHTTPHandler{Registry: registry, Mailbox: mailbox, Shutdown: func(context.Context) error { shutdownCalled = true; return nil }}
 	body, _ := json.Marshal(validAgentDeclaration("operator"))
 	register := httptest.NewRecorder()
 	handler.ServeHTTP(register, httptest.NewRequest(http.MethodPost, "/hub/v1/agents/register", bytes.NewReader(body)))
@@ -207,5 +216,111 @@ func TestHubHTTPOperatorCanDisableRegistrationAndRevokePeer(t *testing.T) {
 	}
 	if _, err := registry.Authenticate(response.Identity.AgentID, response.Identity.AgentToken); err == nil {
 		t.Fatal("revoked peer token must be rejected")
+	}
+	queued, err := mailbox.Enqueue(context.Background(), HubInboxItem{HubID: policy.HubID, TargetAgentID: response.Identity.AgentID, RequesterAgentID: "requester", TaskID: "task-cancel", ContextID: "ctx", IdempotencyKey: "cancel-key", Message: "cancel me"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cancel := httptest.NewRecorder()
+	cancelReq := httptest.NewRequest(http.MethodPost, "/hub/v1/admin/tasks/"+queued.Item.TaskID+"/cancel", nil)
+	cancelReq.Header.Set("Authorization", "Bearer operator-token")
+	handler.ServeHTTP(cancel, cancelReq)
+	if cancel.Code != http.StatusOK || !strings.Contains(cancel.Body.String(), "CANCELED") {
+		t.Fatalf("cancel status=%d body=%s", cancel.Code, cancel.Body.String())
+	}
+	shutdown := httptest.NewRecorder()
+	shutdownReq := httptest.NewRequest(http.MethodPost, "/hub/v1/admin/shutdown", nil)
+	shutdownReq.Header.Set("Authorization", "Bearer operator-token")
+	handler.ServeHTTP(shutdown, shutdownReq)
+	if shutdown.Code != http.StatusOK || !shutdownCalled {
+		t.Fatalf("shutdown status=%d called=%v body=%s", shutdown.Code, shutdownCalled, shutdown.Body.String())
+	}
+}
+
+func TestHubHTTPEnforcesPendingTaskConcurrency(t *testing.T) {
+	policy := DefaultHubPolicy()
+	policy.Mode = HubModePublic
+	policy.HubID = "hub-concurrency"
+	policy.PublicConfirmed = true
+	policy.RegistrationEnabled = true
+	policy.MaxConcurrentTasks = 1
+	registry, err := NewHubRegistry(policy, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mailbox := NewMemoryHubMailbox()
+	handler := HubHTTPHandler{Registry: registry, Mailbox: mailbox}
+	body, _ := json.Marshal(validAgentDeclaration("concurrency"))
+	register := httptest.NewRecorder()
+	handler.ServeHTTP(register, httptest.NewRequest(http.MethodPost, "/hub/v1/agents/register", bytes.NewReader(body)))
+	var response struct {
+		Identity IssuedAgentIdentity `json:"identity"`
+	}
+	if err := json.Unmarshal(register.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	heartbeat := httptest.NewRequest(http.MethodPost, "/hub/v1/agents/"+response.Identity.AgentID+"/heartbeat", nil)
+	heartbeat.Header.Set("X-Agent-ID", response.Identity.AgentID)
+	heartbeat.Header.Set("Authorization", "Bearer "+response.Identity.AgentToken)
+	handler.ServeHTTP(httptest.NewRecorder(), heartbeat)
+	post := func(key string) *httptest.ResponseRecorder {
+		record := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/hub/v1/agents/"+response.Identity.AgentID+"/tasks", strings.NewReader(`{"message":"work","idempotencyKey":"`+key+`"}`))
+		req.Header.Set("X-Agent-ID", response.Identity.AgentID)
+		req.Header.Set("Authorization", "Bearer "+response.Identity.AgentToken)
+		handler.ServeHTTP(record, req)
+		return record
+	}
+	first := post("one")
+	second := post("two")
+	if first.Code != http.StatusOK || second.Code != http.StatusTooManyRequests || !strings.Contains(second.Body.String(), "CONCURRENCY_LIMIT") {
+		t.Fatalf("concurrency statuses=%d/%d bodies=%s/%s", first.Code, second.Code, first.Body.String(), second.Body.String())
+	}
+}
+
+func TestHubHTTPRejectsCrossHubPeerCredentials(t *testing.T) {
+	newHandler := func(hubID string) HubHTTPHandler {
+		policy := DefaultHubPolicy()
+		policy.Mode = HubModePublic
+		policy.HubID = hubID
+		policy.PublicConfirmed = true
+		policy.RegistrationEnabled = true
+		registry, err := NewHubRegistry(policy, "", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		mailbox := NewMemoryHubMailbox()
+		return HubHTTPHandler{Registry: registry, Mailbox: mailbox}
+	}
+	firstHub := newHandler("hub-one")
+	secondHub := newHandler("hub-two")
+	body, _ := json.Marshal(validAgentDeclaration("cross-hub"))
+	register := httptest.NewRecorder()
+	firstHub.ServeHTTP(register, httptest.NewRequest(http.MethodPost, "/hub/v1/agents/register", bytes.NewReader(body)))
+	var first struct {
+		Identity IssuedAgentIdentity `json:"identity"`
+	}
+	if err := json.Unmarshal(register.Body.Bytes(), &first); err != nil {
+		t.Fatal(err)
+	}
+	secondBody, err := json.Marshal(validAgentDeclaration("cross-hub-target"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondRegister := httptest.NewRecorder()
+	secondHub.ServeHTTP(secondRegister, httptest.NewRequest(http.MethodPost, "/hub/v1/agents/register", bytes.NewReader(secondBody)))
+	var second struct {
+		Identity IssuedAgentIdentity `json:"identity"`
+	}
+	if err := json.Unmarshal(secondRegister.Body.Bytes(), &second); err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/hub/v1/agents/"+second.Identity.AgentID+"/tasks", strings.NewReader(`{"message":"cross hub","idempotencyKey":"cross-hub-task"}`))
+	req.Header.Set("X-Agent-ID", first.Identity.AgentID)
+	req.Header.Set("Authorization", "Bearer "+first.Identity.AgentToken)
+	rec := httptest.NewRecorder()
+	secondHub.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("cross-Hub request status=%d body=%s", rec.Code, rec.Body.String())
 	}
 }

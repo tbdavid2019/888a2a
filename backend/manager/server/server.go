@@ -184,7 +184,7 @@ func NewServer(ctx context.Context, profile *config.Profile) (*Server, error) {
 	s.auditInterceptor = auditInterceptor
 
 	configureEchoRouters(s.echoServer, profile, s.store)
-	registerHubRoutes(s.echoServer, s.hubRegistry, hubStorePersistence{store: s.store})
+	registerHubRoutes(s.echoServer, s.hubRegistry, hubStorePersistence{store: s.store}, s.Shutdown)
 
 	for _, route := range s.echoServer.Router().Routes() {
 		fmt.Printf("Path: %s, Method: %s\n", route.Path, route.Method)

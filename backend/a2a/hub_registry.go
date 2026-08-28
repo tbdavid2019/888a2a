@@ -118,6 +118,15 @@ type HubRegistry struct {
 	operatorHash   [32]byte
 }
 
+func (r *HubRegistry) MaxTasksPerMinute() int {
+	if r == nil {
+		return 60
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return int(r.policy.MaxTasksPerMinute)
+}
+
 func (r *HubRegistry) SetOperatorToken(token string) {
 	if r == nil {
 		return
@@ -215,7 +224,7 @@ func (r *HubRegistry) RegisterContext(ctx context.Context, bootstrapToken string
 			return IssuedAgentIdentity{HubID: r.policy.HubID, AgentID: existing.AgentID, ExpiresAt: existing.ExpiresAt}, nil
 		}
 	}
-	if int32(len(r.agents)) >= r.policy.MaxRegisteredAgents {
+	if int32(r.activeAgentCountLocked()) >= r.policy.MaxRegisteredAgents {
 		return IssuedAgentIdentity{}, errors.New("Hub registered Agent limit reached")
 	}
 	token, err := randomHubToken()
@@ -227,8 +236,8 @@ func (r *HubRegistry) RegisterContext(ctx context.Context, bootstrapToken string
 	agent := &RegisteredAgent{
 		HubID: r.policy.HubID, AgentID: agentID, DisplayName: declaration.DisplayName,
 		ProviderFamily: declaration.ProviderFamily, TransportID: declaration.TransportID,
-		Capabilities: append([]string(nil), declaration.Capabilities...), AgentCardJSON: declaration.AgentCardJSON,
-		State: HubAgentStatePending, CreatedAt: now, ExpiresAt: expires, registrationHash: registrationHash,
+		Capabilities: append([]string(nil), declaration.Capabilities...),
+		State:        HubAgentStatePending, CreatedAt: now, ExpiresAt: expires, registrationHash: registrationHash,
 		tokenHash: hashHubSecret(token), LeaseExpiresAt: now.Add(time.Duration(r.policy.PeerLeaseSeconds) * time.Second),
 	}
 	if r.persistence != nil {
@@ -453,6 +462,16 @@ func (r *HubRegistry) reconcileLocked(now time.Time) []RegisteredAgent {
 		}
 	}
 	return expired
+}
+
+func (r *HubRegistry) activeAgentCountLocked() int {
+	count := 0
+	for _, agent := range r.agents {
+		if agent.State != HubAgentStateRevoked && agent.State != HubAgentStateExpired {
+			count++
+		}
+	}
+	return count
 }
 
 func cloneRegisteredAgent(agent *RegisteredAgent) *RegisteredAgent {

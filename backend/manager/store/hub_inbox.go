@@ -22,6 +22,16 @@ type HubInboxMessage struct {
 	AcknowledgedAt   sql.NullTime
 }
 
+func (s *Store) FindHubInboxItem(ctx context.Context, hubID, targetAgentID, requesterAgentID, idempotencyKey string) (*HubInboxMessage, error) {
+	return s.getHubInboxByIdempotency(ctx, hubID, targetAgentID, requesterAgentID, idempotencyKey)
+}
+
+func (s *Store) PendingHubInboxCount(ctx context.Context, hubID string) (int, error) {
+	var count int
+	err := s.GetDB().QueryRowContext(ctx, `SELECT COUNT(*) FROM a2a888_hub_inbox WHERE hub_id=$1 AND state='PENDING'`, hubID).Scan(&count)
+	return count, err
+}
+
 func (s *Store) CreateHubInboxItem(ctx context.Context, item *HubInboxMessage) (*HubInboxMessage, bool, error) {
 	if item == nil || item.HubID == "" || item.TargetAgentID == "" || item.RequesterAgentID == "" || item.TaskID == "" || item.ContextID == "" || item.IdempotencyKey == "" || item.Message == "" {
 		return nil, false, errors.New("Hub inbox item is incomplete")
@@ -88,8 +98,20 @@ func (s *Store) AcknowledgeHubInbox(ctx context.Context, hubID, targetAgentID st
 	if count, _ := result.RowsAffected(); count != 1 {
 		var exists bool
 		if scanErr := s.GetDB().QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM a2a888_hub_inbox WHERE hub_id=$1 AND target_agent_id=$2 AND sequence=$3)`, hubID, targetAgentID, sequence).Scan(&exists); scanErr != nil || !exists {
-			return errors.Wrap(ErrHubAgentAlreadyExists, "Hub inbox item not found")
+			return errors.New("Hub inbox item not found")
 		}
+	}
+	return nil
+}
+
+func (s *Store) CancelHubInbox(ctx context.Context, hubID, taskID string, now time.Time) error {
+	result, err := s.GetDB().ExecContext(ctx, `UPDATE a2a888_hub_inbox SET state='CANCELED', acknowledged_at=$3
+		WHERE hub_id=$1 AND task_id=$2 AND state='PENDING'`, hubID, taskID, now)
+	if err != nil {
+		return err
+	}
+	if count, _ := result.RowsAffected(); count != 1 {
+		return errors.New("Hub inbox task not found or already acknowledged")
 	}
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 )
 
 var ErrHubInboxNotFound = errors.New("Hub inbox item not found")
+var ErrHubTaskConcurrencyLimit = errors.New("Hub task concurrency limit reached")
 
 // HubInboxItem is a durable peer mailbox entry. It carries task data only;
 // authentication material and native provider session IDs never belong here.
@@ -35,8 +36,11 @@ type HubInboxEnqueueResult struct {
 // must make Enqueue idempotent on hub/target/requester/idempotency key.
 type HubMailbox interface {
 	Enqueue(context.Context, HubInboxItem) (HubInboxEnqueueResult, error)
+	Find(context.Context, string, string, string, string) (HubInboxItem, bool, error)
+	PendingCount(context.Context, string) (int, error)
 	Poll(context.Context, string, string, uint64, int) ([]HubInboxItem, error)
 	Acknowledge(context.Context, string, string, uint64) error
+	Cancel(context.Context, string, string, time.Time) error
 }
 
 type MemoryHubMailbox struct {
@@ -65,6 +69,29 @@ func (m *MemoryHubMailbox) Enqueue(_ context.Context, item HubInboxItem) (HubInb
 	}
 	m.items = append(m.items, item)
 	return HubInboxEnqueueResult{Item: item}, nil
+}
+
+func (m *MemoryHubMailbox) Find(_ context.Context, hubID, targetAgentID, requesterAgentID, idempotencyKey string) (HubInboxItem, bool, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, item := range m.items {
+		if item.HubID == hubID && item.TargetAgentID == targetAgentID && item.RequesterAgentID == requesterAgentID && item.IdempotencyKey == idempotencyKey {
+			return item, true, nil
+		}
+	}
+	return HubInboxItem{}, false, nil
+}
+
+func (m *MemoryHubMailbox) PendingCount(_ context.Context, hubID string) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	count := 0
+	for _, item := range m.items {
+		if item.HubID == hubID && item.AcknowledgedAt == nil {
+			count++
+		}
+	}
+	return count, nil
 }
 
 func (m *MemoryHubMailbox) Poll(_ context.Context, hubID, targetAgentID string, afterSequence uint64, limit int) ([]HubInboxItem, error) {
@@ -102,4 +129,18 @@ func (m *MemoryHubMailbox) Acknowledge(_ context.Context, hubID, targetAgentID s
 		}
 	}
 	return fmt.Errorf("%w: sequence %d", ErrHubInboxNotFound, sequence)
+}
+
+func (m *MemoryHubMailbox) Cancel(_ context.Context, hubID, taskID string, now time.Time) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for i := range m.items {
+		if m.items[i].HubID == hubID && m.items[i].TaskID == taskID {
+			if m.items[i].AcknowledgedAt == nil {
+				m.items[i].AcknowledgedAt = &now
+			}
+			return nil
+		}
+	}
+	return ErrHubInboxNotFound
 }

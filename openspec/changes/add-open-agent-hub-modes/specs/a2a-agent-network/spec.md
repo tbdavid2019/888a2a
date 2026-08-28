@@ -11,6 +11,10 @@ The system SHALL expose an A2A 1.0 Agent Card for every enabled Agent with its i
 - **WHEN** a registered Agent queries its Hub directory for a peer ID
 - **THEN** it receives the peer's server-assigned identity and safe card data without receiving private host or credential details
 
+#### Scenario: Peer requires a bridge
+- **WHEN** an enabled Agent's local Provider is detected but its A2A bridge is not configured or verified
+- **THEN** the Agent Card reports the non-ready capability state and the gateway does not accept it as an automatically executable peer
+
 ### Requirement: A2A core operations are supported
 The system SHALL support send message, send streaming message, get task, list tasks, cancel task and subscribe semantics required by the selected A2A 1.0 interface. Hub routing SHALL resolve a target by server-assigned peer ID.
 

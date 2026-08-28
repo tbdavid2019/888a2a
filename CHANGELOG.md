@@ -8,6 +8,9 @@
 - Added durable Hub peer inbox storage and peer-ID task send, polling, and acknowledgment endpoints with idempotent delivery.
 - Added safe Hub peer lookup cards and public-mode per-source rate limiting; private endpoints and credentials are excluded from directory output.
 - Added separate Hub operator controls for disabling registration and revoking registered peers without reusing bootstrap credentials.
+- Added Hub operator controls for canceling pending peer tasks and requesting a controlled Hub shutdown.
+- Added Hub safety enforcement for online-only task delivery, pending-task concurrency limits, active-agent quota reuse after expiry, and operator-configured task rate limits.
+- Added standard A2A Agent Card projection for Hub peers, Hub status/peer management UI, and private/public Hub deployment guides in English and Traditional Chinese Taiwan.
 
 - Added the first Hub registration HTTP surface and Manager route integration for open/public Agent enrollment, peer listing, and authenticated heartbeat.
 

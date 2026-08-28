@@ -1286,6 +1286,29 @@
     },
     "title": "Settings"
   },
+  "settings.hub": {
+    "action-failed": "Hub action failed.",
+    "agent-limit": "Agents: {{n}}",
+    "concurrent-limit": "Concurrent: {{n}}",
+    "description": "Inspect Hub mode, safety limits, and registered peers.",
+    "disable-registration": "Disable registration",
+    "enable-registration": "Enable registration",
+    "lease": "Lease: {{n}}s",
+    "load-failed": "Unable to load Hub status.",
+    "load-peers": "Load private peers",
+    "mode": "Hub mode",
+    "no-peers": "No peers are available or the private directory is locked.",
+    "operator-note": "The operator token is used only for this page session and is never displayed after entry or stored.",
+    "operator-placeholder": "Operator token",
+    "operator-title": "Operator controls",
+    "peers-title": "Registered peers",
+    "private-note": "Private Hub access requires a registered peer or operator token.",
+    "public-warning": "Public registration is for temporary use. It does not grant runtime execution.",
+    "refresh": "Refresh",
+    "revoke": "Revoke peer",
+    "task-limit": "Tasks/min: {{n}}",
+    "title": "Agent Hub"
+  },
   "setup": {
     "action": {
       "configure": "Configure",

@@ -31,6 +31,7 @@ import {
   SETTINGS_ROUTE_CONNECTORS,
   SETTINGS_ROUTE_GENERAL,
   SETTINGS_ROUTE_GROUPS,
+  SETTINGS_ROUTE_HUB,
   SETTINGS_ROUTE_IAM,
   SETTINGS_ROUTE_IDENTITY_PROVIDERS,
   SETTINGS_ROUTE_MCP_SERVERS,
@@ -456,6 +457,14 @@ export const dashboardChildrenRoutes: RouteObject[] = [
         lazy: () =>
           import("@/pages/dashboard/a2a-graph").then((m) => ({
             Component: m.A2AGraphPage,
+          })),
+      },
+      {
+        path: "hub",
+        handle: { name: SETTINGS_ROUTE_HUB },
+        lazy: () =>
+          import("@/pages/dashboard/settings-hub").then((m) => ({
+            Component: m.SettingsHubPage,
           })),
       },
     ],
