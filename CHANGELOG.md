@@ -52,6 +52,7 @@
 
 ### Fixed
 
+- Fixed Hub PostgreSQL registration to persist a valid empty public-card JSON document while withholding untrusted private Card content.
 - Fixed Hub configuration lint coverage by parsing bounded registration, lease, quota, concurrency, and payload settings from A2A888 environment variables.
 
 - Fixed the bridge binding idempotency test so the CI static analysis gate can evaluate both stop calls independently.

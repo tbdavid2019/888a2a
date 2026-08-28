@@ -236,8 +236,8 @@ func (r *HubRegistry) RegisterContext(ctx context.Context, bootstrapToken string
 	agent := &RegisteredAgent{
 		HubID: r.policy.HubID, AgentID: agentID, DisplayName: declaration.DisplayName,
 		ProviderFamily: declaration.ProviderFamily, TransportID: declaration.TransportID,
-		Capabilities: append([]string(nil), declaration.Capabilities...),
-		State:        HubAgentStatePending, CreatedAt: now, ExpiresAt: expires, registrationHash: registrationHash,
+		Capabilities: append([]string(nil), declaration.Capabilities...), AgentCardJSON: "{}",
+		State: HubAgentStatePending, CreatedAt: now, ExpiresAt: expires, registrationHash: registrationHash,
 		tokenHash: hashHubSecret(token), LeaseExpiresAt: now.Add(time.Duration(r.policy.PeerLeaseSeconds) * time.Second),
 	}
 	if r.persistence != nil {
