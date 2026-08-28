@@ -38,18 +38,42 @@ func LoadHubConfig() (HubConfig, error) {
 		return HubConfig{}, err
 	}
 	confirmed := strings.EqualFold(strings.TrimSpace(ReadEnv("A2A888_HUB_PUBLIC_CONFIRM")), "true")
+	registrationTTL, err := parseHubInt(ReadEnv("A2A888_HUB_REGISTRATION_TTL_SECONDS"), 24*60*60)
+	if err != nil {
+		return HubConfig{}, err
+	}
+	peerLease, err := parseHubInt(ReadEnv("A2A888_HUB_PEER_LEASE_SECONDS"), 90)
+	if err != nil {
+		return HubConfig{}, err
+	}
+	maxAgents, err := parseHubInt(ReadEnv("A2A888_HUB_MAX_REGISTERED_AGENTS"), 100)
+	if err != nil {
+		return HubConfig{}, err
+	}
+	maxTasks, err := parseHubInt(ReadEnv("A2A888_HUB_MAX_TASKS_PER_MINUTE"), 60)
+	if err != nil {
+		return HubConfig{}, err
+	}
+	maxConcurrent, err := parseHubInt(ReadEnv("A2A888_HUB_MAX_CONCURRENT_TASKS"), 4)
+	if err != nil {
+		return HubConfig{}, err
+	}
+	maxPayload, err := parseHubInt(ReadEnv("A2A888_HUB_MAX_PAYLOAD_BYTES"), 1<<20)
+	if err != nil || maxPayload > 1<<20 {
+		return HubConfig{}, errors.New("A2A888_HUB_MAX_PAYLOAD_BYTES must be between 1 and 1048576")
+	}
 	cfg := HubConfig{
 		Mode:                mode,
 		HubID:               strings.TrimSpace(ReadEnv("A2A888_HUB_ID")),
 		BootstrapToken:      strings.TrimSpace(ReadEnv("A2A888_HUB_BOOTSTRAP_TOKEN")),
 		RegistrationEnabled: mode != HubModeClosed,
 		PublicConfirmed:     confirmed,
-		RegistrationTTL:     24 * time.Hour,
-		PeerLease:           90 * time.Second,
-		MaxRegisteredAgents: 100,
-		MaxTasksPerMinute:   60,
-		MaxConcurrentTasks:  4,
-		MaxPayloadBytes:     1 << 20,
+		RegistrationTTL:     time.Duration(registrationTTL) * time.Second,
+		PeerLease:           time.Duration(peerLease) * time.Second,
+		MaxRegisteredAgents: int32(maxAgents),
+		MaxTasksPerMinute:   int32(maxTasks),
+		MaxConcurrentTasks:  int32(maxConcurrent),
+		MaxPayloadBytes:     maxPayload,
 	}
 	if mode == HubModeOpen && cfg.BootstrapToken == "" {
 		return HubConfig{}, errors.New("A2A888_HUB_BOOTSTRAP_TOKEN is required in open mode")
