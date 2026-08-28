@@ -22,6 +22,10 @@
 - Added active A2A subscription coverage and a cross-tenant credential rejection gate.
 - Added a shared frontend provider readiness guard so only full-loop verified runtimes can be selected for automatic execution or shown as READY.
 - Updated Machine and Agent provider selectors to disable protocol-only, detected-only, broken, quarantined, and unverified runtimes.
+- Added an opt-in agy CLI smoke gate for authenticated local runtime verification.
+- Fixed agy CLI bridge argv construction so the prompt is passed with `--print=<prompt>` and output format is parsed by the intended command.
+- Fixed the agy bridge environment allowlist to include only local user configuration directories required for its authenticated profile.
+- Verified the opt-in local agy 1.1.22 bridge smoke gate and parsed its stream-json final response.
 
 ### Changed
 

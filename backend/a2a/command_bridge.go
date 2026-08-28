@@ -1,7 +1,9 @@
 package a2a
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -22,6 +24,7 @@ type CommandBridgeConfig struct {
 	Args          func(BridgeRequest) []string
 	Environment   []string
 	InputViaStdin bool
+	OutputParser  func(string) (string, error)
 }
 
 // CommandBridge is a bounded CLI implementation of AgentBridge.
@@ -116,10 +119,18 @@ func (s *commandBridgeSession) Invoke(ctx context.Context, request BridgeRequest
 		}
 		return BridgeResult{Outcome: DeliveryOutcomeUnknown, Reason: "CLI execution outcome is unknown", Output: output.String()}, waitErr
 	}
+	outputText := output.String()
+	if s.config.OutputParser != nil {
+		parsed, parseErr := s.config.OutputParser(outputText)
+		if parseErr != nil {
+			return BridgeResult{Outcome: DeliveryOutcomeUnknown, Reason: "bridge output parsing failed", Output: outputText}, parseErr
+		}
+		outputText = parsed
+	}
 	result := BridgeResult{
 		Outcome: DeliveryOutcomeDelivered,
-		Output:  output.String(),
-		Events:  []BridgeEvent{{Sequence: 1, Kind: "output", Text: output.String()}, {Sequence: 2, Kind: "completed", Terminal: true}},
+		Output:  outputText,
+		Events:  []BridgeEvent{{Sequence: 1, Kind: "output", Text: outputText}, {Sequence: 2, Kind: "completed", Terminal: true}},
 	}
 	if err := ValidateBridgeResult(result); err != nil {
 		return BridgeResult{Outcome: DeliveryOutcomeUnknown, Reason: "invalid bridge result"}, err
@@ -196,8 +207,57 @@ func NewCodexCommandBridge(workingDir string) (*CommandBridge, error) {
 // process is isolated by the caller's working directory and emits stream-json.
 func NewAgyCommandBridge(workingDir string) (*CommandBridge, error) {
 	return NewCommandBridge(CommandBridgeConfig{
-		ID: "agy-cli", Executable: "agy", WorkingDir: workingDir,
-		Args:          func(BridgeRequest) []string { return []string{"--print", "--output-format", "stream-json"} },
-		InputViaStdin: true,
+		ID: "agy-cli", Executable: "agy", WorkingDir: workingDir, Environment: localUserConfigEnv(),
+		// agy treats the value following --print as its prompt. Using the
+		// equals form prevents the next option from being consumed as prompt.
+		Args: func(request BridgeRequest) []string {
+			return []string{"--print=" + request.Input, "--output-format", "stream-json"}
+		},
+		OutputParser: parseAgyStreamJSON,
 	})
+}
+
+func parseAgyStreamJSON(raw string) (string, error) {
+	scanner := bufio.NewScanner(strings.NewReader(raw))
+	var deltas []string
+	var response string
+	for scanner.Scan() {
+		var envelope struct {
+			StepUpdate *struct {
+				TextDelta string `json:"text_delta"`
+			} `json:"step_update"`
+			Result *struct {
+				Response string `json:"response"`
+			} `json:"result"`
+		}
+		if err := json.Unmarshal(scanner.Bytes(), &envelope); err != nil {
+			return "", fmt.Errorf("invalid agy stream-json line: %w", err)
+		}
+		if envelope.Result != nil && envelope.Result.Response != "" {
+			response = envelope.Result.Response
+		}
+		if envelope.StepUpdate != nil && envelope.StepUpdate.TextDelta != "" {
+			deltas = append(deltas, envelope.StepUpdate.TextDelta)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+	if response != "" {
+		return response, nil
+	}
+	if len(deltas) > 0 {
+		return strings.Join(deltas, ""), nil
+	}
+	return "", errors.New("agy stream-json did not contain a response")
+}
+
+func localUserConfigEnv() []string {
+	var env []string
+	for _, key := range []string{"HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME"} {
+		if value := os.Getenv(key); value != "" {
+			env = append(env, key+"="+value)
+		}
+	}
+	return env
 }

@@ -91,3 +91,33 @@ func TestCommandBridgeOutputLimitDoesNotReportDelivery(t *testing.T) {
 		t.Fatalf("result=%+v err=%v, want unknown output-limit result", result, err)
 	}
 }
+
+func TestAgyCommandBridgeRealSmokeIsOptIn(t *testing.T) {
+	if os.Getenv("A2A888_RUN_AGY_BRIDGE_TESTS") != "1" {
+		t.Skip("set A2A888_RUN_AGY_BRIDGE_TESTS=1 to run the local agy smoke gate")
+	}
+	workdir := os.Getenv("A2A888_AGY_TEST_WORKDIR")
+	if workdir == "" {
+		workdir = t.TempDir()
+	}
+	bridge, err := NewAgyCommandBridge(workdir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := validBridgeRequest()
+	request.BridgeID = bridge.ID()
+	request.Input = "Reply with exactly: agy-bridge-ok"
+	request.MaxOutputBytes = 64 * 1024
+	request.Timeout = 2 * time.Minute
+	result, err := ExecuteBridge(context.Background(), bridge, request, nil)
+	if err != nil || result.Outcome != DeliveryOutcomeDelivered || !strings.Contains(result.Output, "agy-bridge-ok") {
+		t.Fatalf("agy smoke result=%+v err=%v", result, err)
+	}
+}
+
+func TestParseAgyStreamJSON(t *testing.T) {
+	parsed, err := parseAgyStreamJSON("{\"event\":\"step_update\",\"step_update\":{\"text_delta\":\"hello \"}}\n{\"event\":\"result\",\"result\":{\"response\":\"hello world\\n\"}}")
+	if err != nil || parsed != "hello world\n" {
+		t.Fatalf("parsed=%q err=%v", parsed, err)
+	}
+}
