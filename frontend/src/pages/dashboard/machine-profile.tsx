@@ -78,6 +78,11 @@ import {
   buildMachineSetupCommand,
   machineInstallOSFromInfo,
 } from "@/lib/machine-token";
+import {
+  providerAutomaticSelectionDisabled,
+  providerDisplayStatus,
+  providerNeedsPreparation,
+} from "@/lib/provider-status";
 import { useIsDesktop } from "@/lib/use-is-desktop";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores";
@@ -1111,17 +1116,9 @@ export function MachineProfilePage() {
               ) : (
                 <ul className="flex flex-col gap-2">
                   {availableProviders.map((p) => {
-                    const status = p.runtimeStatus || "DETECTED";
-                    const isUnusable =
-                      status === "QUARANTINED" ||
-                      status === "BROKEN" ||
-                      status === "DETECTED" ||
-                      status === "UPDATE_AVAILABLE";
-                    const needsPreparation =
-                      status === "QUARANTINED" ||
-                      status === "BROKEN" ||
-                      status === "DETECTED" ||
-                      status === "UPDATE_AVAILABLE";
+                    const status = providerDisplayStatus(p);
+                    const isUnusable = providerAutomaticSelectionDisabled(p);
+                    const needsPreparation = providerNeedsPreparation(p);
                     const actionLabel =
                       status === "UPDATE_AVAILABLE"
                         ? t("machine.provider-update")
@@ -1355,11 +1352,7 @@ export function MachineProfilePage() {
                       {t("agent.acp-config-provider-builtin-pi")}
                     </SelectItem>
                     {availableProviders.map((p) => {
-                      const isUnusable =
-                        p.runtimeStatus === "QUARANTINED" ||
-                        p.runtimeStatus === "BROKEN" ||
-                        p.runtimeStatus === "DETECTED" ||
-                        p.runtimeStatus === "UPDATE_AVAILABLE";
+                      const isUnusable = providerAutomaticSelectionDisabled(p);
                       return (
                         <SelectItem
                           key={p.providerId}

@@ -31,6 +31,7 @@ describe("ProviderCatalog", () => {
             providerId: "openclaw",
             displayName: "OpenClaw Local",
             runtimeStatus: "READY",
+            compatibilityLevel: "FULL_LOOP_VERIFIED",
           } as never,
         ]}
       />
@@ -38,6 +39,24 @@ describe("ProviderCatalog", () => {
 
     expect(screen.getByText("OpenClaw Local")).toBeInTheDocument();
     expect(screen.getByText("READY")).toBeInTheDocument();
+  });
+
+  it("does not present protocol-only evidence as automatic READY", () => {
+    render(
+      <ProviderCatalog
+        discoveredProviders={[
+          {
+            providerId: "codex",
+            displayName: "Codex",
+            runtimeStatus: "READY",
+            compatibilityLevel: "PROTOCOL_READY",
+          } as never,
+        ]}
+      />
+    );
+
+    expect(screen.getByText("DETECTED_ONLY")).toBeInTheDocument();
+    expect(screen.queryByText("READY")).not.toBeInTheDocument();
   });
 
   it("filters cards without changing conservative status", () => {

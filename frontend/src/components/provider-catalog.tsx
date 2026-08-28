@@ -1,6 +1,7 @@
 import { Bot } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { providerDisplayStatus } from "@/lib/provider-status";
 import type { AgentProviderInfo } from "@/types/proto-es/v1/agent_pb";
 
 export type ProviderCatalogItem = {
@@ -174,8 +175,10 @@ export function ProviderCatalog({ discoveredProviders }: ProviderCatalogProps) {
   const filteredCatalog = useMemo(
     () =>
       PROVIDER_CATALOG.filter((item) => {
-        const status =
-          discovered.get(item.id)?.runtimeStatus || item.defaultStatus;
+        const current = discovered.get(item.id);
+        const status = current
+          ? providerDisplayStatus(current, item.defaultStatus)
+          : item.defaultStatus;
         if (filter === "all") return true;
         if (filter === "ready") return status === "READY";
         if (filter === "bridge") return status === "BRIDGE_REQUIRED";
@@ -228,7 +231,9 @@ export function ProviderCatalog({ discoveredProviders }: ProviderCatalogProps) {
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
         {filteredCatalog.map((item) => {
           const current = discovered.get(item.id);
-          const status = current?.runtimeStatus || item.defaultStatus;
+          const status = current
+            ? providerDisplayStatus(current, item.defaultStatus)
+            : item.defaultStatus;
           return (
             <li
               key={item.id}

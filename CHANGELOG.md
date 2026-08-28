@@ -20,6 +20,8 @@
 - Added provider compatibility evidence documentation for Codex, OpenClaw, agy, and Pull-only catalog families.
 - Added bridge-backed A2A client coverage for send, stream, get, list, and cancel flows.
 - Added active A2A subscription coverage and a cross-tenant credential rejection gate.
+- Added a shared frontend provider readiness guard so only full-loop verified runtimes can be selected for automatic execution or shown as READY.
+- Updated Machine and Agent provider selectors to disable protocol-only, detected-only, broken, quarantined, and unverified runtimes.
 
 ### Changed
 

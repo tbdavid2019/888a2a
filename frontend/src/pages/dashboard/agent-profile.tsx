@@ -61,6 +61,10 @@ import {
   useAvatar,
 } from "@/lib/avatar-cache";
 import { agentResourceName, formatTimestamp } from "@/lib/command-status";
+import {
+  providerAutomaticSelectionDisabled,
+  providerDisplayStatus,
+} from "@/lib/provider-status";
 import { toastManager } from "@/lib/toast";
 import { useAppStore } from "@/stores";
 import { useHasPermission } from "@/stores/permissions";
@@ -1248,10 +1252,7 @@ export function AgentProfilePage() {
                           </SelectItem>
                           {availableProviders.map((p) => {
                             const isUnusable =
-                              p.runtimeStatus === "QUARANTINED" ||
-                              p.runtimeStatus === "BROKEN" ||
-                              p.runtimeStatus === "DETECTED" ||
-                              p.runtimeStatus === "UPDATE_AVAILABLE";
+                              providerAutomaticSelectionDisabled(p);
                             return (
                               <SelectItem
                                 key={p.providerId}
@@ -1259,12 +1260,11 @@ export function AgentProfilePage() {
                                 disabled={isUnusable}
                               >
                                 {providerDisplayName(p)}
-                                {p.runtimeStatus &&
-                                  p.runtimeStatus !== "READY" && (
-                                    <span className="ml-2 text-xs text-control-light">
-                                      ({p.runtimeStatus})
-                                    </span>
-                                  )}
+                                {providerDisplayStatus(p) !== "READY" && (
+                                  <span className="ml-2 text-xs text-control-light">
+                                    ({providerDisplayStatus(p)})
+                                  </span>
+                                )}
                               </SelectItem>
                             );
                           })}

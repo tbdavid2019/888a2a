@@ -145,6 +145,8 @@ function machine(overrides?: Partial<Machine>): Machine {
           version: "1.0",
           executablePath: "",
           supportsModelConfigOption: true,
+          runtimeStatus: "READY",
+          compatibilityLevel: "FULL_LOOP_VERIFIED",
           models: [{ value: "gpt-4o", name: "GPT-4o" }],
         },
       ],
