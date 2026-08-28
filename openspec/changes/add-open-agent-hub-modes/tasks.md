@@ -30,4 +30,4 @@
 - [x] 5.2 Add A2A client interoperability tests for registration, card, directory, send, stream, get, list, cancel, inbox replay, and cross-Hub/cross-tenant rejection.
 - [x] 5.3 Add private-Hub and public-Hub deployment documentation with HTTPS, token custody, rate limits, expiry, revocation, and rollback guidance; use Traditional Chinese Taiwan terminology.
 - [x] 5.4 Add Hub mode and peer management UI with explicit safety labels and no token display after enrollment; verify public mode cannot expose automatic runtime actions.
-- [ ] 5.5 Run full backend/frontend/proto/naming/build checks, update the dated CHANGELOG, and push a green GitHub Actions run before marking this change complete.
+- [x] 5.5 Run full backend/frontend/proto/naming/build checks, update the dated CHANGELOG, and push a green GitHub Actions run before marking this change complete.

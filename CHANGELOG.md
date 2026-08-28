@@ -12,6 +12,7 @@
 - Added Hub safety enforcement for online-only task delivery, pending-task concurrency limits, active-agent quota reuse after expiry, and operator-configured task rate limits.
 - Added standard A2A Agent Card projection for Hub peers, Hub status/peer management UI, and private/public Hub deployment guides in English and Traditional Chinese Taiwan.
 - Added Hub environment-variable passthrough to both Docker Compose manifests so deployed managers can run closed, open, or public Hub modes without a Go or Node.js installation.
+- Verified Docker deployment on `david@10.9.0.11`: open and public Hub registration, peer-ID card/send/poll/ACK flow, idempotent retry, invalid-credential rejection, and unknown-peer rejection passed; the host was restored to its original closed-mode configuration.
 
 - Added the first Hub registration HTTP surface and Manager route integration for open/public Agent enrollment, peer listing, and authenticated heartbeat.
 
