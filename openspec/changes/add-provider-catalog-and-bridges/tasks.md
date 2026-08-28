@@ -13,7 +13,7 @@
 ## 3. First real runtimes
 
 - [x] 3.1 Adapt the existing Codex ACP v2 thread executor as an explicit A2A bridge; verify tenant/context/turn propagation and run the opt-in real Codex gate when local `codex app-server` and `CODEX_HOME` are available.
-- [ ] 3.2 Implement an authenticated loopback OpenClaw Gateway bridge using only documented Gateway/ACP surfaces; verify endpoint allowlisting, auth failure, bounded request/response, and opt-in live health/turn tests.
+- [x] 3.2 Implement an authenticated loopback OpenClaw Gateway bridge using only documented Gateway/ACP surfaces; verify endpoint allowlisting, auth failure, bounded request/response, and opt-in live health/turn tests.
 - [x] 3.3 Implement a bounded agy/Antigravity CLI/MCP bridge; verify argv construction, workspace confinement, timeout, output parsing, and opt-in local smoke test without exposing credentials.
 - [x] 3.4 Register Pull-only or bridge-required fallbacks for the remaining catalog providers; verify detected binaries cannot be selected for automatic execution without transport evidence.
 

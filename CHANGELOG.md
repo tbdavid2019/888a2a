@@ -26,6 +26,7 @@
 - Fixed agy CLI bridge argv construction so the prompt is passed with `--print=<prompt>` and output format is parsed by the intended command.
 - Fixed the agy bridge environment allowlist to include only local user configuration directories required for its authenticated profile.
 - Verified the opt-in local agy 1.1.22 bridge smoke gate and parsed its stream-json final response.
+- Verified the opt-in loopback OpenClaw Gateway bridge gate on 2026-08-28; the Gateway endpoint passed while its own model fallback handled the turn.
 
 ### Changed
 
