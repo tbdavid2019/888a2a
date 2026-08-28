@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { createMemoryRouter, Outlet, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAppStore } from "@/stores";
@@ -194,6 +200,14 @@ function renderPage(agentId = "a1") {
   return render(<RouterProvider router={router} />);
 }
 
+async function clickPersonaEdit() {
+  const heading = await screen.findByText("agent.profile.persona-prompt");
+  const section = heading.closest("div.border-t");
+  if (!(section instanceof HTMLElement))
+    throw new Error("persona section not found");
+  fireEvent.click(within(section).getByLabelText("common.edit"));
+}
+
 // Select helper: open a Base UI select trigger and pick the item with the
 // given text (pointer sequence required by Base UI).
 async function pickSelect(trigger: HTMLElement, itemText: string) {
@@ -310,7 +324,7 @@ describe("AgentProfilePage", () => {
   it("edits and saves the persona prompt", async () => {
     renderPage();
 
-    fireEvent.click(await screen.findByLabelText("common.edit"));
+    await clickPersonaEdit();
     const textarea = await screen.findByPlaceholderText(
       "agent.profile.persona-prompt-placeholder"
     );
@@ -333,7 +347,7 @@ describe("AgentProfilePage", () => {
   it("cancels the persona edit and restores the persisted prompt", async () => {
     renderPage();
 
-    fireEvent.click(await screen.findByLabelText("common.edit"));
+    await clickPersonaEdit();
     const textarea = await screen.findByPlaceholderText(
       "agent.profile.persona-prompt-placeholder"
     );
@@ -620,7 +634,7 @@ describe("AgentProfilePage", () => {
     mock.updateAgentACPConfig.mockRejectedValue(new Error("boom"));
     renderPage();
 
-    fireEvent.click(await screen.findByLabelText("common.edit"));
+    await clickPersonaEdit();
     const textarea = await screen.findByPlaceholderText(
       "agent.profile.persona-prompt-placeholder"
     );

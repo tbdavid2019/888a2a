@@ -42,6 +42,7 @@ This project records changes by calendar date and does not maintain release vers
 
 ### Fixed
 
+- Scoped Agent profile persona tests to their own Edit control, removing a parallel-suite race with the description editor.
 - Replaced visible auth-page Laelia branding with 888a2a and converted the Chinese UI locale to Traditional Chinese for Taiwan, using `email` terminology.
 - Updated the Chinese locale label to Traditional Chinese (Taiwan) while retaining the existing locale key for compatibility.
 - Docker machine-image builds now prepare the pinned Pi runtime before compiling embedded release binaries.
