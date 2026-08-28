@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 
 	a2agateway "github.com/tbdavid2019/888a2a/backend/a2a"
+	runtimebridge "github.com/tbdavid2019/888a2a/backend/agent/bridge"
 	"github.com/tbdavid2019/888a2a/backend/common"
 	"github.com/tbdavid2019/888a2a/backend/manager/api/auth"
 	"github.com/tbdavid2019/888a2a/backend/manager/store"
@@ -106,7 +107,13 @@ func configuredA2ABridge(agentID string) (a2agateway.AgentBridge, error) {
 	providerID := strings.ToLower(strings.TrimSpace(os.Getenv("A2A888_A2A_BRIDGE_PROVIDER")))
 	switch providerID {
 	case "codex":
-		return configuredCommandBridge(a2agateway.NewCodexCommandBridge)
+		workdir := strings.TrimSpace(os.Getenv("A2A888_A2A_BRIDGE_WORKDIR"))
+		if workdir == "" || !filepath.IsAbs(workdir) {
+			return nil, errors.New("A2A888_A2A_BRIDGE_WORKDIR must be an absolute path")
+		}
+		return runtimebridge.NewCodexACPBridge(runtimebridge.CodexACPBridgeConfig{
+			ID: "codex-acp2", WorkingDir: workdir, Model: strings.TrimSpace(os.Getenv("A2A888_CODEX_MODEL")),
+		})
 	case "agy", "antigravity":
 		return configuredCommandBridge(a2agateway.NewAgyCommandBridge)
 	case "openclaw":

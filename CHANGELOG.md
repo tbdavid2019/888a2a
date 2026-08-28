@@ -14,6 +14,10 @@
 - Registered the production A2A 1.0 HTTP+JSON gateway and added the A2A client compatibility guide for Codex, OpenClaw, and Antigravity bridge integrations.
 - Added tenant-scoped bridge bindings and an A2A executor adapter for explicitly configured Codex, agy, and OpenClaw bridges.
 - Added deterministic bridge tests for delivery outcomes, duplicate tasks, cancellation, late events, stale leases, and restart behavior.
+- Added an explicit Codex ACP v2 bridge that reuses the existing ThreadExecutor and propagates tenant/task/context correlation to the isolated runtime.
+- Verified the opt-in local Codex ACP v2 bridge gate with the installed `codex app-server` and local `CODEX_HOME` on 2026-08-28.
+- Added an opt-in Codex ACP v2 real-runtime gate that uses the local app-server without exposing credentials.
+- Added bridge-backed A2A client coverage for send, stream, get, list, and cancel flows.
 
 ### Changed
 
@@ -26,11 +30,8 @@
 - Fixed the bridge binding idempotency test so the CI static analysis gate can evaluate both stop calls independently.
 - Fixed the provider status API projection to preserve verification evidence while withholding executable paths and sensitive discovery details.
 - Fixed Agent Card projections to expose provider readiness without advertising unverified transports as automatic execution.
-- Added official A2A client coverage for bridge-backed send, stream, get, list, and cancel flows.
 - Fixed bridge execution to derive the organization from the authenticated caller when the A2A SDK context omits the tenant field.
-
-### Fixed
-
+- Fixed A2A live subscriptions to register before historical replay so events published during replay are not lost.
 - Fixed Provider catalog filter translations so the frontend project-rule scanner recognizes every locale key.
 - Prevented embedded SPA fallback from swallowing A2A Agent Card and task routes.
 

@@ -96,6 +96,22 @@ func (em *EventManager) Subscribe(ctx context.Context, tenantID, workID string, 
 		}
 
 		lastYieldedSeq := fromSequence
+		// Register before replay so a live event published between the last
+		// historical yield and the replay loop's completion is buffered instead
+		// of being lost. Sequence filtering below removes any overlap.
+		ch := em.getOrCreateChannel(tenantID, workID)
+		subChan := make(chan eventItem, 64)
+
+		ch.mu.Lock()
+		ch.subscribers[subChan] = struct{}{}
+		ch.mu.Unlock()
+
+		defer func() {
+			ch.mu.Lock()
+			delete(ch.subscribers, subChan)
+			ch.mu.Unlock()
+			close(subChan)
+		}()
 
 		// Step 1: Replay historical durable events from store
 		if em.store != nil {
@@ -119,21 +135,7 @@ func (em *EventManager) Subscribe(ctx context.Context, tenantID, workID string, 
 			}
 		}
 
-		// Step 2: Subscribe to live events
-		ch := em.getOrCreateChannel(tenantID, workID)
-		subChan := make(chan eventItem, 64)
-
-		ch.mu.Lock()
-		ch.subscribers[subChan] = struct{}{}
-		ch.mu.Unlock()
-
-		defer func() {
-			ch.mu.Lock()
-			delete(ch.subscribers, subChan)
-			ch.mu.Unlock()
-			close(subChan)
-		}()
-
+		// Step 2: Drain live events buffered during replay.
 		for {
 			select {
 			case <-ctx.Done():
