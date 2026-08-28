@@ -2,18 +2,18 @@
 
 - [x] 1.1 Define Hub mode, registration declaration, assigned identity, token response, peer state, lease, and capability contracts; verify protobuf/JSON validation rejects unknown modes and oversized fields.
 - [x] 1.2 Add closed/open/public configuration with closed as the default; verify startup configuration and environment parsing never enables public mode implicitly.
-- [ ] 1.3 Add registration, heartbeat, disconnect, revoke, directory, inbox, and peer-task route contracts; verify consistent 400/401/403/404/409/429 error bodies.
+- [x] 1.3 Add registration, heartbeat, disconnect, revoke, directory, inbox, and peer-task route contracts; verify consistent 400/401/403/404/409/429 error bodies.
 
 ## 2. Identity and persistence
 
-- [ ] 2.1 Add PostgreSQL tables and migration for Hubs, registered Agents, token hashes, registration idempotency, leases, revocation, and peer declarations; verify fresh install and upgrade migration paths.
-- [ ] 2.2 Implement bootstrap-token and per-Agent-token issuance, hashing, expiration, rotation, and revocation; verify plaintext tokens never persist or appear in logs/API metadata.
-- [ ] 2.3 Implement registration idempotency and Hub-scoped random Agent IDs; verify retries return one identity and caller-selected IDs cannot overwrite existing peers.
-- [ ] 2.4 Implement lease heartbeats and stale-peer reconciliation; verify expired peers are offline and cannot receive automatic push work.
+- [x] 2.1 Add PostgreSQL tables and migration for Hubs, registered Agents, token hashes, registration idempotency, leases, revocation, and peer declarations; verify fresh install and upgrade migration paths.
+- [x] 2.2 Implement bootstrap-token and per-Agent-token issuance, hashing, expiration, rotation, and revocation; verify plaintext tokens never persist or appear in logs/API metadata.
+- [x] 2.3 Implement registration idempotency and Hub-scoped random Agent IDs; verify retries return one identity and caller-selected IDs cannot overwrite existing peers.
+- [x] 2.4 Implement lease heartbeats and stale-peer reconciliation; verify expired peers are offline and cannot receive automatic push work.
 
 ## 3. Hub directory and mailbox
 
-- [ ] 3.1 Implement authenticated Agent connect/disconnect/heartbeat lifecycle; verify open and public registration paths cannot bypass token or policy checks.
+- [x] 3.1 Implement authenticated Agent connect/disconnect/heartbeat lifecycle; verify open and public registration paths cannot bypass token or policy checks.
 - [ ] 3.2 Implement peer directory lookup/list by server-assigned ID with safe Agent Card projection; verify private endpoints, paths, credentials, and native session IDs are absent.
 - [ ] 3.3 Implement durable peer inbox polling with cursor, acknowledgment, timeout, and cancellation; verify reconnect replay is ordered and idempotent.
 - [ ] 3.4 Implement `target_agent_id` task routing through the mailbox; verify offline, revoked, unknown, duplicate, and ambiguous-delivery outcomes are truthful.

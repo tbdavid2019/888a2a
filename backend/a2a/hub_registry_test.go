@@ -102,6 +102,31 @@ func TestHubRegistryRevokesAndExpiresAgentsWithoutLeakingToken(t *testing.T) {
 	}
 }
 
+func TestHubRegistryRotatesAgentToken(t *testing.T) {
+	policy := DefaultHubPolicy()
+	policy.Mode = HubModePublic
+	policy.PublicConfirmed = true
+	policy.RegistrationEnabled = true
+	registry, err := NewHubRegistry(policy, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	identity, err := registry.Register("", validAgentDeclaration("rotate"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rotated, err := registry.RotateToken(identity.AgentID)
+	if err != nil || rotated == identity.AgentToken || rotated == "" {
+		t.Fatalf("rotated token=%q err=%v", rotated, err)
+	}
+	if _, err := registry.Authenticate(identity.AgentID, identity.AgentToken); err == nil {
+		t.Fatal("old token must fail after rotation")
+	}
+	if _, err := registry.Authenticate(identity.AgentID, rotated); err != nil {
+		t.Fatalf("rotated token must authenticate: %v", err)
+	}
+}
+
 func validAgentDeclaration(provider string) AgentDeclaration {
 	return AgentDeclaration{
 		DisplayName: "test-agent", ProviderFamily: provider, TransportID: provider + "-transport",

@@ -29,9 +29,29 @@ func (h HubHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.Method == http.MethodPost && strings.HasPrefix(path, "/agents/") && strings.HasSuffix(path, "/heartbeat"):
 		agentID := strings.TrimSuffix(strings.TrimPrefix(path, "/agents/"), "/heartbeat")
 		h.heartbeat(w, r, agentID)
+	case r.Method == http.MethodPost && strings.HasPrefix(path, "/agents/") && strings.HasSuffix(path, "/disconnect"):
+		agentID := strings.TrimSuffix(strings.TrimPrefix(path, "/agents/"), "/disconnect")
+		h.disconnect(w, r, agentID)
 	default:
 		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "Hub route not found")
 	}
+}
+
+func (h HubHTTPHandler) disconnect(w http.ResponseWriter, r *http.Request, agentID string) {
+	if agentID == "" || strings.ContainsAny(agentID, "/\\") {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "agent id is invalid")
+		return
+	}
+	if agent, ok := h.authenticateAgent(r); !ok || agent.AgentID != agentID {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are invalid")
+		return
+	}
+	updated, err := h.Registry.DisconnectContext(r.Context(), agentID, bearerToken(r.Header.Get("Authorization")))
+	if err != nil {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are invalid")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, updated.View())
 }
 
 func (h HubHTTPHandler) register(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +61,7 @@ func (h HubHTTPHandler) register(w http.ResponseWriter, r *http.Request) {
 		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "invalid Agent declaration")
 		return
 	}
-	identity, err := h.Registry.Register(bearerToken(r.Header.Get("Authorization")), declaration)
+	identity, err := h.Registry.RegisterContext(r.Context(), bearerToken(r.Header.Get("Authorization")), declaration)
 	if err != nil {
 		status, code := http.StatusForbidden, "PERMISSION_DENIED"
 		if errors.Is(err, ErrHubRegistrationDisabled) {
@@ -80,7 +100,7 @@ func (h HubHTTPHandler) heartbeat(w http.ResponseWriter, r *http.Request, agentI
 		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are invalid")
 		return
 	}
-	updated, err := h.Registry.Heartbeat(agentID, bearerToken(r.Header.Get("Authorization")))
+	updated, err := h.Registry.HeartbeatContext(r.Context(), agentID, bearerToken(r.Header.Get("Authorization")))
 	if err != nil {
 		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are invalid")
 		return

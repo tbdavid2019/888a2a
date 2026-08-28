@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net"
@@ -134,7 +136,17 @@ func NewServer(ctx context.Context, profile *config.Profile) (*Server, error) {
 	if profile.HubConfigError != nil {
 		return nil, errors.Wrap(profile.HubConfigError, "invalid Hub configuration")
 	}
-	hubRegistry, err := a2agateway.NewHubRegistry(hubPolicy, profile.Hub.BootstrapToken, nil)
+	bootstrapHash := sha256.Sum256([]byte(profile.Hub.BootstrapToken))
+	if err := stores.UpsertHub(ctx, &store.HubMessage{
+		HubID: hubPolicy.HubID, Mode: string(hubPolicy.Mode), BootstrapTokenHash: hex.EncodeToString(bootstrapHash[:]),
+		RegistrationEnabled: hubPolicy.RegistrationEnabled, PublicConfirmed: hubPolicy.PublicConfirmed,
+		RegistrationTTLSeconds: int(hubPolicy.RegistrationTTL), PeerLeaseSeconds: int(hubPolicy.PeerLeaseSeconds),
+		MaxRegisteredAgents: int(hubPolicy.MaxRegisteredAgents), MaxTasksPerMinute: int(hubPolicy.MaxTasksPerMinute),
+		MaxConcurrentTasks: int(hubPolicy.MaxConcurrentTasks), MaxPayloadBytes: hubPolicy.MaxPayloadBytes,
+	}); err != nil {
+		return nil, errors.Wrap(err, "failed to persist Hub policy")
+	}
+	hubRegistry, err := a2agateway.NewHubRegistryWithPersistence(ctx, hubPolicy, profile.Hub.BootstrapToken, nil, hubStorePersistence{store: stores})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to initialize Hub registry")
 	}

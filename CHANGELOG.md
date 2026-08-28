@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added PostgreSQL-backed Hub policy and registered Agent identity persistence with hashed tokens, registration idempotency, lease expiry, rotation, revocation, and authenticated disconnect.
+
 - Added the first Hub registration HTTP surface and Manager route integration for open/public Agent enrollment, peer listing, and authenticated heartbeat.
 
 - Added the Open Agent Hub modes change specification for closed, bootstrap-token open, and explicitly confirmed public registration.

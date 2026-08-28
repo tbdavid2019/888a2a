@@ -58,6 +58,14 @@ func TestHubHTTPOpenRegistrationListAndHeartbeat(t *testing.T) {
 	if heartbeat.Code != http.StatusOK || !strings.Contains(heartbeat.Body.String(), "ONLINE") {
 		t.Fatalf("heartbeat status=%d body=%s", heartbeat.Code, heartbeat.Body.String())
 	}
+	disconnect := httptest.NewRecorder()
+	disconnectReq := httptest.NewRequest(http.MethodPost, "/hub/v1/agents/"+registered.Identity.AgentID+"/disconnect", nil)
+	disconnectReq.Header.Set("X-Agent-ID", registered.Identity.AgentID)
+	disconnectReq.Header.Set("Authorization", "Bearer "+registered.Identity.AgentToken)
+	handler.ServeHTTP(disconnect, disconnectReq)
+	if disconnect.Code != http.StatusOK || !strings.Contains(disconnect.Body.String(), "OFFLINE") {
+		t.Fatalf("disconnect status=%d body=%s", disconnect.Code, disconnect.Body.String())
+	}
 }
 
 func TestHubHTTPPublicRegistrationAndOpenAuthFailure(t *testing.T) {

@@ -1,6 +1,7 @@
 package a2a
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -48,12 +49,13 @@ type RegisteredAgent struct {
 	AutomaticExecution bool
 	LastSeenAt         time.Time
 	ExpiresAt          time.Time
+	CreatedAt          time.Time
 	RevokedAt          *time.Time
 	RevokeReason       string
 
 	registrationHash string
 	tokenHash        [32]byte
-	leaseExpiresAt   time.Time
+	LeaseExpiresAt   time.Time
 }
 
 // HubAgentView is the directory-safe representation of a registered Agent.
@@ -71,6 +73,25 @@ type HubAgentView struct {
 	AutomaticExecution bool          `json:"automaticExecution"`
 }
 
+// HubAgentRecord is the persistence adapter shape. Token and registration
+// values are one-way hashes, never plaintext credentials.
+type HubAgentRecord struct {
+	RegisteredAgent
+	RegistrationHash string
+	TokenHash        string
+}
+
+// HubPersistence is implemented by the Manager store adapter. Keeping this
+// boundary here lets the registry remain deterministic in unit tests.
+type HubPersistence interface {
+	ListHubAgents(context.Context, string) ([]HubAgentRecord, error)
+	SaveHubAgent(context.Context, HubAgentRecord) error
+	HeartbeatHubAgent(context.Context, string, string, string, time.Time, time.Duration) error
+	RotateHubAgent(context.Context, string, string, string, time.Time) error
+	DisconnectHubAgent(context.Context, string, string, time.Time) error
+	RevokeHubAgent(context.Context, string, string, string, time.Time) error
+}
+
 // HubRegistry is the correctness-first registry implementation. Persistence
 // is added by the Manager store; the registry deliberately keeps token hashes
 // and no plaintext credentials.
@@ -81,9 +102,32 @@ type HubRegistry struct {
 	now            func() time.Time
 	agents         map[string]*RegisteredAgent
 	byRegistration map[string]string
+	persistence    HubPersistence
 }
 
 func NewHubRegistry(policy HubPolicy, bootstrapToken string, now func() time.Time) (*HubRegistry, error) {
+	return newHubRegistry(policy, bootstrapToken, now, nil)
+}
+
+func NewHubRegistryWithPersistence(ctx context.Context, policy HubPolicy, bootstrapToken string, now func() time.Time, persistence HubPersistence) (*HubRegistry, error) {
+	registry, err := newHubRegistry(policy, bootstrapToken, now, persistence)
+	if err != nil {
+		return nil, err
+	}
+	if persistence == nil {
+		return registry, nil
+	}
+	records, err := persistence.ListHubAgents(ctx, registry.policy.HubID)
+	if err != nil {
+		return nil, fmt.Errorf("load Hub Agents: %w", err)
+	}
+	if err := registry.Load(records); err != nil {
+		return nil, err
+	}
+	return registry, nil
+}
+
+func newHubRegistry(policy HubPolicy, bootstrapToken string, now func() time.Time, persistence HubPersistence) (*HubRegistry, error) {
 	if policy.Mode == "" {
 		policy.Mode = HubModeClosed
 	}
@@ -99,10 +143,15 @@ func NewHubRegistry(policy HubPolicy, bootstrapToken string, now func() time.Tim
 	return &HubRegistry{
 		policy: policy, bootstrapHash: sha256.Sum256([]byte(bootstrapToken)), now: now,
 		agents: make(map[string]*RegisteredAgent), byRegistration: make(map[string]string),
+		persistence: persistence,
 	}, nil
 }
 
 func (r *HubRegistry) Register(bootstrapToken string, declaration AgentDeclaration) (IssuedAgentIdentity, error) {
+	return r.RegisterContext(context.Background(), bootstrapToken, declaration)
+}
+
+func (r *HubRegistry) RegisterContext(ctx context.Context, bootstrapToken string, declaration AgentDeclaration) (IssuedAgentIdentity, error) {
 	if r == nil {
 		return IssuedAgentIdentity{}, errors.New("Hub registry is required")
 	}
@@ -139,8 +188,13 @@ func (r *HubRegistry) Register(bootstrapToken string, declaration AgentDeclarati
 		HubID: r.policy.HubID, AgentID: agentID, DisplayName: declaration.DisplayName,
 		ProviderFamily: declaration.ProviderFamily, TransportID: declaration.TransportID,
 		Capabilities: append([]string(nil), declaration.Capabilities...), AgentCardJSON: declaration.AgentCardJSON,
-		State: HubAgentStatePending, ExpiresAt: expires, registrationHash: registrationHash,
-		tokenHash: hashHubSecret(token), leaseExpiresAt: now.Add(time.Duration(r.policy.PeerLeaseSeconds) * time.Second),
+		State: HubAgentStatePending, CreatedAt: now, ExpiresAt: expires, registrationHash: registrationHash,
+		tokenHash: hashHubSecret(token), LeaseExpiresAt: now.Add(time.Duration(r.policy.PeerLeaseSeconds) * time.Second),
+	}
+	if r.persistence != nil {
+		if err := r.persistence.SaveHubAgent(ctx, HubAgentRecord{RegisteredAgent: *agent, RegistrationHash: registrationHash, TokenHash: hex.EncodeToString(agent.tokenHash[:])}); err != nil {
+			return IssuedAgentIdentity{}, fmt.Errorf("persist Hub Agent registration: %w", err)
+		}
 	}
 	r.agents[agentID] = agent
 	r.byRegistration[registrationHash] = agentID
@@ -160,6 +214,17 @@ func (r *HubRegistry) Authenticate(agentID, token string) (*RegisteredAgent, err
 }
 
 func (r *HubRegistry) Heartbeat(agentID, token string) (*RegisteredAgent, error) {
+	return r.HeartbeatContext(context.Background(), agentID, token)
+}
+
+func (r *HubRegistry) Disconnect(agentID, token string) (*RegisteredAgent, error) {
+	return r.DisconnectContext(context.Background(), agentID, token)
+}
+
+func (r *HubRegistry) DisconnectContext(ctx context.Context, agentID, token string) (*RegisteredAgent, error) {
+	if r == nil {
+		return nil, errors.New("Hub registry is required")
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	now := r.now()
@@ -168,13 +233,71 @@ func (r *HubRegistry) Heartbeat(agentID, token string) (*RegisteredAgent, error)
 	if !ok || agent.State == HubAgentStateRevoked || agent.State == HubAgentStateExpired || !r.matchesHash(token, agent.tokenHash) {
 		return nil, errors.New("invalid Hub Agent credentials")
 	}
+	if r.persistence != nil {
+		if err := r.persistence.DisconnectHubAgent(ctx, r.policy.HubID, agentID, now); err != nil {
+			return nil, err
+		}
+	}
+	agent.State = HubAgentStateOffline
+	agent.LastSeenAt = now
+	return cloneRegisteredAgent(agent), nil
+}
+
+func (r *HubRegistry) HeartbeatContext(ctx context.Context, agentID, token string) (*RegisteredAgent, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	now := r.now()
+	r.reconcileLocked(now)
+	agent, ok := r.agents[agentID]
+	if !ok || agent.State == HubAgentStateRevoked || agent.State == HubAgentStateExpired || !r.matchesHash(token, agent.tokenHash) {
+		return nil, errors.New("invalid Hub Agent credentials")
+	}
+	if r.persistence != nil {
+		if err := r.persistence.HeartbeatHubAgent(ctx, r.policy.HubID, agentID, hex.EncodeToString(agent.tokenHash[:]), now, time.Duration(r.policy.PeerLeaseSeconds)*time.Second); err != nil {
+			return nil, fmt.Errorf("persist Hub Agent heartbeat: %w", err)
+		}
+	}
 	agent.State = HubAgentStateOnline
 	agent.LastSeenAt = now
-	agent.leaseExpiresAt = now.Add(time.Duration(r.policy.PeerLeaseSeconds) * time.Second)
+	agent.LeaseExpiresAt = now.Add(time.Duration(r.policy.PeerLeaseSeconds) * time.Second)
 	return cloneRegisteredAgent(agent), nil
 }
 
 func (r *HubRegistry) Revoke(agentID, reason string) error {
+	return r.RevokeContext(context.Background(), agentID, reason)
+}
+
+// RotateToken issues a new per-Agent token and invalidates the previous one.
+// The new plaintext token is returned once and is never stored in the registry.
+func (r *HubRegistry) RotateToken(agentID string) (string, error) {
+	return r.RotateTokenContext(context.Background(), agentID)
+}
+
+func (r *HubRegistry) RotateTokenContext(ctx context.Context, agentID string) (string, error) {
+	if r == nil {
+		return "", errors.New("Hub registry is required")
+	}
+	token, err := randomHubToken()
+	if err != nil {
+		return "", err
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	agent, ok := r.agents[agentID]
+	if !ok || agent.State == HubAgentStateRevoked || agent.State == HubAgentStateExpired {
+		return "", errors.New("Hub Agent not found")
+	}
+	now := r.now()
+	if r.persistence != nil {
+		if err := r.persistence.RotateHubAgent(ctx, r.policy.HubID, agentID, hashHubSecretHex(token), now); err != nil {
+			return "", err
+		}
+	}
+	agent.tokenHash = hashHubSecret(token)
+	return token, nil
+}
+
+func (r *HubRegistry) RevokeContext(ctx context.Context, agentID, reason string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	agent, ok := r.agents[agentID]
@@ -185,9 +308,45 @@ func (r *HubRegistry) Revoke(agentID, reason string) error {
 		return nil
 	}
 	now := r.now()
+	if r.persistence != nil {
+		if err := r.persistence.RevokeHubAgent(ctx, r.policy.HubID, agentID, reason, now); err != nil {
+			return err
+		}
+	}
 	agent.State = HubAgentStateRevoked
 	agent.RevokedAt = &now
 	agent.RevokeReason = strings.TrimSpace(reason)
+	return nil
+}
+
+// Load imports safe persistence records after a process restart. It rejects
+// records for another Hub and never imports plaintext token material.
+func (r *HubRegistry) Load(records []HubAgentRecord) error {
+	if r == nil {
+		return errors.New("Hub registry is required")
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, record := range records {
+		if record.HubID != r.policy.HubID || record.AgentID == "" || record.RegistrationHash == "" || record.TokenHash == "" {
+			return errors.New("invalid persisted Hub Agent record")
+		}
+		tokenBytes, err := hex.DecodeString(record.TokenHash)
+		if err != nil || len(tokenBytes) != sha256.Size {
+			return errors.New("persisted Hub Agent token hash is invalid")
+		}
+		var tokenHash [32]byte
+		copy(tokenHash[:], tokenBytes)
+		agent := record.RegisteredAgent
+		agent.registrationHash = record.RegistrationHash
+		agent.tokenHash = tokenHash
+		agent.LeaseExpiresAt = agent.LastSeenAt.Add(time.Duration(r.policy.PeerLeaseSeconds) * time.Second)
+		if agent.LastSeenAt.IsZero() {
+			agent.LeaseExpiresAt = agent.CreatedAt.Add(time.Duration(r.policy.PeerLeaseSeconds) * time.Second)
+		}
+		r.agents[agent.AgentID] = &agent
+		r.byRegistration[agent.registrationHash] = agent.AgentID
+	}
 	return nil
 }
 
@@ -235,7 +394,7 @@ func (r *HubRegistry) reconcileLocked(now time.Time) []RegisteredAgent {
 			expired = append(expired, *cloneRegisteredAgent(agent))
 			continue
 		}
-		if (agent.State == HubAgentStatePending || agent.State == HubAgentStateOnline) && !now.Before(agent.leaseExpiresAt) {
+		if (agent.State == HubAgentStatePending || agent.State == HubAgentStateOnline) && !now.Before(agent.LeaseExpiresAt) {
 			agent.State = HubAgentStateOffline
 		}
 	}
