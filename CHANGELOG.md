@@ -4,6 +4,8 @@
 
 ### Added
 
+- Added the first Hub registration HTTP surface and Manager route integration for open/public Agent enrollment, peer listing, and authenticated heartbeat.
+
 - Added the Open Agent Hub modes change specification for closed, bootstrap-token open, and explicitly confirmed public registration.
 - Added Hub mode protobuf contracts and fail-closed configuration parsing with closed mode as the default.
 

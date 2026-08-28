@@ -12,6 +12,7 @@ import (
 
 	"github.com/labstack/echo/v5"
 
+	a2agateway "github.com/tbdavid2019/888a2a/backend/a2a"
 	"github.com/tbdavid2019/888a2a/backend/common/log"
 	"github.com/tbdavid2019/888a2a/backend/manager/api/auth"
 	apiv1 "github.com/tbdavid2019/888a2a/backend/manager/api/v1"
@@ -55,7 +56,8 @@ type Server struct {
 
 	// dispatcher is the command dispatcher; Stop joins its ping monitor and
 	// grace goroutines on shutdown.
-	dispatcher *dispatcher.Dispatcher
+	dispatcher  *dispatcher.Dispatcher
+	hubRegistry *a2agateway.HubRegistry
 
 	// machineAssignmentOutboxWorker delivers durable assignment events and
 	// stops with runnerCtx during server shutdown.
@@ -102,6 +104,41 @@ func NewServer(ctx context.Context, profile *config.Profile) (*Server, error) {
 		return nil, errors.Wrap(err, "failed to migrate database schema")
 	}
 	s.store = stores
+	hubPolicy := a2agateway.DefaultHubPolicy()
+	if profile.Hub.Mode != "" {
+		hubPolicy.Mode = a2agateway.HubMode(profile.Hub.Mode)
+	}
+	if profile.Hub.HubID != "" {
+		hubPolicy.HubID = profile.Hub.HubID
+	}
+	hubPolicy.RegistrationEnabled = profile.Hub.RegistrationEnabled
+	hubPolicy.PublicConfirmed = profile.Hub.PublicConfirmed
+	if profile.Hub.RegistrationTTL > 0 {
+		hubPolicy.RegistrationTTL = int64(profile.Hub.RegistrationTTL / time.Second)
+	}
+	if profile.Hub.PeerLease > 0 {
+		hubPolicy.PeerLeaseSeconds = int64(profile.Hub.PeerLease / time.Second)
+	}
+	if profile.Hub.MaxRegisteredAgents > 0 {
+		hubPolicy.MaxRegisteredAgents = profile.Hub.MaxRegisteredAgents
+	}
+	if profile.Hub.MaxTasksPerMinute > 0 {
+		hubPolicy.MaxTasksPerMinute = profile.Hub.MaxTasksPerMinute
+	}
+	if profile.Hub.MaxConcurrentTasks > 0 {
+		hubPolicy.MaxConcurrentTasks = profile.Hub.MaxConcurrentTasks
+	}
+	if profile.Hub.MaxPayloadBytes > 0 {
+		hubPolicy.MaxPayloadBytes = profile.Hub.MaxPayloadBytes
+	}
+	if profile.HubConfigError != nil {
+		return nil, errors.Wrap(profile.HubConfigError, "invalid Hub configuration")
+	}
+	hubRegistry, err := a2agateway.NewHubRegistry(hubPolicy, profile.Hub.BootstrapToken, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to initialize Hub registry")
+	}
+	s.hubRegistry = hubRegistry
 	s.runnerCtx, s.runnerCancel = context.WithCancel(ctx)
 
 	stateCfg, err := state.NewWithStore(stores)
@@ -134,6 +171,7 @@ func NewServer(ctx context.Context, profile *config.Profile) (*Server, error) {
 	s.auditInterceptor = auditInterceptor
 
 	configureEchoRouters(s.echoServer, profile, s.store)
+	registerHubRoutes(s.echoServer, s.hubRegistry)
 
 	for _, route := range s.echoServer.Router().Routes() {
 		fmt.Printf("Path: %s, Method: %s\n", route.Path, route.Method)
