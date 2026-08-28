@@ -24,6 +24,7 @@
 ### Fixed
 
 - Fixed the bridge binding idempotency test so the CI static analysis gate can evaluate both stop calls independently.
+- Fixed the provider status API projection to preserve verification evidence while withholding executable paths and sensitive discovery details.
 
 ### Fixed
 
