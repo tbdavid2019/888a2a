@@ -17,6 +17,7 @@
 - Added an explicit Codex ACP v2 bridge that reuses the existing ThreadExecutor and propagates tenant/task/context correlation to the isolated runtime.
 - Verified the opt-in local Codex ACP v2 bridge gate with the installed `codex app-server` and local `CODEX_HOME` on 2026-08-28.
 - Added an opt-in Codex ACP v2 real-runtime gate that uses the local app-server without exposing credentials.
+- Added provider compatibility evidence documentation for Codex, OpenClaw, agy, and Pull-only catalog families.
 - Added bridge-backed A2A client coverage for send, stream, get, list, and cancel flows.
 
 ### Changed

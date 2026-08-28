@@ -57,7 +57,11 @@ func TestCommandBridgeRealRuntimeGatesAreOptIn(t *testing.T) {
 			if os.Getenv(tc.env) != "1" {
 				t.Skipf("set %s=1 to run the local %s preflight", tc.env, tc.name)
 			}
-			bridge, err := tc.make(filepath.Join(t.TempDir(), tc.name))
+			workdir := filepath.Join(t.TempDir(), tc.name)
+			if err := os.MkdirAll(workdir, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			bridge, err := tc.make(workdir)
 			if err != nil {
 				t.Fatal(err)
 			}

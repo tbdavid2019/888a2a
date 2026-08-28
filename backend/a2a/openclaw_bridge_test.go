@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestOpenClawBridgeUsesAuthenticatedOpenResponsesEndpoint(t *testing.T) {
@@ -44,6 +46,36 @@ func TestOpenClawBridgeUsesAuthenticatedOpenResponsesEndpoint(t *testing.T) {
 	metadata, ok := gotBody["metadata"].(map[string]any)
 	if !ok || metadata["organization_id"] != request.OrganizationID {
 		t.Fatalf("request metadata = %+v", gotBody["metadata"])
+	}
+}
+
+func TestOpenClawBridgeLiveGateIsOptIn(t *testing.T) {
+	if os.Getenv("A2A888_RUN_OPENCLAW_BRIDGE_TESTS") != "1" {
+		t.Skip("set A2A888_RUN_OPENCLAW_BRIDGE_TESTS=1 to run the local OpenClaw Gateway gate")
+	}
+	baseURL := strings.TrimSpace(os.Getenv("A2A888_OPENCLAW_GATEWAY_URL"))
+	token := strings.TrimSpace(os.Getenv("A2A888_OPENCLAW_GATEWAY_TOKEN"))
+	if baseURL == "" || token == "" {
+		t.Skip("A2A888_OPENCLAW_GATEWAY_URL and A2A888_OPENCLAW_GATEWAY_TOKEN are required for the live gate")
+	}
+	bridge, err := NewOpenClawBridge(OpenClawBridgeConfig{
+		ID: "openclaw-gateway", BaseURL: baseURL, AgentID: os.Getenv("A2A888_OPENCLAW_AGENT_ID"),
+		Token: func(context.Context) (string, error) { return token, nil },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	health, err := bridge.Health(context.Background())
+	if err != nil || !health.Ready {
+		t.Fatalf("OpenClaw health = %+v, err=%v", health, err)
+	}
+	request := BridgeRequest{
+		OrganizationID: "local-test", CallerID: "local-test", TaskID: "openclaw-gateway-task", ContextID: "openclaw-gateway-context", CorrelationID: "openclaw-gateway-correlation",
+		BridgeID: bridge.ID(), Input: "Reply with exactly: openclaw-gateway-ok", MaxOutputBytes: 64 * 1024, Timeout: 2 * time.Minute,
+	}
+	result, err := ExecuteBridge(context.Background(), bridge, request, nil)
+	if err != nil || result.Outcome != DeliveryOutcomeDelivered {
+		t.Fatalf("OpenClaw live gate result=%+v err=%v", result, err)
 	}
 }
 
