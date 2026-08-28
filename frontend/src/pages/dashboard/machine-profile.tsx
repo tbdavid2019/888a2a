@@ -79,9 +79,9 @@ import {
   machineInstallOSFromInfo,
 } from "@/lib/machine-token";
 import {
+  providerAction as getProviderAction,
   providerAutomaticSelectionDisabled,
   providerDisplayStatus,
-  providerNeedsPreparation,
 } from "@/lib/provider-status";
 import { useIsDesktop } from "@/lib/use-is-desktop";
 import { cn } from "@/lib/utils";
@@ -1118,11 +1118,12 @@ export function MachineProfilePage() {
                   {availableProviders.map((p) => {
                     const status = providerDisplayStatus(p);
                     const isUnusable = providerAutomaticSelectionDisabled(p);
-                    const needsPreparation = providerNeedsPreparation(p);
+                    const action = getProviderAction(p);
+                    const needsPreparation = action !== null;
                     const actionLabel =
-                      status === "UPDATE_AVAILABLE"
+                      action === "update"
                         ? t("machine.provider-update")
-                        : status === "QUARANTINED" || status === "BROKEN"
+                        : action === "repair"
                           ? t("machine.provider-repair")
                           : t("machine.provider-prepare");
                     return (

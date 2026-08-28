@@ -27,6 +27,7 @@
 - Fixed the agy bridge environment allowlist to include only local user configuration directories required for its authenticated profile.
 - Verified the opt-in local agy 1.1.22 bridge smoke gate and parsed its stream-json final response.
 - Verified the opt-in loopback OpenClaw Gateway bridge gate on 2026-08-28; the Gateway endpoint passed while its own model fallback handled the turn.
+- Added centralized frontend action-policy tests for prepare, repair, and update controls.
 
 ### Changed
 

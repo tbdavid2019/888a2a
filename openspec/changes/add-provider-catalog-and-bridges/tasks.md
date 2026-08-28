@@ -26,6 +26,6 @@
 ## 5. Operator UI and evidence
 
 - [x] 5.1 Add provider catalog cards and filters to the Machine/Agent UI; verify ready, detected-only, bridge-required, pull-only, unavailable, and pending states have distinct copy and controls.
-- [ ] 5.2 Add install/configure/repair/rollback actions only for supported transports; verify the UI never offers an automatic action for a non-ready provider.
+- [x] 5.2 Add install/configure/repair/rollback actions only for supported transports; verify the UI never offers an automatic action for a non-ready provider.
 - [x] 5.3 Add provider compatibility documentation and real-runtime evidence templates; verify every claimed provider/version/platform result links to a reproducible gate.
 - [ ] 5.4 Run the complete backend/frontend/proto/naming/build checks, update the dated CHANGELOG, and push a green GitHub Actions run before marking this change complete.

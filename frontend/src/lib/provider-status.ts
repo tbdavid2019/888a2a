@@ -24,13 +24,27 @@ export function providerDisplayStatus(
 }
 
 export function providerNeedsPreparation(provider: AgentProviderInfo): boolean {
-  return [
-    "QUARANTINED",
-    "BROKEN",
-    "DETECTED",
-    "DETECTED_ONLY",
-    "UPDATE_AVAILABLE",
-  ].includes(provider.runtimeStatus || "DETECTED");
+  return providerAction(provider) !== null;
+}
+
+export type ProviderAction = "prepare" | "repair" | "update";
+
+// These are the only automatic Machine actions. Bridge-required, pull-only,
+// pending, and unverified providers intentionally return null.
+export function providerAction(
+  provider: AgentProviderInfo
+): ProviderAction | null {
+  switch (provider.runtimeStatus) {
+    case "QUARANTINED":
+    case "BROKEN":
+      return "repair";
+    case "DETECTED":
+      return "prepare";
+    case "UPDATE_AVAILABLE":
+      return "update";
+    default:
+      return null;
+  }
 }
 
 export function providerAutomaticSelectionDisabled(
