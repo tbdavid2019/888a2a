@@ -3,9 +3,12 @@ package a2a
 import (
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -17,6 +20,48 @@ const maxHubRegistrationBody = MaxHubAgentCardBytes + 16*1024
 type HubHTTPHandler struct {
 	Registry *HubRegistry
 	Mailbox  HubMailbox
+	Rate     *HubRateLimiter
+}
+
+type HubRateLimiter struct {
+	mu      sync.Mutex
+	window  time.Duration
+	limit   int
+	entries map[string]hubRateEntry
+}
+
+type hubRateEntry struct {
+	started time.Time
+	count   int
+}
+
+func NewHubRateLimiter(limit int, window time.Duration) *HubRateLimiter {
+	if limit <= 0 {
+		limit = 60
+	}
+	if window <= 0 {
+		window = time.Minute
+	}
+	return &HubRateLimiter{limit: limit, window: window, entries: make(map[string]hubRateEntry)}
+}
+
+func (l *HubRateLimiter) Allow(key string, now time.Time) bool {
+	if l == nil {
+		return true
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	entry := l.entries[key]
+	if entry.started.IsZero() || now.Sub(entry.started) >= l.window {
+		l.entries[key] = hubRateEntry{started: now, count: 1}
+		return true
+	}
+	if entry.count >= l.limit {
+		return false
+	}
+	entry.count++
+	l.entries[key] = entry
+	return true
 }
 
 func (h HubHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -27,9 +72,14 @@ func (h HubHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/hub/v1")
 	switch {
 	case r.Method == http.MethodPost && path == "/agents/register":
+		if h.Registry.policy.Mode == HubModePublic && !h.allow(w, r, "register") {
+			return
+		}
 		h.register(w, r)
 	case r.Method == http.MethodGet && path == "/agents":
 		h.list(w, r)
+	case r.Method == http.MethodGet && strings.HasPrefix(path, "/agents/") && strings.Count(path, "/") == 2:
+		h.lookup(w, r, strings.TrimPrefix(path, "/agents/"))
 	case r.Method == http.MethodPost && strings.HasPrefix(path, "/agents/") && strings.HasSuffix(path, "/heartbeat"):
 		agentID := strings.TrimSuffix(strings.TrimPrefix(path, "/agents/"), "/heartbeat")
 		h.heartbeat(w, r, agentID)
@@ -76,6 +126,9 @@ func (h HubHTTPHandler) sendPeerTask(w http.ResponseWriter, r *http.Request, tar
 		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
 		return
 	}
+	if h.Registry.policy.Mode == HubModePublic && !h.allow(w, r, "task") {
+		return
+	}
 	if target, exists := h.Registry.LookupView(targetAgentID); !exists || target.State == HubAgentStateRevoked || target.State == HubAgentStateExpired {
 		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "target Hub Agent not found")
 		return
@@ -102,6 +155,25 @@ func (h HubHTTPHandler) sendPeerTask(w http.ResponseWriter, r *http.Request, tar
 		return
 	}
 	writeHubJSON(w, http.StatusOK, result)
+}
+
+func (h HubHTTPHandler) lookup(w http.ResponseWriter, r *http.Request, agentID string) {
+	if agentID == "" || strings.ContainsAny(agentID, "/\\") {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "agent id is invalid")
+		return
+	}
+	if h.Registry.policy.Mode != HubModePublic {
+		if _, ok := h.authenticateAgent(r); !ok {
+			writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+			return
+		}
+	}
+	view, ok := h.Registry.LookupView(agentID)
+	if !ok {
+		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "Hub Agent not found")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, view)
 }
 
 func (h HubHTTPHandler) pollInbox(w http.ResponseWriter, r *http.Request, agentID string) {
@@ -217,6 +289,22 @@ func (h HubHTTPHandler) heartbeat(w http.ResponseWriter, r *http.Request, agentI
 		return
 	}
 	writeHubJSON(w, http.StatusOK, updated.View())
+}
+
+func (h HubHTTPHandler) allow(w http.ResponseWriter, r *http.Request, operation string) bool {
+	if h.Rate == nil || h.Rate.Allow(operation+":"+hubRemoteHost(r.RemoteAddr), time.Now()) {
+		return true
+	}
+	writeHubError(w, http.StatusTooManyRequests, "RATE_LIMITED", "Hub request rate limit exceeded")
+	return false
+}
+
+func hubRemoteHost(remoteAddr string) string {
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err == nil {
+		return host
+	}
+	return remoteAddr
 }
 
 func (h HubHTTPHandler) authenticateAgent(r *http.Request) (*RegisteredAgent, bool) {

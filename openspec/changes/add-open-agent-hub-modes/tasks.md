@@ -14,7 +14,7 @@
 ## 3. Hub directory and mailbox
 
 - [x] 3.1 Implement authenticated Agent connect/disconnect/heartbeat lifecycle; verify open and public registration paths cannot bypass token or policy checks.
-- [ ] 3.2 Implement peer directory lookup/list by server-assigned ID with safe Agent Card projection; verify private endpoints, paths, credentials, and native session IDs are absent.
+- [x] 3.2 Implement peer directory lookup/list by server-assigned ID with safe Agent Card projection; verify private endpoints, paths, credentials, and native session IDs are absent.
 - [x] 3.3 Implement durable peer inbox polling with cursor, acknowledgment, timeout, and cancellation; verify reconnect replay is ordered and idempotent.
 - [x] 3.4 Implement `target_agent_id` task routing through the mailbox; verify offline, revoked, unknown, duplicate, and ambiguous-delivery outcomes are truthful.
 

@@ -71,6 +71,18 @@ type HubAgentView struct {
 	LastSeenAt         time.Time     `json:"lastSeenAt,omitempty"`
 	ExpiresAt          time.Time     `json:"expiresAt"`
 	AutomaticExecution bool          `json:"automaticExecution"`
+	Card               HubAgentCard  `json:"card"`
+}
+
+// HubAgentCard is a safe, Hub-local peer card. The declared raw card is not
+// echoed because it may contain private endpoints or provider metadata.
+type HubAgentCard struct {
+	Name               string   `json:"name"`
+	Version            string   `json:"version"`
+	ProviderFamily     string   `json:"providerFamily"`
+	TransportID        string   `json:"transportId"`
+	Capabilities       []string `json:"capabilities"`
+	AutomaticExecution bool     `json:"automaticExecution"`
 }
 
 // HubAgentRecord is the persistence adapter shape. Token and registration
@@ -427,12 +439,17 @@ func cloneRegisteredAgent(agent *RegisteredAgent) *RegisteredAgent {
 }
 
 func (agent RegisteredAgent) View() HubAgentView {
+	card := HubAgentCard{
+		Name: agent.DisplayName, Version: "1.0", ProviderFamily: agent.ProviderFamily,
+		TransportID: agent.TransportID, Capabilities: append([]string(nil), agent.Capabilities...),
+		AutomaticExecution: agent.AutomaticExecution,
+	}
 	return HubAgentView{
 		HubID: agent.HubID, AgentID: agent.AgentID, DisplayName: agent.DisplayName,
 		ProviderFamily: agent.ProviderFamily, TransportID: agent.TransportID,
 		Capabilities: append([]string(nil), agent.Capabilities...), State: agent.State,
 		LastSeenAt: agent.LastSeenAt, ExpiresAt: agent.ExpiresAt,
-		AutomaticExecution: agent.AutomaticExecution,
+		AutomaticExecution: agent.AutomaticExecution, Card: card,
 	}
 }
 

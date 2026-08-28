@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestHubHTTPOpenRegistrationListAndHeartbeat(t *testing.T) {
@@ -124,5 +125,40 @@ func TestHubHTTPPublicRegistrationAndOpenAuthFailure(t *testing.T) {
 	handler.ServeHTTP(public, publicReq)
 	if public.Code != http.StatusOK {
 		t.Fatalf("public register status=%d body=%s", public.Code, public.Body.String())
+	}
+	var publicIdentity struct {
+		Identity IssuedAgentIdentity `json:"identity"`
+	}
+	if err := json.Unmarshal(public.Body.Bytes(), &publicIdentity); err != nil {
+		t.Fatal(err)
+	}
+	lookup := httptest.NewRecorder()
+	lookupReq := httptest.NewRequest(http.MethodGet, "/hub/v1/agents/"+publicIdentity.Identity.AgentID, nil)
+	handler.ServeHTTP(lookup, lookupReq)
+	if lookup.Code != http.StatusOK || !strings.Contains(lookup.Body.String(), "providerFamily") || strings.Contains(lookup.Body.String(), "agentCardJson") {
+		t.Fatalf("public lookup status=%d body=%s", lookup.Code, lookup.Body.String())
+	}
+}
+
+func TestHubHTTPPublicRateLimitReturns429(t *testing.T) {
+	policy := DefaultHubPolicy()
+	policy.Mode = HubModePublic
+	policy.HubID = "hub-rate"
+	policy.PublicConfirmed = true
+	policy.RegistrationEnabled = true
+	registry, err := NewHubRegistry(policy, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := HubHTTPHandler{Registry: registry, Rate: NewHubRateLimiter(1, time.Hour)}
+	body, _ := json.Marshal(validAgentDeclaration("rate"))
+	first := httptest.NewRecorder()
+	firstReq := httptest.NewRequest(http.MethodPost, "/hub/v1/agents/register", bytes.NewReader(body))
+	handler.ServeHTTP(first, firstReq)
+	second := httptest.NewRecorder()
+	secondReq := httptest.NewRequest(http.MethodPost, "/hub/v1/agents/register", bytes.NewReader(body))
+	handler.ServeHTTP(second, secondReq)
+	if first.Code != http.StatusOK || second.Code != http.StatusTooManyRequests {
+		t.Fatalf("rate limit statuses=%d/%d bodies=%s/%s", first.Code, second.Code, first.Body.String(), second.Body.String())
 	}
 }
