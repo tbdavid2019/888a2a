@@ -28,6 +28,7 @@
 - Verified the opt-in local agy 1.1.22 bridge smoke gate and parsed its stream-json final response.
 - Verified the opt-in loopback OpenClaw Gateway bridge gate on 2026-08-28; the Gateway endpoint passed while its own model fallback handled the turn.
 - Added centralized frontend action-policy tests for prepare, repair, and update controls.
+- Completed the provider catalog and bridge change after the full backend/frontend/proto/naming/build CI run passed (GitHub Actions run 33141040352).
 
 ### Changed
 
