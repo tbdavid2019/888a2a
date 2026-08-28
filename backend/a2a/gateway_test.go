@@ -280,6 +280,78 @@ func TestGateway_OfficialSDKStreamingAndTenantRouting(t *testing.T) {
 	}
 }
 
+func TestGatewayExecutesConfiguredBridgeThroughOfficialClient(t *testing.T) {
+	ctx := context.Background()
+	taskStore := taskstore.NewInMemory(&taskstore.InMemoryStoreConfig{
+		Authenticator: func(_ context.Context) (string, error) { return "bridge-caller", nil },
+	})
+	bridge := &fakeBridge{session: &fakeBridgeSession{result: BridgeResult{
+		Outcome: DeliveryOutcomeDelivered,
+		Output:  "configured bridge output",
+		Events:  []BridgeEvent{{Sequence: 1, Kind: "delta", Text: "streamed bridge output"}},
+	}}}
+	gateway := NewGateway(GatewayOptions{
+		TaskStore: taskStore,
+		Authenticate: func(ctx context.Context, _ *http.Request, tenant, _ string) (context.Context, error) {
+			return WithCaller(ctx, &fakeCaller{id: "bridge-caller", tenant: tenant, authenticated: true}), nil
+		},
+		ExecutorFactory: func(agentID string) a2asrv.AgentExecutor {
+			executor, err := NewBridgeAgentExecutor(agentID, bridge)
+			if err != nil {
+				t.Fatalf("NewBridgeAgentExecutor: %v", err)
+			}
+			return executor
+		},
+	})
+	server := httptest.NewServer(gateway)
+	defer server.Close()
+	client, err := a2aclient.NewFromCard(ctx, &a2a.AgentCard{
+		Name: "bridge-agent", Version: "1.0",
+		SupportedInterfaces: []*a2a.AgentInterface{a2a.NewAgentInterface(server.URL+"/a2a/v1/org-a/agents/bridge-agent", a2a.TransportProtocolHTTPJSON)},
+		Capabilities:        a2a.AgentCapabilities{Streaming: true}, DefaultInputModes: []string{"text/plain"}, DefaultOutputModes: []string{"text/plain"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = client.Destroy() }()
+	result, err := client.SendMessage(ctx, &a2a.SendMessageRequest{Message: a2a.NewMessage(a2a.MessageRoleUser, a2a.NewTextPart("run through bridge"))})
+	if err != nil {
+		t.Fatalf("SendMessage: %v", err)
+	}
+	task, ok := result.(*a2a.Task)
+	if !ok || task.Status.State != a2a.TaskStateCompleted || task.Status.Message == nil || task.Status.Message.Parts[0].Text() != "configured bridge output" {
+		t.Fatalf("bridge task result = %#v", result)
+	}
+	fetched, err := client.GetTask(ctx, &a2a.GetTaskRequest{ID: task.ID})
+	if err != nil || fetched.ID != task.ID || fetched.Status.State != a2a.TaskStateCompleted {
+		t.Fatalf("GetTask result = %+v, err=%v", fetched, err)
+	}
+	listed, err := client.ListTasks(ctx, &a2a.ListTasksRequest{PageSize: 10})
+	if err != nil || len(listed.Tasks) == 0 {
+		t.Fatalf("ListTasks result = %+v, err=%v", listed, err)
+	}
+	var streamed int
+	for event, streamErr := range client.SendStreamingMessage(ctx, &a2a.SendMessageRequest{Message: a2a.NewMessage(a2a.MessageRoleUser, a2a.NewTextPart("stream through bridge"))}) {
+		if streamErr != nil {
+			t.Fatalf("SendStreamingMessage: %v", streamErr)
+		}
+		if event != nil {
+			streamed++
+		}
+	}
+	if streamed < 3 {
+		t.Fatalf("streamed bridge events = %d, want submitted/working/artifact/terminal", streamed)
+	}
+	workingID := a2a.TaskID("bridge-cancel-task")
+	if _, err := taskStore.Create(ctx, &a2a.Task{ID: workingID, ContextID: "cancel-context", Status: a2a.TaskStatus{State: a2a.TaskStateWorking}}); err != nil {
+		t.Fatalf("seed working task: %v", err)
+	}
+	canceled, err := client.CancelTask(ctx, &a2a.CancelTaskRequest{ID: workingID})
+	if err != nil || canceled.Status.State != a2a.TaskStateCanceled {
+		t.Fatalf("CancelTask result = %+v, err=%v", canceled, err)
+	}
+}
+
 func TestGateway_AuthenticatedTenantTaskRouting(t *testing.T) {
 	called := false
 	gw := NewGateway(GatewayOptions{
