@@ -1,5 +1,15 @@
 # Changelog
 
+## [2026-08-28]
+
+### Added
+
+- Registered the production A2A 1.0 HTTP+JSON gateway and added the A2A client compatibility guide for Codex, OpenClaw, and Antigravity bridge integrations.
+
+### Fixed
+
+- Prevented embedded SPA fallback from swallowing A2A Agent Card and task routes.
+
 All notable changes to 888a2a are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).

@@ -66,6 +66,8 @@ type DirectoryService struct {
 	skills  map[string][]SkillInput
 }
 
+type requestBaseURLContextKey struct{}
+
 // NewDirectoryService creates a new agent directory service.
 func NewDirectoryService(store AgentDirectoryStore, baseURL string, skills map[string][]SkillInput) *DirectoryService {
 	return &DirectoryService{
@@ -130,10 +132,14 @@ func (d *DirectoryService) ListPeers(ctx context.Context, caller CallerPrincipal
 			agentSkills = d.skills[ag.ResourceID]
 		}
 
+		baseURL := d.baseURL
+		if requestBaseURL, ok := ctx.Value(requestBaseURLContextKey{}).(string); ok && requestBaseURL != "" {
+			baseURL = requestBaseURL
+		}
 		card, err := ProjectAgentCard(ProjectAgentCardOptions{
 			Agent:   ag,
 			Skills:  agentSkills,
-			BaseURL: d.baseURL,
+			BaseURL: baseURL,
 			Tenant:  tenant,
 		})
 		if err != nil {
@@ -178,10 +184,14 @@ func (d *DirectoryService) GetPeer(ctx context.Context, caller CallerPrincipal, 
 		agentSkills = d.skills[agent.ResourceID]
 	}
 
+	baseURL := d.baseURL
+	if requestBaseURL, ok := ctx.Value(requestBaseURLContextKey{}).(string); ok && requestBaseURL != "" {
+		baseURL = requestBaseURL
+	}
 	card, err := ProjectAgentCard(ProjectAgentCardOptions{
 		Agent:   agent,
 		Skills:  agentSkills,
-		BaseURL: d.baseURL,
+		BaseURL: baseURL,
 		Tenant:  tenant,
 	})
 	if err != nil {

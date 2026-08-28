@@ -129,6 +129,7 @@ func configureV1Routers(
 	auditInterceptor := apiv1.NewAuditInterceptor(stores)
 
 	apiAuth := auth.New(stores, secret, stateCfg.TokenExpireCache, profile)
+	registerA2ARoutes(e, stores, profile.ExternalURL, apiAuth)
 
 	// CSRF note: the Connect protocol can serve unary RPCs over GET, which
 	// browsers send without CORS preflight. connect-go only enables GET for

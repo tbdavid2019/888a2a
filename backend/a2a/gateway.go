@@ -10,6 +10,8 @@ import (
 	"github.com/a2aproject/a2a-go/v2/a2a"
 	"github.com/a2aproject/a2a-go/v2/a2asrv"
 	"github.com/a2aproject/a2a-go/v2/a2asrv/taskstore"
+
+	"github.com/tbdavid2019/888a2a/backend/common"
 )
 
 // GatewayOptions configures the A2A HTTP+JSON Gateway.
@@ -36,9 +38,6 @@ type Gateway struct {
 
 // NewGateway creates a new A2A Gateway instance.
 func NewGateway(opts GatewayOptions) *Gateway {
-	if opts.BaseURL == "" {
-		opts.BaseURL = "http://localhost:8181"
-	}
 	if opts.DefaultAgentID == "" {
 		opts.DefaultAgentID = "default"
 	}
@@ -46,6 +45,20 @@ func NewGateway(opts GatewayOptions) *Gateway {
 		opts:     opts,
 		handlers: make(map[string]http.Handler),
 	}
+}
+
+func (g *Gateway) requestBaseURL(r *http.Request) string {
+	if base := strings.TrimRight(strings.TrimSpace(g.opts.BaseURL), "/"); base != "" {
+		return base
+	}
+	scheme := "http"
+	if r != nil && r.TLS != nil {
+		scheme = "https"
+	}
+	if r != nil && r.Host != "" {
+		return scheme + "://" + r.Host
+	}
+	return "http://localhost:8181"
 }
 
 // getOrCreateAgentHandler creates or retrieves an a2asrv REST handler for an agent.
@@ -166,7 +179,7 @@ func (g *Gateway) serveDefaultCard(w http.ResponseWriter, r *http.Request) {
 		Description: "A2A 1.0 Gateway for 888a2a Agent Network",
 		Version:     ProtocolVersion1_0,
 		SupportedInterfaces: []*a2a.AgentInterface{
-			a2a.NewAgentInterface(g.opts.BaseURL+"/a2a/v1/"+tenant+"/agents/"+g.opts.DefaultAgentID, a2a.TransportProtocolHTTPJSON),
+			a2a.NewAgentInterface(g.requestBaseURL(r)+"/a2a/v1/"+tenant+"/agents/"+g.opts.DefaultAgentID, a2a.TransportProtocolHTTPJSON),
 		},
 		Capabilities: a2a.AgentCapabilities{
 			Streaming:         true,
@@ -176,7 +189,7 @@ func (g *Gateway) serveDefaultCard(w http.ResponseWriter, r *http.Request) {
 		DefaultOutputModes: []string{"text/plain", "application/json"},
 		Provider: &a2a.AgentProvider{
 			Org: "888a2a",
-			URL: g.opts.BaseURL,
+			URL: g.requestBaseURL(r),
 		},
 	}
 
@@ -186,11 +199,13 @@ func (g *Gateway) serveDefaultCard(w http.ResponseWriter, r *http.Request) {
 
 func (g *Gateway) serveAgentCard(w http.ResponseWriter, r *http.Request, tenant, agentID string) {
 	if g.opts.Directory != nil {
+		ctx := common.SetOrganizationIDToContext(r.Context(), tenant)
+		ctx = context.WithValue(ctx, requestBaseURLContextKey{}, g.requestBaseURL(r))
 		caller, ok := CallerFromContext(r.Context())
 		if !ok || caller == nil {
 			caller = &defaultPublicCaller{tenant: tenant}
 		}
-		peer, err := g.opts.Directory.GetPeer(r.Context(), caller, tenant, agentID)
+		peer, err := g.opts.Directory.GetPeer(ctx, caller, tenant, agentID)
 		if err == nil && peer != nil && peer.Card != nil {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(peer.Card)
@@ -204,7 +219,7 @@ func (g *Gateway) serveAgentCard(w http.ResponseWriter, r *http.Request, tenant,
 		Description: "888a2a Agent " + agentID,
 		Version:     ProtocolVersion1_0,
 		SupportedInterfaces: []*a2a.AgentInterface{
-			a2a.NewAgentInterface(g.opts.BaseURL+"/a2a/v1/"+tenant+"/agents/"+agentID, a2a.TransportProtocolHTTPJSON),
+			a2a.NewAgentInterface(g.requestBaseURL(r)+"/a2a/v1/"+tenant+"/agents/"+agentID, a2a.TransportProtocolHTTPJSON),
 		},
 		Capabilities: a2a.AgentCapabilities{
 			Streaming:         true,
@@ -214,7 +229,7 @@ func (g *Gateway) serveAgentCard(w http.ResponseWriter, r *http.Request, tenant,
 		DefaultOutputModes: []string{"text/plain", "application/json"},
 		Provider: &a2a.AgentProvider{
 			Org: "888a2a",
-			URL: g.opts.BaseURL,
+			URL: g.requestBaseURL(r),
 		},
 	}
 
