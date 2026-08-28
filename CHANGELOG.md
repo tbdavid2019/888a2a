@@ -10,6 +10,7 @@
 - Added the tenant-bound AgentBridge contract with bounded input/output, ordered events, lifecycle cleanup, and truthful delivery outcomes.
 - Added a bounded CLI bridge foundation with explicit Codex read-only and agy stream-json command constructors.
 - Added an authenticated, private-host OpenClaw OpenResponses bridge with bounded response handling and truthful failure outcomes.
+- Added deterministic ACP, Gateway, and CLI bridge test doubles for cross-transport contract verification without external credentials.
 - Registered the production A2A 1.0 HTTP+JSON gateway and added the A2A client compatibility guide for Codex, OpenClaw, and Antigravity bridge integrations.
 
 ### Fixed
