@@ -472,7 +472,7 @@ func (s *Session) send(ctx context.Context, cmd any) (response, error) {
 	select {
 	case r, ok := <-ch:
 		if !ok {
-			return response{}, errors.New("pi: session exited before response")
+			return response{}, errors.New("pi: session exited mid-turn before response")
 		}
 		return r, nil
 	case <-ctx.Done():

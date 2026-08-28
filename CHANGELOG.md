@@ -32,6 +32,7 @@
 - Fixed Agent Card projections to expose provider readiness without advertising unverified transports as automatic execution.
 - Fixed bridge execution to derive the organization from the authenticated caller when the A2A SDK context omits the tenant field.
 - Fixed A2A live subscriptions to register before historical replay so events published during replay are not lost.
+- Fixed Pi mid-turn process exits to use a consistent lifecycle error for fast-failure and cold-restart handling.
 - Fixed Provider catalog filter translations so the frontend project-rule scanner recognizes every locale key.
 - Prevented embedded SPA fallback from swallowing A2A Agent Card and task routes.
 
