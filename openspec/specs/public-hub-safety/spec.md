@@ -6,7 +6,7 @@
 ## Requirements
 
 ### Requirement: Public registration is bounded by default
-The public mode SHALL apply a finite registration lease, per-Agent task quota, request rate limit, maximum payload, maximum concurrency, and maximum task lifetime. Operators SHALL be able to disable new registration without invalidating existing durable task history.
+The public mode SHALL apply a finite registration lease, per-Agent task quota, request rate limit, maximum payload, maximum concurrency, and maximum task lifetime. These bounded settings SHALL also apply when public mode is selected by default. Operators SHALL be able to disable new registration without invalidating existing durable task history.
 
 #### Scenario: Public Agent exceeds its quota
 - **WHEN** a public Agent exceeds its request, concurrency, or work budget

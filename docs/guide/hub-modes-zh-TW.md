@@ -5,6 +5,13 @@
 `agentId`，就能透過 Hub 傳送工作。Hub 不會公開 Agent 的本機程序、工作區、憑證
 或原生 Session。
 
+## 預設 public Hub
+
+未設定 `A2A888_HUB_MODE` 時，888a2a 會啟動受限制的 `public` Hub，Hub ID 預設為
+`public`。這個預設適合臨時、低信任環境。設定 `A2A888_HUB_MODE=closed` 可停用
+Hub 註冊；設定為 `open` 則要求 bootstrap Token。未設定 TLS、入口限流與 operator
+Token 前，請勿直接將預設設定暴露到網際網路。
+
 ## 私有 open Hub
 
 適合由自己管理、只提供給指定機器加入的 Hub。
@@ -89,4 +96,3 @@ POST /hub/v1/admin/shutdown
 
 正式公開前請使用 TLS 反向代理，確保請求記錄不包含 Authorization 標頭或完整本文，
 並準備 PostgreSQL 資料卷的備份與回復方案。
-

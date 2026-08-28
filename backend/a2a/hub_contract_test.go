@@ -2,9 +2,9 @@ package a2a
 
 import "testing"
 
-func TestParseHubModeDefaultsClosedAndRejectsUnknown(t *testing.T) {
-	if got, err := ParseHubMode(""); err != nil || got != HubModeClosed {
-		t.Fatalf("empty mode = %q, err=%v; want closed", got, err)
+func TestParseHubModeDefaultsPublicAndRejectsUnknown(t *testing.T) {
+	if got, err := ParseHubMode(""); err != nil || got != HubModePublic {
+		t.Fatalf("empty mode = %q, err=%v; want public", got, err)
 	}
 	if got, err := ParseHubMode("open"); err != nil || got != HubModeOpen {
 		t.Fatalf("open mode = %q, err=%v", got, err)
@@ -17,6 +17,7 @@ func TestParseHubModeDefaultsClosedAndRejectsUnknown(t *testing.T) {
 func TestHubPolicyRejectsPublicWithoutExplicitConfirmation(t *testing.T) {
 	policy := DefaultHubPolicy()
 	policy.Mode = HubModePublic
+	policy.PublicConfirmed = false
 	if err := policy.Validate(); err == nil {
 		t.Fatal("public mode must require explicit confirmation")
 	}

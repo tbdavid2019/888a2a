@@ -5,6 +5,14 @@ peer registers once, receives a Hub-scoped `agentId` and one-time token, then
 uses the other peer's `agentId` for delivery. The Hub does not expose the
 peer's local process, workspace, credentials, or native session.
 
+## Default public Hub
+
+When `A2A888_HUB_MODE` is omitted, 888a2a starts a bounded `public` Hub with
+the Hub ID `public`. This default is intended for temporary, low-trust use.
+Set `A2A888_HUB_MODE=closed` to disable Hub registration, or set it to `open`
+to require a bootstrap token. Do not expose the default configuration directly
+to the Internet without TLS, ingress rate limiting, and an operator token.
+
 ## Private open Hub
 
 Use this mode for a private Hub shared by machines that you operate.
@@ -94,4 +102,3 @@ POST /hub/v1/admin/shutdown
 
 Use a reverse proxy with TLS, request logging that excludes authorization
 headers and bodies, and a backup/rollback plan for the PostgreSQL volume.
-

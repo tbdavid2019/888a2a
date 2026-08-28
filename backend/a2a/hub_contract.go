@@ -24,11 +24,13 @@ const (
 	MaxHubCapabilities     = 64
 )
 
-// ParseHubMode converts operator configuration to a safe mode. Empty means
-// closed so a missing environment variable never opens registration.
+// ParseHubMode converts operator configuration to a mode. Empty configuration
+// uses public mode; operators can select closed or open explicitly.
 func ParseHubMode(value string) (HubMode, error) {
 	switch HubMode(strings.ToLower(strings.TrimSpace(value))) {
-	case "", HubModeClosed:
+	case "":
+		return HubModePublic, nil
+	case HubModeClosed:
 		return HubModeClosed, nil
 	case HubModeOpen:
 		return HubModeOpen, nil
@@ -56,8 +58,10 @@ type HubPolicy struct {
 
 func DefaultHubPolicy() HubPolicy {
 	return HubPolicy{
-		Mode:                HubModeClosed,
-		HubID:               "local",
+		Mode:                HubModePublic,
+		HubID:               "local-public",
+		PublicConfirmed:     true,
+		RegistrationEnabled: true,
 		RegistrationTTL:     24 * 60 * 60,
 		PeerLeaseSeconds:    90,
 		MaxRegisteredAgents: 100,

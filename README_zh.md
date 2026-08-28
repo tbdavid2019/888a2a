@@ -49,6 +49,10 @@ Bot、外部 A2A Agent，以及各種全通路對話入口。
 
 對於一般伺服器（未安裝 Go 或 Node.js），可直接使用 Docker Compose 快速啟動全套服務：
 
+Docker Compose 預設使用受限制的 `public` Hub 模式。若不希望公開註冊，請在 `.env`
+設定 `A2A888_HUB_MODE=closed` 或 `open`。將服務暴露到網際網路前，請先閱讀
+[Hub 模式指南](docs/guide/hub-modes-zh-TW.md)。
+
 ```bash
 # 取得程式庫並啟動所有服務 (PostgreSQL + Manager + Machine)
 git clone https://github.com/tbdavid2019/888a2a.git

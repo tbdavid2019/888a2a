@@ -48,6 +48,7 @@
 
 ### Changed
 
+- Changed the Hub configuration default to bounded `public` mode with a default `public` Hub ID; operators can still select `closed` or bootstrap-protected `open` mode explicitly.
 - Provider catalog projections now hide private paths and session identifiers, and only report automatic readiness after full-loop verification.
 - A2A Gateway now fails closed when no verified provider bridge is configured; it no longer fabricates successful provider responses.
 - Documented local bridge environment configuration and safety boundaries.

@@ -2,7 +2,7 @@ package config
 
 import "testing"
 
-func TestLoadHubConfigDefaultsClosed(t *testing.T) {
+func TestLoadHubConfigDefaultsPublic(t *testing.T) {
 	for _, key := range []string{"A2A888_HUB_MODE", "A2A888_HUB_ID", "A2A888_HUB_BOOTSTRAP_TOKEN", "A2A888_HUB_PUBLIC_CONFIRM"} {
 		t.Setenv(key, "")
 	}
@@ -10,7 +10,7 @@ func TestLoadHubConfigDefaultsClosed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Mode != HubModeClosed || cfg.RegistrationEnabled {
+	if cfg.Mode != HubModePublic || !cfg.RegistrationEnabled || !cfg.PublicConfirmed || cfg.HubID != "public" {
 		t.Fatalf("default hub config = %+v", cfg)
 	}
 }

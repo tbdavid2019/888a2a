@@ -66,6 +66,11 @@ For deployment instructions, see the [Agent Network Operator Guide](docs/guide/a
 
 For servers without Go or Node.js, run 888a2a directly using Docker Compose:
 
+Docker Compose defaults to the bounded `public` Hub mode. Set
+`A2A888_HUB_MODE=closed` or `open` in `.env` when public registration is not
+wanted. See the [Hub mode guide](docs/guide/hub-modes.md) before exposing the
+server to the Internet.
+
 ```bash
 # Clone and start all services (PostgreSQL + Manager + Machine)
 git clone https://github.com/tbdavid2019/888a2a.git
