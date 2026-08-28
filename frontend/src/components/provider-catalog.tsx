@@ -191,12 +191,12 @@ export function ProviderCatalog({ discoveredProviders }: ProviderCatalogProps) {
   );
 
   const filters = [
-    ["all", "provider-catalog-filter-all"],
-    ["ready", "provider-catalog-filter-ready"],
-    ["bridge", "provider-catalog-filter-bridge"],
-    ["pull", "provider-catalog-filter-pull"],
-    ["pending", "provider-catalog-filter-pending"],
-    ["unavailable", "provider-catalog-filter-unavailable"],
+    ["all", t("machine.provider-catalog-filter-all")],
+    ["ready", t("machine.provider-catalog-filter-ready")],
+    ["bridge", t("machine.provider-catalog-filter-bridge")],
+    ["pull", t("machine.provider-catalog-filter-pull")],
+    ["pending", t("machine.provider-catalog-filter-pending")],
+    ["unavailable", t("machine.provider-catalog-filter-unavailable")],
   ] as const;
 
   return (
@@ -221,7 +221,7 @@ export function ProviderCatalog({ discoveredProviders }: ProviderCatalogProps) {
             className={`rounded-md px-2 py-1 text-[10px] font-medium ${filter === value ? "bg-control text-background" : "bg-control-subtle text-control"}`}
             onClick={() => setFilter(value)}
           >
-            {t(`machine.${label}`)}
+            {label}
           </button>
         ))}
       </div>

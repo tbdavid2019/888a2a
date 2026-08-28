@@ -12,6 +12,7 @@
 
 ### Fixed
 
+- Fixed Provider catalog filter translations so the frontend project-rule scanner recognizes every locale key.
 - Prevented embedded SPA fallback from swallowing A2A Agent Card and task routes.
 
 All notable changes to 888a2a are documented in this file.
