@@ -78,6 +78,10 @@ func (h HubHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.register(w, r)
 	case r.Method == http.MethodGet && path == "/agents":
 		h.list(w, r)
+	case r.Method == http.MethodPost && path == "/admin/registration":
+		h.setRegistration(w, r)
+	case r.Method == http.MethodPost && strings.HasPrefix(path, "/admin/agents/") && strings.HasSuffix(path, "/revoke"):
+		h.revoke(w, r, strings.TrimSuffix(strings.TrimPrefix(path, "/admin/agents/"), "/revoke"))
 	case r.Method == http.MethodGet && strings.HasPrefix(path, "/agents/") && strings.Count(path, "/") == 2:
 		h.lookup(w, r, strings.TrimPrefix(path, "/agents/"))
 	case r.Method == http.MethodPost && strings.HasPrefix(path, "/agents/") && strings.HasSuffix(path, "/heartbeat"):
@@ -108,6 +112,47 @@ func (h HubHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "Hub route not found")
 	}
+}
+
+func (h HubHTTPHandler) setRegistration(w http.ResponseWriter, r *http.Request) {
+	if !h.Registry.AuthorizeOperator(bearerToken(r.Header.Get("Authorization"))) {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub operator credentials are required")
+		return
+	}
+	var input struct {
+		Enabled *bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&input); err != nil || input.Enabled == nil {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "enabled is required")
+		return
+	}
+	h.Registry.SetRegistrationEnabled(*input.Enabled)
+	writeHubJSON(w, http.StatusOK, map[string]any{"registrationEnabled": *input.Enabled})
+}
+
+func (h HubHTTPHandler) revoke(w http.ResponseWriter, r *http.Request, agentID string) {
+	if !h.Registry.AuthorizeOperator(bearerToken(r.Header.Get("Authorization"))) {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub operator credentials are required")
+		return
+	}
+	if agentID == "" || strings.ContainsAny(agentID, "/\\") {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "agent id is invalid")
+		return
+	}
+	var input struct {
+		Reason string `json:"reason"`
+	}
+	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&input)
+	if err := h.Registry.RevokeContext(r.Context(), agentID, input.Reason); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			writeHubError(w, http.StatusNotFound, "NOT_FOUND", "Hub Agent not found")
+			return
+		}
+		writeHubError(w, http.StatusServiceUnavailable, "POLICY_UNAVAILABLE", "Hub revoke policy is unavailable")
+		return
+	}
+	view, _ := h.Registry.LookupView(agentID)
+	writeHubJSON(w, http.StatusOK, view)
 }
 
 type peerTaskRequest struct {

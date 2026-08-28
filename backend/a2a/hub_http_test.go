@@ -162,3 +162,50 @@ func TestHubHTTPPublicRateLimitReturns429(t *testing.T) {
 		t.Fatalf("rate limit statuses=%d/%d bodies=%s/%s", first.Code, second.Code, first.Body.String(), second.Body.String())
 	}
 }
+
+func TestHubHTTPOperatorCanDisableRegistrationAndRevokePeer(t *testing.T) {
+	policy := DefaultHubPolicy()
+	policy.Mode = HubModePublic
+	policy.HubID = "hub-operator"
+	policy.PublicConfirmed = true
+	policy.RegistrationEnabled = true
+	registry, err := NewHubRegistry(policy, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	registry.SetOperatorToken("operator-token")
+	handler := HubHTTPHandler{Registry: registry}
+	body, _ := json.Marshal(validAgentDeclaration("operator"))
+	register := httptest.NewRecorder()
+	handler.ServeHTTP(register, httptest.NewRequest(http.MethodPost, "/hub/v1/agents/register", bytes.NewReader(body)))
+	var response struct {
+		Identity IssuedAgentIdentity `json:"identity"`
+	}
+	if err := json.Unmarshal(register.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+
+	disable := httptest.NewRecorder()
+	disableReq := httptest.NewRequest(http.MethodPost, "/hub/v1/admin/registration", strings.NewReader(`{"enabled":false}`))
+	disableReq.Header.Set("Authorization", "Bearer operator-token")
+	handler.ServeHTTP(disable, disableReq)
+	if disable.Code != http.StatusOK {
+		t.Fatalf("disable status=%d body=%s", disable.Code, disable.Body.String())
+	}
+	rejected := httptest.NewRecorder()
+	handler.ServeHTTP(rejected, httptest.NewRequest(http.MethodPost, "/hub/v1/agents/register", bytes.NewReader(body)))
+	if rejected.Code != http.StatusForbidden {
+		t.Fatalf("registration after disable status=%d body=%s", rejected.Code, rejected.Body.String())
+	}
+
+	revoke := httptest.NewRecorder()
+	revokeReq := httptest.NewRequest(http.MethodPost, "/hub/v1/admin/agents/"+response.Identity.AgentID+"/revoke", strings.NewReader(`{"reason":"test"}`))
+	revokeReq.Header.Set("Authorization", "Bearer operator-token")
+	handler.ServeHTTP(revoke, revokeReq)
+	if revoke.Code != http.StatusOK {
+		t.Fatalf("revoke status=%d body=%s", revoke.Code, revoke.Body.String())
+	}
+	if _, err := registry.Authenticate(response.Identity.AgentID, response.Identity.AgentToken); err == nil {
+		t.Fatal("revoked peer token must be rejected")
+	}
+}

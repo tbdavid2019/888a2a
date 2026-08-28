@@ -151,6 +151,7 @@ func NewServer(ctx context.Context, profile *config.Profile) (*Server, error) {
 		return nil, errors.Wrap(err, "failed to initialize Hub registry")
 	}
 	s.hubRegistry = hubRegistry
+	hubRegistry.SetOperatorToken(profile.Hub.OperatorToken)
 	s.runnerCtx, s.runnerCancel = context.WithCancel(ctx)
 
 	stateCfg, err := state.NewWithStore(stores)

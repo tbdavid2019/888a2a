@@ -20,6 +20,7 @@ type HubConfig struct {
 	Mode                HubMode
 	HubID               string
 	BootstrapToken      string
+	OperatorToken       string
 	RegistrationEnabled bool
 	PublicConfirmed     bool
 	RegistrationTTL     time.Duration
@@ -66,6 +67,7 @@ func LoadHubConfig() (HubConfig, error) {
 		Mode:                mode,
 		HubID:               strings.TrimSpace(ReadEnv("A2A888_HUB_ID")),
 		BootstrapToken:      strings.TrimSpace(ReadEnv("A2A888_HUB_BOOTSTRAP_TOKEN")),
+		OperatorToken:       strings.TrimSpace(ReadEnv("A2A888_HUB_OPERATOR_TOKEN")),
 		RegistrationEnabled: mode != HubModeClosed,
 		PublicConfirmed:     confirmed,
 		RegistrationTTL:     time.Duration(registrationTTL) * time.Second,

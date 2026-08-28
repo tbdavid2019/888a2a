@@ -115,6 +115,34 @@ type HubRegistry struct {
 	agents         map[string]*RegisteredAgent
 	byRegistration map[string]string
 	persistence    HubPersistence
+	operatorHash   [32]byte
+}
+
+func (r *HubRegistry) SetOperatorToken(token string) {
+	if r == nil {
+		return
+	}
+	r.mu.Lock()
+	r.operatorHash = hashHubSecret(token)
+	r.mu.Unlock()
+}
+
+func (r *HubRegistry) AuthorizeOperator(token string) bool {
+	if r == nil || strings.TrimSpace(token) == "" {
+		return false
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.matchesHash(token, r.operatorHash)
+}
+
+func (r *HubRegistry) SetRegistrationEnabled(enabled bool) {
+	if r == nil {
+		return
+	}
+	r.mu.Lock()
+	r.policy.RegistrationEnabled = enabled
+	r.mu.Unlock()
 }
 
 func NewHubRegistry(policy HubPolicy, bootstrapToken string, now func() time.Time) (*HubRegistry, error) {

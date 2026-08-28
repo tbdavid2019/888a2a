@@ -22,7 +22,7 @@
 
 - [ ] 4.1 Add public-mode rate limits, registration quotas, task budgets, concurrency caps, payload limits, lease TTL, and expiry cleanup; verify limit failures do not invoke a runtime.
 - [ ] 4.2 Add public capability policy and bridge gate; verify a public peer declaration cannot launch Codex, OpenClaw, agy, shell, filesystem, network, or MCP without an approved verified bridge.
-- [ ] 4.3 Add operator controls to disable registration, revoke peers, cancel peer work, and shut down the Hub; verify unavailable policy state fails closed.
+- [ ] 4.3 Add operator controls to disable registration, revoke peers, cancel peer work, and shut down the Hub; verify unavailable policy state fails closed. Registration disable and peer revoke are implemented; task remains open until cancellation and shutdown controls are wired.
 
 ## 5. A2A and operator surfaces
 
