@@ -7,6 +7,7 @@
 - Added a conservative Provider catalog covering the requested local Agent families, explicit transport metadata, readiness states, aliases, and installation hints.
 - Added a Machine UI Provider catalog grid that distinguishes verified runtimes from bridge-required, Pull-only, and pending providers.
 - Added sanitized Provider catalog projections that preserve transport boundaries without exposing local paths, native sessions, or secrets.
+- Added the tenant-bound AgentBridge contract with bounded input/output, ordered events, lifecycle cleanup, and truthful delivery outcomes.
 - Registered the production A2A 1.0 HTTP+JSON gateway and added the A2A client compatibility guide for Codex, OpenClaw, and Antigravity bridge integrations.
 
 ### Fixed

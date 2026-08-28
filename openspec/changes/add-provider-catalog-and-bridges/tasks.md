@@ -6,7 +6,7 @@
 
 ## 2. Bridge contract
 
-- [ ] 2.1 Define the tenant-bound AgentBridge interface for preflight, start, invoke, stream, cancel, health, and stop; verify missing identity, deadline, output-size, and cleanup failures are fail-closed.
+- [x] 2.1 Define the tenant-bound AgentBridge interface for preflight, start, invoke, stream, cancel, health, and stop; verify missing identity, deadline, output-size, and cleanup failures are fail-closed.
 - [ ] 2.2 Implement deterministic fake ACP, Gateway, and CLI bridges; verify delivered, rejected, not-delivered, outcome-unknown, idempotency, cancellation, and late-event behavior.
 - [ ] 2.3 Add bridge instance/session binding records without persisting provider secrets or native session IDs in Manager; verify restart and stale-binding behavior.
 
