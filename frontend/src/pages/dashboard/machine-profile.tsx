@@ -26,6 +26,7 @@ import {
   providerDisplayName,
   providerLabel,
 } from "@/components/profile-common";
+import { ProviderCatalog } from "@/components/provider-catalog";
 import { Alert } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -1102,6 +1103,7 @@ export function MachineProfilePage() {
               {refreshError && (
                 <Alert variant="error" description={refreshError} />
               )}
+              <ProviderCatalog discoveredProviders={availableProviders} />
               {availableProviders.length === 0 ? (
                 <p className="text-xs text-control-light">
                   {t("machine.no-providers")}
