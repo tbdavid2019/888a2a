@@ -27,6 +27,7 @@
 - Fixed the provider status API projection to preserve verification evidence while withholding executable paths and sensitive discovery details.
 - Fixed Agent Card projections to expose provider readiness without advertising unverified transports as automatic execution.
 - Added official A2A client coverage for bridge-backed send, stream, get, list, and cancel flows.
+- Fixed bridge execution to derive the organization from the authenticated caller when the A2A SDK context omits the tenant field.
 
 ### Fixed
 

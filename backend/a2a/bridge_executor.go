@@ -148,8 +148,12 @@ func (e *BridgeAgentExecutor) Cancel(ctx context.Context, execCtx *a2asrv.Execut
 
 func (e *BridgeAgentExecutor) requestFromContext(ctx context.Context, execCtx *a2asrv.ExecutorContext) (BridgeRequest, error) {
 	callerID := ""
+	organizationID := strings.TrimSpace(execCtx.Tenant)
 	if caller, ok := CallerFromContext(ctx); ok && caller != nil {
 		callerID = caller.GetPrincipalID()
+		if organizationID == "" {
+			organizationID = caller.GetTenantID()
+		}
 	}
 	if callerID == "" && execCtx.User != nil && execCtx.User.Authenticated {
 		callerID = execCtx.User.Name
@@ -157,7 +161,7 @@ func (e *BridgeAgentExecutor) requestFromContext(ctx context.Context, execCtx *a
 	if callerID == "" {
 		return BridgeRequest{}, errors.New("authenticated A2A caller is required")
 	}
-	if execCtx.Tenant == "" {
+	if organizationID == "" {
 		return BridgeRequest{}, errors.New("A2A organization is required")
 	}
 	input := make([]string, 0, len(execCtx.Message.Parts))
@@ -184,7 +188,7 @@ func (e *BridgeAgentExecutor) requestFromContext(ctx context.Context, execCtx *a
 		}
 	}
 	return BridgeRequest{
-		OrganizationID: execCtx.Tenant,
+		OrganizationID: organizationID,
 		CallerID:       callerID,
 		TaskID:         taskID,
 		ContextID:      execCtx.ContextID,
