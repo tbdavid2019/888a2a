@@ -69,6 +69,48 @@ func (p hubStorePersistence) RevokeHubAgent(ctx context.Context, hubID, agentID,
 	return p.store.RevokeHubAgent(ctx, hubID, agentID, reason, now)
 }
 
+func (p hubStorePersistence) Enqueue(ctx context.Context, item a2agateway.HubInboxItem) (a2agateway.HubInboxEnqueueResult, error) {
+	stored, duplicate, err := p.store.CreateHubInboxItem(ctx, &store.HubInboxMessage{
+		HubID: item.HubID, TargetAgentID: item.TargetAgentID, RequesterAgentID: item.RequesterAgentID,
+		TaskID: item.TaskID, ContextID: item.ContextID, IdempotencyKey: item.IdempotencyKey, Message: item.Message,
+	})
+	if err != nil {
+		return a2agateway.HubInboxEnqueueResult{}, err
+	}
+	return a2agateway.HubInboxEnqueueResult{Item: convertHubInboxItem(stored), Duplicate: duplicate}, nil
+}
+
+func (p hubStorePersistence) Poll(ctx context.Context, hubID, targetAgentID string, afterSequence uint64, limit int) ([]a2agateway.HubInboxItem, error) {
+	items, err := p.store.ListHubInbox(ctx, hubID, targetAgentID, afterSequence, limit)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]a2agateway.HubInboxItem, 0, len(items))
+	for _, item := range items {
+		out = append(out, convertHubInboxItem(item))
+	}
+	return out, nil
+}
+
+func (p hubStorePersistence) Acknowledge(ctx context.Context, hubID, targetAgentID string, sequence uint64) error {
+	return p.store.AcknowledgeHubInbox(ctx, hubID, targetAgentID, sequence, time.Now().UTC())
+}
+
+func convertHubInboxItem(item *store.HubInboxMessage) a2agateway.HubInboxItem {
+	if item == nil {
+		return a2agateway.HubInboxItem{}
+	}
+	var acknowledgedAt *time.Time
+	if item.AcknowledgedAt.Valid {
+		acknowledgedAt = &item.AcknowledgedAt.Time
+	}
+	return a2agateway.HubInboxItem{
+		Sequence: item.Sequence, HubID: item.HubID, TargetAgentID: item.TargetAgentID,
+		RequesterAgentID: item.RequesterAgentID, TaskID: item.TaskID, ContextID: item.ContextID,
+		IdempotencyKey: item.IdempotencyKey, Message: item.Message, CreatedAt: item.CreatedAt, AcknowledgedAt: acknowledgedAt,
+	}
+}
+
 func nullableTime(value sql.NullTime) *time.Time {
 	if !value.Valid {
 		return nil

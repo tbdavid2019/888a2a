@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 const maxHubRegistrationBody = MaxHubAgentCardBytes + 16*1024
@@ -13,6 +16,7 @@ const maxHubRegistrationBody = MaxHubAgentCardBytes + 16*1024
 // Agents. It does not expose provider credentials or native runtime sessions.
 type HubHTTPHandler struct {
 	Registry *HubRegistry
+	Mailbox  HubMailbox
 }
 
 func (h HubHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -32,9 +36,116 @@ func (h HubHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.Method == http.MethodPost && strings.HasPrefix(path, "/agents/") && strings.HasSuffix(path, "/disconnect"):
 		agentID := strings.TrimSuffix(strings.TrimPrefix(path, "/agents/"), "/disconnect")
 		h.disconnect(w, r, agentID)
+	case r.Method == http.MethodPost && strings.HasPrefix(path, "/agents/") && strings.HasSuffix(path, "/tasks"):
+		agentID := strings.TrimSuffix(strings.TrimPrefix(path, "/agents/"), "/tasks")
+		h.sendPeerTask(w, r, agentID)
+	case r.Method == http.MethodGet && strings.HasPrefix(path, "/agents/") && strings.HasSuffix(path, "/inbox"):
+		agentID := strings.TrimSuffix(strings.TrimPrefix(path, "/agents/"), "/inbox")
+		h.pollInbox(w, r, agentID)
+	case r.Method == http.MethodPost && strings.HasPrefix(path, "/agents/") && strings.Contains(path, "/inbox/") && strings.HasSuffix(path, "/ack"):
+		prefix := strings.TrimPrefix(path, "/agents/")
+		parts := strings.Split(strings.TrimSuffix(prefix, "/ack"), "/inbox/")
+		if len(parts) != 2 {
+			writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "inbox acknowledgment path is invalid")
+			return
+		}
+		sequence, err := strconv.ParseUint(parts[1], 10, 64)
+		if err != nil {
+			writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "inbox sequence is invalid")
+			return
+		}
+		h.ackInbox(w, r, parts[0], sequence)
 	default:
 		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "Hub route not found")
 	}
+}
+
+type peerTaskRequest struct {
+	ContextID      string `json:"contextId"`
+	IdempotencyKey string `json:"idempotencyKey"`
+	Message        string `json:"message"`
+}
+
+func (h HubHTTPHandler) sendPeerTask(w http.ResponseWriter, r *http.Request, targetAgentID string) {
+	if h.Mailbox == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "HUB_MAILBOX_UNAVAILABLE", "Hub mailbox is unavailable")
+		return
+	}
+	caller, ok := h.authenticateAgent(r)
+	if !ok {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+		return
+	}
+	if target, exists := h.Registry.LookupView(targetAgentID); !exists || target.State == HubAgentStateRevoked || target.State == HubAgentStateExpired {
+		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "target Hub Agent not found")
+		return
+	}
+	var input peerTaskRequest
+	r.Body = http.MaxBytesReader(w, r.Body, MaxBridgeInputBytes+4096)
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil || strings.TrimSpace(input.Message) == "" || strings.TrimSpace(input.IdempotencyKey) == "" {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "contextId, idempotencyKey, and message are required")
+		return
+	}
+	if len([]byte(input.Message)) > MaxBridgeInputBytes {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "message exceeds the Hub payload limit")
+		return
+	}
+	if input.ContextID == "" {
+		input.ContextID = uuid.NewString()
+	}
+	result, err := h.Mailbox.Enqueue(r.Context(), HubInboxItem{
+		HubID: h.Registry.policy.HubID, TargetAgentID: targetAgentID, RequesterAgentID: caller.AgentID,
+		TaskID: uuid.NewString(), ContextID: input.ContextID, IdempotencyKey: input.IdempotencyKey, Message: input.Message,
+	})
+	if err != nil {
+		writeHubError(w, http.StatusConflict, "ALREADY_EXISTS", err.Error())
+		return
+	}
+	writeHubJSON(w, http.StatusOK, result)
+}
+
+func (h HubHTTPHandler) pollInbox(w http.ResponseWriter, r *http.Request, agentID string) {
+	if h.Mailbox == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "HUB_MAILBOX_UNAVAILABLE", "Hub mailbox is unavailable")
+		return
+	}
+	caller, ok := h.authenticateAgent(r)
+	if !ok || caller.AgentID != agentID {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are invalid")
+		return
+	}
+	after := uint64(0)
+	if raw := r.URL.Query().Get("afterSequence"); raw != "" {
+		var err error
+		after, err = strconv.ParseUint(raw, 10, 64)
+		if err != nil {
+			writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "afterSequence is invalid")
+			return
+		}
+	}
+	items, err := h.Mailbox.Poll(r.Context(), h.Registry.policy.HubID, agentID, after, 100)
+	if err != nil {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", err.Error())
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"items": items})
+}
+
+func (h HubHTTPHandler) ackInbox(w http.ResponseWriter, r *http.Request, agentID string, sequence uint64) {
+	if h.Mailbox == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "HUB_MAILBOX_UNAVAILABLE", "Hub mailbox is unavailable")
+		return
+	}
+	caller, ok := h.authenticateAgent(r)
+	if !ok || caller.AgentID != agentID {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are invalid")
+		return
+	}
+	if err := h.Mailbox.Acknowledge(r.Context(), h.Registry.policy.HubID, agentID, sequence); err != nil {
+		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "Hub inbox item not found")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"acknowledged": true, "sequence": sequence})
 }
 
 func (h HubHTTPHandler) disconnect(w http.ResponseWriter, r *http.Request, agentID string) {

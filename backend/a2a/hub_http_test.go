@@ -18,7 +18,7 @@ func TestHubHTTPOpenRegistrationListAndHeartbeat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	handler := HubHTTPHandler{Registry: registry}
+	handler := HubHTTPHandler{Registry: registry, Mailbox: NewMemoryHubMailbox()}
 
 	body, err := json.Marshal(validAgentDeclaration("codex"))
 	if err != nil {
@@ -65,6 +65,29 @@ func TestHubHTTPOpenRegistrationListAndHeartbeat(t *testing.T) {
 	handler.ServeHTTP(disconnect, disconnectReq)
 	if disconnect.Code != http.StatusOK || !strings.Contains(disconnect.Body.String(), "OFFLINE") {
 		t.Fatalf("disconnect status=%d body=%s", disconnect.Code, disconnect.Body.String())
+	}
+
+	// Reconnect before exercising peer-ID mailbox delivery.
+	heartbeatReq = httptest.NewRequest(http.MethodPost, "/hub/v1/agents/"+registered.Identity.AgentID+"/heartbeat", nil)
+	heartbeatReq.Header.Set("X-Agent-ID", registered.Identity.AgentID)
+	heartbeatReq.Header.Set("Authorization", "Bearer "+registered.Identity.AgentToken)
+	handler.ServeHTTP(httptest.NewRecorder(), heartbeatReq)
+	taskBody := strings.NewReader(`{"contextId":"ctx-task","idempotencyKey":"task-key","message":"hello peer"}`)
+	send := httptest.NewRecorder()
+	sendReq := httptest.NewRequest(http.MethodPost, "/hub/v1/agents/"+registered.Identity.AgentID+"/tasks", taskBody)
+	sendReq.Header.Set("X-Agent-ID", registered.Identity.AgentID)
+	sendReq.Header.Set("Authorization", "Bearer "+registered.Identity.AgentToken)
+	handler.ServeHTTP(send, sendReq)
+	if send.Code != http.StatusOK {
+		t.Fatalf("send status=%d body=%s", send.Code, send.Body.String())
+	}
+	inbox := httptest.NewRecorder()
+	inboxReq := httptest.NewRequest(http.MethodGet, "/hub/v1/agents/"+registered.Identity.AgentID+"/inbox", nil)
+	inboxReq.Header.Set("X-Agent-ID", registered.Identity.AgentID)
+	inboxReq.Header.Set("Authorization", "Bearer "+registered.Identity.AgentToken)
+	handler.ServeHTTP(inbox, inboxReq)
+	if inbox.Code != http.StatusOK || !strings.Contains(inbox.Body.String(), "hello peer") {
+		t.Fatalf("inbox status=%d body=%s", inbox.Code, inbox.Body.String())
 	}
 }
 

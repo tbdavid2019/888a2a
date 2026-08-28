@@ -370,6 +370,20 @@ func (r *HubRegistry) ListViews() []HubAgentView {
 	return views
 }
 
+func (r *HubRegistry) LookupView(agentID string) (HubAgentView, bool) {
+	if r == nil {
+		return HubAgentView{}, false
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.reconcileLocked(r.now())
+	agent, ok := r.agents[agentID]
+	if !ok {
+		return HubAgentView{}, false
+	}
+	return agent.View(), true
+}
+
 // Reconcile marks registration and peer leases that have expired. It returns
 // safe metadata for durable reconciliation; it never restarts an Agent.
 func (r *HubRegistry) Reconcile() []RegisteredAgent {

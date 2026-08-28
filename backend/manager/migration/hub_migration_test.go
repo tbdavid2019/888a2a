@@ -15,7 +15,7 @@ func TestHubRegistrationMigrationIsInFreshAndIncrementalSchemas(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, declaration := range []string{"CREATE TABLE IF NOT EXISTS a2a888_hub (", "CREATE TABLE IF NOT EXISTS a2a888_hub_agent (", "uq_a2a888_hub_agent_registration", "uq_a2a888_hub_agent_token"} {
+	for _, declaration := range []string{"CREATE TABLE IF NOT EXISTS a2a888_hub (", "CREATE TABLE IF NOT EXISTS a2a888_hub_agent (", "CREATE TABLE IF NOT EXISTS a2a888_hub_inbox (", "lease_expires_at TIMESTAMPTZ NOT NULL", "uq_a2a888_hub_agent_registration", "uq_a2a888_hub_agent_token", "uq_a2a888_hub_inbox_idempotency"} {
 		if !strings.Contains(string(incremental), declaration) || !strings.Contains(string(latest), declaration) {
 			t.Fatalf("Hub migration declaration %q missing from incremental or fresh schema", declaration)
 		}

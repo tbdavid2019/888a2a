@@ -1700,6 +1700,27 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_a2a888_hub_agent_registration ON a2a888_hub
 CREATE UNIQUE INDEX IF NOT EXISTS uq_a2a888_hub_agent_token ON a2a888_hub_agent(hub_id, agent_token_hash);
 CREATE INDEX IF NOT EXISTS idx_a2a888_hub_agent_lease ON a2a888_hub_agent(hub_id, state, expires_at);
 
+CREATE TABLE IF NOT EXISTS a2a888_hub_inbox (
+    sequence BIGSERIAL PRIMARY KEY,
+    hub_id TEXT NOT NULL,
+    target_agent_id TEXT NOT NULL,
+    requester_agent_id TEXT NOT NULL,
+    task_id TEXT NOT NULL,
+    context_id TEXT NOT NULL,
+    idempotency_key TEXT NOT NULL,
+    message TEXT NOT NULL,
+    state TEXT NOT NULL DEFAULT 'PENDING',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    acknowledged_at TIMESTAMPTZ,
+    CONSTRAINT a2a888_hub_inbox_agent_fk FOREIGN KEY (hub_id, target_agent_id)
+        REFERENCES a2a888_hub_agent(hub_id, agent_id) ON DELETE CASCADE,
+    CONSTRAINT a2a888_hub_inbox_identity_check CHECK (hub_id <> '' AND target_agent_id <> '' AND requester_agent_id <> '' AND task_id <> '' AND context_id <> '' AND idempotency_key <> '' AND message <> ''),
+    CONSTRAINT a2a888_hub_inbox_state_check CHECK (state IN ('PENDING', 'ACKNOWLEDGED', 'CANCELED')),
+    CONSTRAINT a2a888_hub_inbox_ack_check CHECK ((state = 'PENDING' AND acknowledged_at IS NULL) OR (state <> 'PENDING' AND acknowledged_at IS NOT NULL))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_a2a888_hub_inbox_idempotency ON a2a888_hub_inbox(hub_id, target_agent_id, requester_agent_id, idempotency_key);
+CREATE INDEX IF NOT EXISTS idx_a2a888_hub_inbox_poll ON a2a888_hub_inbox(hub_id, target_agent_id, state, sequence);
+
 -- Tenant-scoped retention and legal-hold records
 CREATE TABLE IF NOT EXISTS a2a888_retention_hold (
     organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
