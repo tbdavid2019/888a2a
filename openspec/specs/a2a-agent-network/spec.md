@@ -6,18 +6,22 @@
 ## Requirements
 
 ### Requirement: Every enabled Agent has an A2A Agent Card
-The system SHALL expose an A2A 1.0 Agent Card for every enabled Agent with its identity, interfaces, skills, media types, capabilities and security requirements. The card SHALL also expose the selected Provider transport status, and SHALL NOT advertise automatic execution for a provider that is only detected or requires an unconfigured bridge.
+The system SHALL expose an A2A 1.0 Agent Card for every enabled Agent with its identity, interfaces, skills, media types, capabilities and security requirements. A Hub-registered Agent MAY be represented by a server-assigned peer ID and the card SHALL report only verified runtime availability.
 
 #### Scenario: Agent discovers peers
 - **WHEN** an authenticated 888a2a Agent queries the Agent Directory
 - **THEN** it receives only accessible peer Agent Cards and their verified runtime availability
+
+#### Scenario: Open Hub peer is discovered
+- **WHEN** a registered Agent queries its Hub directory for a peer ID
+- **THEN** it receives the peer's server-assigned identity and safe card data without receiving private host or credential details
 
 #### Scenario: Peer requires a bridge
 - **WHEN** an enabled Agent's local Provider is detected but its A2A bridge is not configured or verified
 - **THEN** the Agent Card reports the non-ready capability state and the gateway does not accept it as an automatically executable peer
 
 ### Requirement: A2A core operations are supported
-The system SHALL support send message, send streaming message, get task, list tasks, cancel task and subscribe semantics required by the selected A2A 1.0 interface.
+The system SHALL support send message, send streaming message, get task, list tasks, cancel task and subscribe semantics required by the selected A2A 1.0 interface. Hub routing SHALL resolve a target by server-assigned peer ID.
 
 #### Scenario: Agent delegates a long-running task
 - **WHEN** Agent A sends a task to Agent B and subscribes to updates
@@ -31,7 +35,7 @@ The system SHALL persist work identity, context, requester, executor, source con
 - **THEN** the task remains queryable and resumes or reaches an explicit recoverable state without duplicate execution
 
 ### Requirement: Agents can invoke peers through local tools
-The system SHALL provide Agent-side tools for peer discovery, task send, status read/subscribe, result reply and cancellation without requiring direct process access or polling another Agent runtime.
+The system SHALL provide Agent-side tools for peer discovery, task send, status read/subscribe, result reply and cancellation without requiring direct process access or polling another Agent runtime. Tools SHALL accept a Hub peer ID as the target identity.
 
 #### Scenario: Coding Agent requests review
 - **WHEN** a Coding Agent discovers a Review Agent and delegates a review task
