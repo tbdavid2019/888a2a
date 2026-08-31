@@ -54,8 +54,7 @@ export function SettingsHubPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const load = useCallback(
-    async () => {
+  const load = useCallback(async () => {
       setLoading(true);
       setError("");
       try {
@@ -72,9 +71,7 @@ export function SettingsHubPage() {
       } finally {
         setLoading(false);
       }
-    },
-    [t]
-  );
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -258,9 +255,7 @@ export function SettingsHubPage() {
                 </Select>
                 <Button
                   variant="outline"
-                  disabled={
-                    busy || selectedMode === status.mode
-                  }
+                  disabled={busy || selectedMode === status.mode}
                   onClick={() => void setMode()}
                 >
                   {busy
