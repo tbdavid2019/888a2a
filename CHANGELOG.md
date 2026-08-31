@@ -30,6 +30,7 @@
 - Verified on `david@10.9.0.11` with S3 unset: authenticated upload and download returned 200 with matching SHA-256 content; the object remained downloadable after recreating the Manager container, with the persistent `objectdata` volume mounted at `/data/objects`.
 - Synced the object-storage tenant-boundary requirement into the main organization-tenancy specification and archived the completed OpenSpec change.
 - Verified on `david@10.9.0.11`: operator mode changes `public → closed → public` returned 200; `closed:false` remained after recreating Manager, then the Hub was restored to `public:true`.
+- Verified on `david@10.9.0.11`: attempting to re-enable registration while `closed` returned 400 and kept `closed:false`; after recreation the Hub remained closed, then was restored to `public:true`.
 
 ## [2026-08-28]
 
