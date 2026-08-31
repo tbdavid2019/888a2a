@@ -1017,9 +1017,9 @@
     },
     "hub": {
       "action-failed": "Hub 操作失敗。",
+      "agent-limit": "Agent：{{n}}",
       "apply-mode": "套用模式",
       "applying-mode": "套用中…",
-      "agent-limit": "Agent：{{n}}",
       "concurrent-limit": "同時工作：{{n}}",
       "description": "檢視 Hub 模式、安全限制與已註冊的對等 Agent。",
       "disable-registration": "停用註冊",

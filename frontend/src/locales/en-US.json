@@ -1017,9 +1017,9 @@
     },
     "hub": {
       "action-failed": "Hub action failed.",
+      "agent-limit": "Agents: {{n}}",
       "apply-mode": "Apply mode",
       "applying-mode": "Applying…",
-      "agent-limit": "Agents: {{n}}",
       "concurrent-limit": "Concurrent: {{n}}",
       "description": "Inspect Hub mode, safety limits, and registered peers.",
       "disable-registration": "Disable registration",
