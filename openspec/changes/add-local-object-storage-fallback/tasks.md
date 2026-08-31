@@ -8,7 +8,7 @@
 
 - [x] 2.1 Route channel files through ObjectStore without changing file metadata or IAM behavior.
 - [x] 2.2 Route user and Agent avatars through ObjectStore without changing avatar metadata or IAM behavior.
-- [ ] 2.3 Verify upload, download, delete, and rollback behavior without S3.
+- [x] 2.3 Verify upload, download, delete, and rollback behavior without S3. CI covers local delete and rollback paths; the deployed Manager on `10.9.0.11` verified authenticated upload, download, and persistence after container recreation without S3.
 
 ## 3. Deployment and provider guidance
 
@@ -18,5 +18,5 @@
 
 ## 4. Validation
 
-- [ ] 4.1 Run backend, frontend, Proto, naming, OpenSpec, and production build checks.
-- [ ] 4.2 Push one green GitHub Actions run and record the dated CHANGELOG entry.
+- [x] 4.1 Run backend, frontend, Proto, naming, OpenSpec, and production build checks.
+- [x] 4.2 Push one green GitHub Actions run and record the dated CHANGELOG entry.
