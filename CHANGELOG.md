@@ -25,6 +25,7 @@
 
 - Verified GitHub Actions run [33352546656](https://github.com/tbdavid2019/888a2a/actions/runs/33352546656) passed the backend, frontend, naming, test, and production build gates.
 - Verified on `david@10.9.0.11` with S3 unset: authenticated upload and download returned 200 with matching SHA-256 content; the object remained downloadable after recreating the Manager container, with the persistent `objectdata` volume mounted at `/data/objects`.
+- Synced the object-storage tenant-boundary requirement into the main organization-tenancy specification and archived the completed OpenSpec change.
 
 ## [2026-08-28]
 
