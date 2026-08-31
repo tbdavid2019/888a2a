@@ -86,6 +86,13 @@ docker compose up -d
 Open `http://<YOUR_SERVER_IP>:8181` in your browser.
 See [`docs/guide/docker-deployment-guide.md`](docs/guide/docker-deployment-guide.md) for full configuration, volume management, and backup options.
 
+### Object storage without S3
+
+S3 is optional. Without an S3 endpoint and bucket, uploads and downloads use
+the persistent Docker `objectdata` volume at `/data/objects`. AWS S3,
+Cloudflare R2, and GCP Cloud Storage HMAC interoperability remain available
+through the same S3-compatible settings. See the [storage deployment guide](docs/guide/docker-deployment-guide.md#物件儲存).
+
 ### Agent Hub: open and public modes
 
 Use the Hub when Agents should communicate through a shared switch by assigned

@@ -128,6 +128,24 @@ func TestMergeS3ConfigPaths(t *testing.T) {
 	assert.Equal(t, "new-secret", dst.SecretKey)
 }
 
+func TestSetupChecksDoNotRequireS3(t *testing.T) {
+	service := &SettingService{}
+	assert.Empty(t, service.setupChecks())
+}
+
+func TestValidateS3ConfigAllowsLocalAWSR2AndGCS(t *testing.T) {
+	for _, cfg := range []*models.S3ConfigSetting{
+		{},
+		{Bucket: "aws-bucket", AccessKey: "key", SecretKey: "secret"},
+		{Endpoint: "https://account.r2.cloudflarestorage.com", Bucket: "r2-bucket", AccessKey: "key", SecretKey: "secret"},
+		{Endpoint: "https://storage.googleapis.com", Bucket: "gcs-bucket", AccessKey: "GOOG-key", SecretKey: "secret"},
+	} {
+		require.NoError(t, validateS3Config(cfg))
+	}
+	require.Error(t, validateS3Config(&models.S3ConfigSetting{Endpoint: "https://storage.example.com"}))
+	require.Error(t, validateS3Config(&models.S3ConfigSetting{Bucket: "bucket", AccessKey: "key"}))
+}
+
 // TestMergeSettingPaths guards the generic path walker: an empty path list
 // expands to all fields, and a path with the wrong prefix is rejected before
 // any field is applied.
@@ -192,15 +210,6 @@ func TestMaskSecret(t *testing.T) {
 	assert.Equal(t, "", maskSecret(""))
 	assert.Equal(t, secretMaskPrefix, maskSecret("abcd"))
 	assert.Equal(t, secretMaskPrefix+"5678", maskSecret("12345678"))
-}
-
-// TestS3Configured guards the setup-checklist predicate: both endpoint and
-// bucket must be set for S3 to count as configured.
-func TestS3Configured(t *testing.T) {
-	assert.False(t, s3Configured(&models.S3ConfigSetting{}))
-	assert.False(t, s3Configured(&models.S3ConfigSetting{Endpoint: "https://s3.example.com"}))
-	assert.False(t, s3Configured(&models.S3ConfigSetting{Bucket: "b"}))
-	assert.True(t, s3Configured(&models.S3ConfigSetting{Endpoint: "https://s3.example.com", Bucket: "b"}))
 }
 
 // TestNormalizeWorkspaceGeneralSetting guards the domain-list cleaning: trim,

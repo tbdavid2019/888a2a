@@ -1015,6 +1015,29 @@
       "title-required": "Title is required.",
       "updated": "Group updated"
     },
+    "hub": {
+      "action-failed": "Hub action failed.",
+      "agent-limit": "Agents: {{n}}",
+      "concurrent-limit": "Concurrent: {{n}}",
+      "description": "Inspect Hub mode, safety limits, and registered peers.",
+      "disable-registration": "Disable registration",
+      "enable-registration": "Enable registration",
+      "lease": "Lease: {{n}}s",
+      "load-failed": "Unable to load Hub status.",
+      "load-peers": "Load private peers",
+      "mode": "Hub mode",
+      "no-peers": "No peers are available or the private directory is locked.",
+      "operator-note": "The operator token is used only for this page session and is never displayed after entry or stored.",
+      "operator-placeholder": "Operator token",
+      "operator-title": "Operator controls",
+      "peers-title": "Registered peers",
+      "private-note": "Private Hub access requires a registered peer or operator token.",
+      "public-warning": "Public registration is for temporary use. It does not grant runtime execution.",
+      "refresh": "Refresh",
+      "revoke": "Revoke peer",
+      "task-limit": "Tasks/min: {{n}}",
+      "title": "Agent Hub"
+    },
     "iam": {
       "assign": "Assign roles to user",
       "assign-description": "Set the roles a user holds on the workspace. Other members are left unchanged.",
@@ -1252,7 +1275,7 @@
     "s3": {
       "access-key": "Access key",
       "bucket": "Bucket",
-      "description": "Configure the S3-compatible object storage used to store uploaded files. Upload and download are disabled until this is configured.",
+      "description": "Local object storage is active by default. Leave these fields empty to keep using it, or configure AWS S3, Cloudflare R2, GCP interoperability, or another S3-compatible service.",
       "endpoint": "Endpoint",
       "endpoint-placeholder": "https://s3.amazonaws.com",
       "force-path-style": "Use path-style addressing (required for MinIO)",
@@ -1264,7 +1287,7 @@
       "secret-key": "Secret key",
       "secret-masked": "Leave blank to keep the current secret",
       "secret-placeholder": "Enter a new key to change",
-      "title": "Storage",
+      "title": "Object storage",
       "use-ssl": "Use SSL/TLS"
     },
     "smtp": {
@@ -1286,29 +1309,6 @@
     },
     "title": "Settings"
   },
-  "settings.hub": {
-    "action-failed": "Hub action failed.",
-    "agent-limit": "Agents: {{n}}",
-    "concurrent-limit": "Concurrent: {{n}}",
-    "description": "Inspect Hub mode, safety limits, and registered peers.",
-    "disable-registration": "Disable registration",
-    "enable-registration": "Enable registration",
-    "lease": "Lease: {{n}}s",
-    "load-failed": "Unable to load Hub status.",
-    "load-peers": "Load private peers",
-    "mode": "Hub mode",
-    "no-peers": "No peers are available or the private directory is locked.",
-    "operator-note": "The operator token is used only for this page session and is never displayed after entry or stored.",
-    "operator-placeholder": "Operator token",
-    "operator-title": "Operator controls",
-    "peers-title": "Registered peers",
-    "private-note": "Private Hub access requires a registered peer or operator token.",
-    "public-warning": "Public registration is for temporary use. It does not grant runtime execution.",
-    "refresh": "Refresh",
-    "revoke": "Revoke peer",
-    "task-limit": "Tasks/min: {{n}}",
-    "title": "Agent Hub"
-  },
   "setup": {
     "action": {
       "configure": "Configure",
@@ -1318,12 +1318,7 @@
       "description": "Some required configuration is not ready yet. Set it up to enable all features.",
       "title": "Finish setting up your workspace"
     },
-    "item": {
-      "s3": {
-        "description": "Uploads and downloads are disabled until S3 is configured.",
-        "title": "Object storage (S3)"
-      }
-    }
+    "item": {}
   },
   "sidebar": {
     "activity": "Activity",

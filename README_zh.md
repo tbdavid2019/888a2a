@@ -68,6 +68,13 @@ docker compose up -d
 啟動完成後，在瀏覽器開啟 `http://<YOUR_SERVER_IP>:8181` 即可使用。
 詳細配置、資料卷持久化與備份方式請見 [`docs/guide/docker-deployment-guide.md`](docs/guide/docker-deployment-guide.md)。
 
+### 不使用 S3 的物件儲存
+
+S3 是選用功能。未設定 S3 endpoint 與 bucket 時，上傳與下載會使用掛載在
+`/data/objects` 的 Docker 永久 `objectdata` 資料卷。AWS S3、Cloudflare R2
+與 GCP Cloud Storage HMAC interoperability 仍可透過相同的 S3-compatible
+設定使用。詳細說明請見[物件儲存部署指南](docs/guide/docker-deployment-guide.md#物件儲存)。
+
 ### Agent Hub：open 與 public 模式
 
 若要讓 Agent 透過共同的 Hub，以系統配發的 Agent ID 互相傳送工作，請使用 Hub。

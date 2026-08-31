@@ -6,6 +6,7 @@ reasonix.toml
 .env.*
 !.env.example
 build/
+data/objects/
 backend/manager/server/dist/
 backend/manager/server/embedded_machine/
 # pi distribution artifacts populated by scripts/build-pi.sh; the 0-byte

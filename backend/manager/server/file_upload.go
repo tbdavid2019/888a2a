@@ -13,7 +13,7 @@ import (
 
 // registerFileUploadRoute exposes a browser-friendly multipart upload endpoint.
 // Unlike the Connect UploadFile RPC (which buffers the whole request in
-// memory), this route streams the file directly to S3 and lets the frontend
+// memory), this route streams the file directly to object storage and lets the frontend
 // report real upload progress via XHR.
 func registerFileUploadRoute(
 	e *echo.Echo,

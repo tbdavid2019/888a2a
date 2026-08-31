@@ -51,11 +51,14 @@ LABEL org.opencontainers.image.version=${VERSION}
 LABEL org.opencontainers.image.revision=${GIT_COMMIT}
 LABEL org.opencontainers.image.created=${BUILD_TIME}
 RUN apk add --no-cache ca-certificates curl \
-	&& adduser -D -u 1000 a2a888
+	&& adduser -D -u 1000 a2a888 \
+	&& mkdir -p /data/objects \
+	&& chown -R 1000:1000 /data
 COPY --from=manager-build /out/888a2a /usr/local/bin/888a2a
 USER a2a888
 EXPOSE 8181
 ENV A2A888_PG_URL=
+ENV A2A888_OBJECT_STORAGE_DIR=/data/objects
 ENTRYPOINT ["888a2a"]
 CMD ["--port", "8181"]
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \

@@ -9,8 +9,6 @@ import (
 	"log/slog"
 
 	"connectrpc.com/connect"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/pkg/errors"
 
 	"github.com/tbdavid2019/888a2a/backend/common"
@@ -27,7 +25,7 @@ import (
 const agentAvatarS3KeyPrefix = "avatars/agents/"
 
 // UploadAgentAvatar replaces an agent's avatar image. Requires laelia.agents.edit
-// on the agent (enforced by the IAM interceptor). The bytes are stored in S3 and
+// on the agent (enforced by the IAM interceptor). The bytes are stored in object storage and
 // the agent's avatar_s3_key updated; the previous object (if any) is deleted.
 func (s *AgentService) UploadAgentAvatar(ctx context.Context, req *connect.Request[v1pb.UploadAgentAvatarRequest]) (*connect.Response[v1pb.Agent], error) {
 	resourceID, err := common.ParseAgentAvatarName(req.Msg.Name)
@@ -48,11 +46,8 @@ func (s *AgentService) UploadAgentAvatar(ctx context.Context, req *connect.Reque
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.Errorf("unsupported avatar image type %q (allowed: png, jpeg, webp, gif)", mime))
 	}
 
-	s3Cli, cfg, err := s.s3client.Get(ctx)
+	objectStore, err := s.s3client.GetObjectStore(ctx)
 	if err != nil {
-		if errors.Is(err, s3client.ErrS3NotConfigured) {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("s3 not configured"))
-		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -73,27 +68,21 @@ func (s *AgentService) UploadAgentAvatar(ctx context.Context, req *connect.Reque
 	rawKey := agentAvatarS3KeyPrefix + resourceID + "/" + contentHash + "." + ext
 	newKey := s3client.TenantObjectKey(orgID, rawKey)
 
-	if _, err := s3Cli.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:        aws.String(cfg.Bucket),
-		Key:           aws.String(newKey),
-		Body:          bytes.NewReader(req.Msg.Data),
-		ContentType:   aws.String(mime),
-		ContentLength: aws.Int64(int64(len(req.Msg.Data))),
-	}); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "s3 put failed"))
+	if err := objectStore.Put(ctx, newKey, bytes.NewReader(req.Msg.Data), mime); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "object storage put failed"))
 	}
 
 	prevKey := agent.AvatarS3Key
 	updated, err := s.store.UpdateAgent(ctx, agent, &store.UpdateAgentMessage{AvatarS3Key: &newKey})
 	if err != nil {
-		if delErr := deleteS3Object(ctx, s3Cli, cfg.Bucket, newKey); delErr != nil {
+		if delErr := deleteObject(ctx, objectStore, newKey); delErr != nil {
 			slog.Warn("failed to clean up agent avatar after db update failure", log.WithError(delErr))
 		}
 		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to persist agent avatar"))
 	}
 
 	if prevKey != "" && prevKey != newKey {
-		if err := deleteS3Object(ctx, s3Cli, cfg.Bucket, prevKey); err != nil {
+		if err := deleteObject(ctx, objectStore, prevKey); err != nil {
 			slog.Warn("failed to delete previous agent avatar object", "key", prevKey, log.WithError(err))
 		}
 	}
@@ -119,24 +108,18 @@ func (s *AgentService) DownloadAgentAvatar(ctx context.Context, req *connect.Req
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("avatar not found"))
 	}
 
-	s3Cli, cfg, err := s.s3client.Get(ctx)
+	objectStore, err := s.s3client.GetObjectStore(ctx)
 	if err != nil {
-		if errors.Is(err, s3client.ErrS3NotConfigured) {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("s3 not configured"))
-		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	out, err := s3Cli.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(cfg.Bucket),
-		Key:    aws.String(agent.AvatarS3Key),
-	})
+	out, err := objectStore.Get(ctx, agent.AvatarS3Key)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "s3 get failed"))
+		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "object storage get failed"))
 	}
-	defer out.Body.Close()
+	defer out.Close()
 
-	data, err := io.ReadAll(io.LimitReader(out.Body, MaxAvatarBytes+1))
+	data, err := io.ReadAll(io.LimitReader(out, MaxAvatarBytes+1))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to read avatar body"))
 	}
@@ -167,11 +150,8 @@ func (s *AgentService) DeleteAgentAvatar(ctx context.Context, req *connect.Reque
 		return connect.NewResponse(s.convertToAgent(ctx, agent, agentReachable(s.dispatcher, agent.ID, agent.MachineID))), nil
 	}
 
-	s3Cli, cfg, err := s.s3client.Get(ctx)
+	objectStore, err := s.s3client.GetObjectStore(ctx)
 	if err != nil {
-		if errors.Is(err, s3client.ErrS3NotConfigured) {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("s3 not configured"))
-		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -181,7 +161,7 @@ func (s *AgentService) DeleteAgentAvatar(ctx context.Context, req *connect.Reque
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to clear agent avatar"))
 	}
-	if err := deleteS3Object(ctx, s3Cli, cfg.Bucket, prevKey); err != nil {
+	if err := deleteObject(ctx, objectStore, prevKey); err != nil {
 		slog.Warn("failed to delete agent avatar object", "key", prevKey, log.WithError(err))
 	}
 

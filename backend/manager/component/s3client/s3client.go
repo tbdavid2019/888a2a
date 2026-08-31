@@ -5,9 +5,12 @@ package s3client
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -22,18 +25,23 @@ import (
 	"github.com/tbdavid2019/888a2a/backend/manager/store"
 )
 
-// ErrS3NotConfigured is returned when no S3 endpoint/bucket has been set. The
-// upload/download endpoints translate it into a "s3 not configured" response.
+// ErrS3NotConfigured is retained for callers that explicitly request the raw
+// S3 client. File services use GetObjectStore and fall back to local storage.
 var ErrS3NotConfigured = errors.New("s3 not configured")
 
 // Client is a lazily-built, cached S3 client keyed by the S3 config fingerprint.
 type Client struct {
-	store *store.Store
+	store configStore
 
 	mu          sync.Mutex
 	client      *s3.Client
+	objectStore ObjectStore
 	cfg         *models.S3ConfigSetting
 	fingerprint string
+}
+
+type configStore interface {
+	GetS3ConfigSetting(context.Context) (*models.S3ConfigSetting, error)
 }
 
 // New returns an S3 client component backed by the given store.
@@ -76,8 +84,51 @@ func (c *Client) Invalidate() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.client = nil
+	c.objectStore = nil
 	c.cfg = nil
 	c.fingerprint = ""
+}
+
+// GetObjectStore returns the configured object backend. An entirely empty S3
+// setting intentionally falls back to local filesystem storage. A partially
+// configured S3 setting is rejected so a typo cannot silently write locally.
+func (c *Client) GetObjectStore(ctx context.Context) (ObjectStore, error) {
+	cfg, err := c.store.GetS3ConfigSetting(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if cfg == nil {
+		cfg = &models.S3ConfigSetting{}
+	}
+	if cfg.Endpoint == "" && cfg.Bucket == "" {
+		root := os.Getenv("A2A888_OBJECT_STORAGE_DIR")
+		if root == "" {
+			root = filepath.Join("data", "objects")
+		}
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		if local, ok := c.objectStore.(*LocalObjectStore); ok && local.root == root {
+			return local, nil
+		}
+		local := NewLocalObjectStore(root)
+		c.objectStore = local
+		return local, nil
+	}
+	if cfg.Endpoint != "" && cfg.Bucket == "" {
+		return nil, fmt.Errorf("incomplete S3 configuration: bucket is required when endpoint is set")
+	}
+	cli, _, err := c.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if remote, ok := c.objectStore.(*s3ObjectStore); ok && remote.client == cli && remote.bucket == cfg.Bucket {
+		return remote, nil
+	}
+	remote := &s3ObjectStore{client: cli, bucket: cfg.Bucket}
+	c.objectStore = remote
+	return remote, nil
 }
 
 func build(ctx context.Context, cfg *models.S3ConfigSetting) (*s3.Client, error) {

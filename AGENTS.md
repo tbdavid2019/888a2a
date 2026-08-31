@@ -150,6 +150,10 @@ Notes:
 - The manager image needs `A2A888_PG_URL`; the machine image needs
   `A2A888_MANAGER_URL` and `A2A888_TOKEN` (its entrypoint maps these env vars
   to CLI flags, adding `--allow-http` for `http://` URLs automatically).
+- The manager image uses local object storage at `/data/objects` when S3 is not
+  configured. Docker Compose mounts the persistent `objectdata` volume there.
+  Set `A2A888_OBJECT_STORAGE_DIR` when using another local path. Back up this
+  volume together with PostgreSQL.
 - The machine image is an agent runtime: node/npm (base image) plus
   python3/pip, build-essential (make/gcc), git, curl, wget, jq, unzip, zip,
   ripgrep, and the codex CLI (`npm install -g @openai/codex`, version pinned

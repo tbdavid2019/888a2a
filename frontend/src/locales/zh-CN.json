@@ -1015,6 +1015,29 @@
       "title-required": "名稱為必填項。",
       "updated": "使用者組已更新"
     },
+    "hub": {
+      "action-failed": "Hub 操作失敗。",
+      "agent-limit": "Agent：{{n}}",
+      "concurrent-limit": "同時工作：{{n}}",
+      "description": "檢視 Hub 模式、安全限制與已註冊的對等 Agent。",
+      "disable-registration": "停用註冊",
+      "enable-registration": "啟用註冊",
+      "lease": "租約：{{n}} 秒",
+      "load-failed": "無法載入 Hub 狀態。",
+      "load-peers": "載入私有 peer",
+      "mode": "Hub 模式",
+      "no-peers": "沒有可顯示的 peer，或私有目錄目前已鎖定。",
+      "operator-note": "操作者 Token 只在本頁工作階段使用，輸入後不會顯示或儲存。",
+      "operator-placeholder": "操作者 Token",
+      "operator-title": "操作者控制",
+      "peers-title": "已註冊的 peer",
+      "private-note": "私有 Hub 需要已註冊的 peer 或操作者 Token。",
+      "public-warning": "公開註冊適合臨時使用，不會授予 runtime 執行權限。",
+      "refresh": "重新整理",
+      "revoke": "撤銷 peer",
+      "task-limit": "每分鐘工作：{{n}}",
+      "title": "Agent Hub"
+    },
     "iam": {
       "assign": "為使用者分配角色",
       "assign-description": "設定使用者在工作區持有的角色,其他成員不受影響。",
@@ -1252,7 +1275,7 @@
     "s3": {
       "access-key": "Access Key",
       "bucket": "儲存桶",
-      "description": "設定用於儲存上傳檔案的 S3 相容物件儲存。設定完成前,上傳與下載將被停用。",
+      "description": "預設已啟用本機物件儲存。保留空白可繼續使用本機儲存；也可設定 AWS S3、Cloudflare R2、GCP interoperability 或其他 S3-compatible 服務。",
       "endpoint": "Endpoint",
       "endpoint-placeholder": "https://s3.amazonaws.com",
       "force-path-style": "使用 path-style 定址(MinIO 必需)",
@@ -1264,7 +1287,7 @@
       "secret-key": "Secret Key",
       "secret-masked": "留空表示保持目前金鑰不變",
       "secret-placeholder": "輸入新金鑰以更換",
-      "title": "儲存設定",
+      "title": "物件儲存",
       "use-ssl": "使用 SSL/TLS"
     },
     "smtp": {
@@ -1286,29 +1309,6 @@
     },
     "title": "設定"
   },
-  "settings.hub": {
-    "action-failed": "Hub 操作失敗。",
-    "agent-limit": "Agent：{{n}}",
-    "concurrent-limit": "同時工作：{{n}}",
-    "description": "檢視 Hub 模式、安全限制與已註冊的對等 Agent。",
-    "disable-registration": "停用註冊",
-    "enable-registration": "啟用註冊",
-    "lease": "租約：{{n}} 秒",
-    "load-failed": "無法載入 Hub 狀態。",
-    "load-peers": "載入私有 peer",
-    "mode": "Hub 模式",
-    "no-peers": "沒有可顯示的 peer，或私有目錄目前已鎖定。",
-    "operator-note": "操作者 Token 只在本頁工作階段使用，輸入後不會顯示或儲存。",
-    "operator-placeholder": "操作者 Token",
-    "operator-title": "操作者控制",
-    "peers-title": "已註冊的 peer",
-    "private-note": "私有 Hub 需要已註冊的 peer 或操作者 Token。",
-    "public-warning": "公開註冊適合臨時使用，不會授予 runtime 執行權限。",
-    "refresh": "重新整理",
-    "revoke": "撤銷 peer",
-    "task-limit": "每分鐘工作：{{n}}",
-    "title": "Agent Hub"
-  },
   "setup": {
     "action": {
       "configure": "去設定",
@@ -1318,12 +1318,7 @@
       "description": "部分必需設定尚未完成，設定後才能啟用全部功能。",
       "title": "完成工作區設定"
     },
-    "item": {
-      "s3": {
-        "description": "未設定 S3 前，上傳與下載不可用。",
-        "title": "物件儲存 (S3)"
-      }
-    }
+    "item": {}
   },
   "sidebar": {
     "activity": "動態",

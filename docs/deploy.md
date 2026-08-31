@@ -4,8 +4,9 @@
 
 888a2a has two deployable components:
 
-- **Manager** — the web UI and manager API. It stores all state in PostgreSQL
-  and embeds the frontend plus the per-platform machine binaries. It can be
+- **Manager** — the web UI and manager API. It stores metadata in PostgreSQL,
+  uses local object storage by default, and embeds the frontend plus the
+  per-platform machine binaries. It can be
   run as a Docker image (`888a2a/manager`) or as a native binary built with
   `scripts/build_888a2a.sh`.
 - **Machine** — an agent host. It connects to the manager, runs one or more
@@ -143,6 +144,8 @@ docker run -d --name 888a2a-manager \
   --restart unless-stopped \
   -p 8181:8181 \
   -e A2A888_PG_URL='postgresql://888a2a:<password>@<db-host>:5432/888a2a' \
+  -e A2A888_OBJECT_STORAGE_DIR=/data/objects \
+  -v 888a2a-objects:/data/objects \
   888a2a/manager:local
 ```
 
@@ -170,6 +173,7 @@ Manager environment variables:
 | `A2A888_PG_URL` | PostgreSQL connection URL (required). |
 | `A2A888_ALLOWED_ORIGINS` | Comma-separated list of extra origins (e.g. `https://front.example.com`) allowed to call the API cross-origin with credentials. Same-origin requests are always allowed; empty means cross-origin browser access is disabled. |
 | `A2A888_COOKIE_SAMESITE` | Access-token cookie SameSite policy: `lax` (default), `strict`, or `none`. `none` is only for deployments that serve the frontend from a different site than the API (it is only honored over HTTPS and requires `A2A888_ALLOWED_ORIGINS` to stay CSRF-safe). |
+| `A2A888_OBJECT_STORAGE_DIR` | Local object-storage directory used when S3 is empty. Default: `data/objects` for source runs and `/data/objects` in the manager image. |
 
 Frontend on a different subdomain of the same site (e.g. UI at
 `https://page.888a2a.example.com`, API at `https://888a2a.example.com`): set
@@ -185,9 +189,9 @@ Notes:
   Docker Desktop use `host.docker.internal` as the database host. On Linux
   Docker you can also add `--add-host=host.docker.internal:host-gateway` and
   keep the port mapping.
-- The manager keeps no local state by default; the database is the source of
-  truth, so back it up rather than the container. If you enable the built-in
-  TLS (below), persist its certificate directory with a volume.
+- The manager uses local object storage by default. Persist and back up
+  `/data/objects` together with PostgreSQL. If you enable the built-in TLS
+  (below), persist its certificate directory too.
 - The manager applies pending migrations on every startup; make a database
   backup before upgrading.
 
@@ -354,6 +358,8 @@ docker run -d --name 888a2a-manager \
   --restart unless-stopped \
   -p 8181:8181 \
   -e A2A888_PG_URL='postgresql://888a2a:<password>@<db-host>:5432/888a2a' \
+  -e A2A888_OBJECT_STORAGE_DIR=/data/objects \
+  -v 888a2a-objects:/data/objects \
   888a2a/manager:local --port 8181 --trust-proxy
 ```
 
@@ -368,7 +374,7 @@ volume on a directory the unprivileged user can write (for example
 
 Manager:
 
-1. Back up PostgreSQL.
+1. Back up PostgreSQL and the local object-storage volume when S3 is not used.
 2. Build or pull the new image (or rebuild the binary with
    `scripts/build_888a2a.sh`).
 3. Stop and remove the container, then start it with the same `A2A888_PG_URL`

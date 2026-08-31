@@ -10,8 +10,6 @@ import (
 	"net/http"
 
 	"connectrpc.com/connect"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -28,7 +26,7 @@ import (
 const MaxUploadBytes = 100 * 1024 * 1024
 
 // MaxStreamUploadBytes caps a single file uploaded through the browser-facing
-// multipart route. That route streams the file to S3 without buffering it in
+// multipart route. That route streams the file to object storage without buffering it in
 // memory, so it can safely accept much larger files than the Connect RPC.
 const MaxStreamUploadBytes = 512 * 1024 * 1024
 
@@ -73,19 +71,16 @@ type UploadFileStreamInput struct {
 	Body         io.Reader
 }
 
-// UploadFileStream stores a blob in S3 and persists a file row, streaming the
-// body to S3 instead of buffering it in memory. It performs the same
+// UploadFileStream stores a blob and persists a file row, streaming the body
+// to the selected object backend instead of buffering it in memory. It performs the same
 // auth/membership checks as UploadFile.
 func (s *CommandService) UploadFileStream(ctx context.Context, in *UploadFileStreamInput) (*v1pb.File, error) {
 	if in.OriginalName == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("original_name is required"))
 	}
 
-	s3Cli, cfg, err := s.s3clientManager.Get(ctx)
+	objectStore, err := s.s3clientManager.GetObjectStore(ctx)
 	if err != nil {
-		if errors.Is(err, s3client.ErrS3NotConfigured) {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("s3 not configured"))
-		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
@@ -162,24 +157,21 @@ func (s *CommandService) UploadFileStream(ctx context.Context, in *UploadFileStr
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	if _, err := s3Cli.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:        aws.String(cfg.Bucket),
-		Key:           aws.String(fileRow.S3Key),
-		Body:          in.Body,
-		ContentType:   aws.String(fileRow.MimeType),
-		ContentLength: aws.Int64(fileRow.SizeBytes),
-	}); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "s3 put failed"))
+	if err := objectStore.Put(ctx, fileRow.S3Key, in.Body, fileRow.MimeType); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "object storage put failed"))
 	}
 
 	if err := tx.Commit(); err != nil {
+		if deleteErr := objectStore.Delete(ctx, fileRow.S3Key); deleteErr != nil {
+			slog.Warn("failed to clean up object after file metadata commit failure", "key", fileRow.S3Key, "error", deleteErr)
+		}
 		return nil, connect.NewError(connect.CodeInternal, errors.Wrapf(err, "failed to commit pending scheduler transaction"))
 	}
 
 	return fileToV1(fileRow), nil
 }
 
-// UploadFile stores a blob in S3 and persists a file row. Both browser users
+// UploadFile stores a blob in object storage and persists a file row. Both browser users
 // and agents call this; the caller must be a member of the conversation when
 // one is supplied.
 func (s *CommandService) UploadFile(ctx context.Context, req *connect.Request[v1pb.UploadFileRequest]) (*connect.Response[v1pb.File], error) {
@@ -206,7 +198,7 @@ func (s *CommandService) UploadFile(ctx context.Context, req *connect.Request[v1
 	return connect.NewResponse(file), nil
 }
 
-// DownloadFile fetches a file's bytes from S3. The caller must be a member of
+// DownloadFile fetches a file's bytes from object storage. The caller must be a member of
 // the file's conversation; untied files are uploader-only (agents are denied,
 // since they don't own untied user files).
 func (s *CommandService) DownloadFile(ctx context.Context, req *connect.Request[v1pb.DownloadFileRequest]) (*connect.Response[v1pb.DownloadFileResponse], error) {
@@ -223,24 +215,18 @@ func (s *CommandService) DownloadFile(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("file not found"))
 	}
 
-	s3Cli, cfg, err := s.s3clientManager.Get(ctx)
+	objectStore, err := s.s3clientManager.GetObjectStore(ctx)
 	if err != nil {
-		if errors.Is(err, s3client.ErrS3NotConfigured) {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("s3 not configured"))
-		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	out, err := s3Cli.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(cfg.Bucket),
-		Key:    aws.String(fileRow.S3Key),
-	})
+	out, err := objectStore.Get(ctx, fileRow.S3Key)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "s3 get failed"))
+		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "object storage get failed"))
 	}
-	defer out.Body.Close()
+	defer out.Close()
 
-	data, err := readAll(out.Body)
+	data, err := readAll(out)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to read file body"))
 	}

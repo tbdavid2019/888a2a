@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { settingServiceClient } from "@/connect";
-import { SETTINGS_ROUTE_STORAGE } from "@/router/handles";
 import { resolvePath } from "@/router/route-index";
 import { useHasPermission } from "@/stores/permissions";
 
@@ -20,13 +19,7 @@ import { useHasPermission } from "@/stores/permissions";
 const SETUP_ITEMS: Record<
   string,
   { titleKey: string; descriptionKey: string; route: string }
-> = {
-  s3: {
-    titleKey: "setup.item.s3.title",
-    descriptionKey: "setup.item.s3.description",
-    route: SETTINGS_ROUTE_STORAGE,
-  },
-};
+> = {};
 
 interface PendingItem {
   id: string;

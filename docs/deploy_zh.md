@@ -113,6 +113,8 @@ docker run -d --name 888a2a-manager \
   --restart unless-stopped \
   -p 8181:8181 \
   -e A2A888_PG_URL='postgresql://888a2a:<password>@<db-host>:5432/888a2a' \
+  -e A2A888_OBJECT_STORAGE_DIR=/data/objects \
+  -v 888a2a-objects:/data/objects \
   888a2a/manager:local
 ```
 
@@ -138,13 +140,14 @@ Manager 环境变量：
 | `A2A888_PG_URL` | PostgreSQL 连接 URL（必填）。 |
 | `A2A888_ALLOWED_ORIGINS` | 允许跨域携带凭据调用 API 的额外来源列表（逗号分隔，例如 `https://front.example.com`）。同源请求始终允许；为空表示禁用跨域浏览器访问。 |
 | `A2A888_COOKIE_SAMESITE` | 访问令牌 cookie 的 SameSite 策略：`lax`（默认）、`strict` 或 `none`。`none` 仅用于前端与 API 在不同站点部署的情况（仅在 HTTPS 下生效，并且需要 `A2A888_ALLOWED_ORIGINS` 以保持 CSRF 安全）。 |
+| `A2A888_OBJECT_STORAGE_DIR` | 未設定 S3 時使用的本機物件儲存目錄；Manager image 預設為 `/data/objects`。 |
 
 前端与 API 位于同一站点的不同子域（例如 UI 在 `https://page.888a2a.example.com`，API 在 `https://888a2a.example.com`）：设置 `A2A888_ALLOWED_ORIGINS=https://page.888a2a.example.com`，并使用 `VITE_API_BASE_URL=https://888a2a.example.com` 构建前端。默认的 `lax` cookie 策略仍然有效，因为同一注册域的子域属于 same-site；只有当前端位于完全不同的域名时才需要 `A2A888_COOKIE_SAMESITE=none`。
 
 注意事项：
 
 - PostgreSQL 与 Manager 在同一主机：Linux 上使用 `--network host` 并去掉 `-p`；Docker Desktop 上使用 `host.docker.internal` 作为数据库主机。Linux Docker 也可以添加 `--add-host=host.docker.internal:host-gateway` 并保留端口映射。
-- Manager 默认不保留本地状态；数据库是唯一数据源，因此应备份数据库而不是容器。如果启用了内置 TLS（见下文），请用 volume 持久化其证书目录。
+- Manager 預設使用本機物件儲存。除了 PostgreSQL，也必須以 volume 持久化並備份 `/data/objects`；若啟用內建 TLS，也要保存憑證目錄。
 - Manager 每次启动都会应用待执行的迁移；升级前请备份数据库。
 
 ## 4. 启动 machine 宿主机
@@ -266,6 +269,8 @@ docker run -d --name 888a2a-manager \
   --restart unless-stopped \
   -p 8181:8181 \
   -e A2A888_PG_URL='postgresql://888a2a:<password>@<db-host>:5432/888a2a' \
+  -e A2A888_OBJECT_STORAGE_DIR=/data/objects \
+  -v 888a2a-objects:/data/objects \
   888a2a/manager:local --port 8181 --trust-proxy
 ```
 
@@ -275,7 +280,7 @@ Manager 还内置 TLS：`--tls-cert-dir` 会加载或生成自签名证书，`--
 
 Manager：
 
-1. 备份 PostgreSQL。
+1. 備份 PostgreSQL；若未使用 S3，也要備份本機物件儲存 volume。
 2. 构建或拉取新镜像（或使用 `scripts/build_888a2a.sh` 重新构建二进制）。
 3. 停止并删除容器，然后使用相同的 `A2A888_PG_URL` 和新镜像标签启动。待执行的迁移会在启动时自动应用。对于原生二进制，请替换旧的 `build/888a2a` 并重启进程。
 

@@ -707,10 +707,9 @@ func (x *AgentSecuritySetting) GetConnectRateLimitPerMinute() int32 {
 	return 0
 }
 
-// S3ConfigSetting holds the connection details for the object storage used to
-// back file upload/download. When endpoint and bucket are both empty, S3 is
-// considered unconfigured and upload/download endpoints reject with
-// "s3 not configured".
+// S3ConfigSetting holds optional S3-compatible connection details for object
+// storage. When endpoint and bucket are both empty, the service uses its local
+// filesystem object-storage directory instead.
 type S3ConfigSetting struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// S3-compatible endpoint URL, e.g. "https://s3.amazonaws.com" or a MinIO

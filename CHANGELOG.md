@@ -1,5 +1,26 @@
 # Changelog
 
+## [2026-08-31]
+
+### Added
+
+- Added local filesystem object storage as the default fallback for files and avatars, with atomic writes, tenant-prefixed keys, path and symlink confinement, and a configurable `A2A888_OBJECT_STORAGE_DIR`.
+- Added the persistent Docker `objectdata` volume at `/data/objects`, plus backup and restore guidance for local object data.
+- Documented AWS S3, Cloudflare R2, and GCP Cloud Storage HMAC interoperability through the existing S3-compatible settings.
+
+### Changed
+
+- Made S3 optional: empty S3 settings now use local storage, while a configured bucket selects AWS S3 or another S3-compatible backend.
+- Removed S3 from the required setup checklist and updated the storage settings copy to explain the local default.
+
+### Fixed
+
+- Fixed Hub settings translations so runtime i18next resolves `settings.hub.*` instead of rendering translation keys in the UI.
+
+### Security
+
+- Local object storage rejects absolute paths, traversal, NUL bytes, non-regular object paths, and symlink escapes outside the configured root.
+
 ## [2026-08-28]
 
 ### Added

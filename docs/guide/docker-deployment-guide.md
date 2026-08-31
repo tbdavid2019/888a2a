@@ -46,6 +46,11 @@ docker compose up -d
 docker compose ps
 ```
 
+Compose 會建立 `objectdata` 永久資料卷，掛載到 Manager 的
+`/data/objects`。未設定 S3 時，檔案與頭像會寫入這個資料卷；容器重建或
+`docker compose down` 不會刪除資料。請勿使用 `docker compose down -v`，除非
+你確定要刪除資料庫、工作區與物件檔案。
+
 輸出範例：
 ```text
 NAME                IMAGE                               COMMAND                  SERVICE   CREATED         STATUS                   PORTS
@@ -70,6 +75,32 @@ NAME                IMAGE                               COMMAND                 
 | :--- | :--- | :--- |
 | `A2A888_PG_URL` | PostgreSQL 資料庫連線字串 | 由 `.env` 設定，必須包含隨機密碼 |
 | `PORT` | Manager 監聽埠號 | `8181` |
+| `A2A888_OBJECT_STORAGE_DIR` | 本機物件儲存目錄 | `/data/objects` |
+
+### 物件儲存
+
+沒有設定 S3 時，888a2a 會使用本機儲存，無需額外服務：
+
+```yaml
+volumes:
+  - objectdata:/data/objects
+```
+
+要使用雲端儲存時，請在管理介面設定完整的 endpoint 與 bucket。AWS S3、
+Cloudflare R2 與 GCP Cloud Storage 都可透過 S3-compatible endpoint 使用：
+
+| 服務 | Endpoint 範例 | Region | 注意事項 |
+| :--- | :--- | :--- | :--- |
+| AWS S3 | 留空或 AWS S3 endpoint | `us-east-1` | 使用 AWS credentials |
+| Cloudflare R2 | `https://<account>.r2.cloudflarestorage.com` | `auto` | 使用 R2 Access Key 與 Secret Key |
+| GCP Cloud Storage | `https://storage.googleapis.com` | `auto` | 使用 GCS HMAC interoperability key |
+
+設定完成後，endpoint 與 bucket 會切換到遠端 S3-compatible backend；清空兩者
+則回到本機儲存。請勿把 cloud secret 寫入 Git 或放進物件 key。
+
+設定依據請見 [Cloudflare R2 S3 API](https://developers.cloudflare.com/r2/api/s3/api/)、
+[Google Cloud Storage interoperability](https://cloud.google.com/storage/docs/interoperability)
+與 [GCS HMAC keys](https://cloud.google.com/storage/docs/authentication/hmackeys)。
 
 ### Machine (Agent 執行環境主機)
 
@@ -111,7 +142,7 @@ docker compose logs -f machine
 # 停止服務 (資料保留在 volume)
 docker compose down
 
-# 停止並清除所有持久化資料 (警告：將清除資料庫與工作區)
+# 停止並清除所有持久化資料 (警告：將清除資料庫、工作區與物件檔案)
 docker compose down -v
 ```
 
@@ -122,6 +153,23 @@ docker compose exec db pg_dump -U dev 888a2a > 888a2a_backup_$(date +%Y%m%d).sql
 
 # 還原 PostgreSQL
 docker compose exec -T db psql -U dev 888a2a < 888a2a_backup.sql
+```
+
+本機物件資料卷也必須備份。先找出卷名稱，再打包 `/data/objects`：
+
+```bash
+docker volume inspect 888a2a_objectdata
+docker run --rm -v 888a2a_objectdata:/objects -v "$PWD":/backup alpine \
+  tar czf /backup/888a2a_objects_$(date +%Y%m%d).tar.gz -C /objects .
+```
+
+還原前請停止 Manager，避免同時寫入：
+
+```bash
+docker compose stop manager
+docker run --rm -v 888a2a_objectdata:/objects -v "$PWD":/backup alpine \
+  tar xzf /backup/888a2a_objects_YYYYMMDD.tar.gz -C /objects
+docker compose start manager
 ```
 
 完整的 custom-format 備份、校驗與隔離資料庫災難復原演練，請參閱

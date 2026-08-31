@@ -29,6 +29,7 @@ services:
       - "8181:8181"
     environment:
       A2A888_PG_URL: ${A2A888_PG_URL:?A2A888_PG_URL must be set}
+      A2A888_OBJECT_STORAGE_DIR: ${A2A888_OBJECT_STORAGE_DIR:-/data/objects}
       A2A888_HUB_MODE: ${A2A888_HUB_MODE:-public}
       A2A888_HUB_ID: ${A2A888_HUB_ID:-public}
       A2A888_HUB_BOOTSTRAP_TOKEN: ${A2A888_HUB_BOOTSTRAP_TOKEN:-}
@@ -40,6 +41,8 @@ services:
       A2A888_HUB_MAX_TASKS_PER_MINUTE: ${A2A888_HUB_MAX_TASKS_PER_MINUTE:-60}
       A2A888_HUB_MAX_CONCURRENT_TASKS: ${A2A888_HUB_MAX_CONCURRENT_TASKS:-4}
       A2A888_HUB_MAX_PAYLOAD_BYTES: ${A2A888_HUB_MAX_PAYLOAD_BYTES:-1048576}
+    volumes:
+      - objectdata:/data/objects
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8181/healthz"]
       interval: 10s
@@ -94,6 +97,8 @@ services:
 
 volumes:
   pgdata:
+    driver: local
+  objectdata:
     driver: local
   machinedata:
     driver: local

@@ -344,10 +344,9 @@ export declare type AgentSecuritySetting = Message<"laelia.store.AgentSecuritySe
 export declare const AgentSecuritySettingSchema: GenMessage<AgentSecuritySetting>;
 
 /**
- * S3ConfigSetting holds the connection details for the object storage used to
- * back file upload/download. When endpoint and bucket are both empty, S3 is
- * considered unconfigured and upload/download endpoints reject with
- * "s3 not configured".
+ * S3ConfigSetting holds optional S3-compatible connection details for object
+ * storage. When endpoint and bucket are both empty, the service uses its local
+ * filesystem object-storage directory instead.
  *
  * @generated from message laelia.store.S3ConfigSetting
  */
