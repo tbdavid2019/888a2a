@@ -46,8 +46,8 @@ import {
   SETTINGS_ROUTE_ROLES,
   SETTINGS_ROUTE_SMTP,
   SETTINGS_ROUTE_STORAGE,
-  SETTINGS_ROUTE_USERS,
   SETTINGS_ROUTE_USAGE,
+  SETTINGS_ROUTE_USERS,
 } from "@/router/handles";
 import { useCurrentRoute } from "@/router/use-current-route";
 import { useHasPermission } from "@/stores/permissions";
