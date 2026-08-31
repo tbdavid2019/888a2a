@@ -7,6 +7,7 @@
 - Added local filesystem object storage as the default fallback for files and avatars, with atomic writes, tenant-prefixed keys, path and symlink confinement, and a configurable `A2A888_OBJECT_STORAGE_DIR`.
 - Added the persistent Docker `objectdata` volume at `/data/objects`, plus backup and restore guidance for local object data.
 - Documented AWS S3, Cloudflare R2, and GCP Cloud Storage HMAC interoperability through the existing S3-compatible settings.
+- Added authenticated Hub mode switching in the dashboard for `closed`, `open`, and `public`, with persistent policy storage and bootstrap-token protection for `open` mode.
 
 ### Changed
 
@@ -16,6 +17,7 @@
 ### Fixed
 
 - Fixed Hub settings translations so runtime i18next resolves `settings.hub.*` instead of rendering translation keys in the UI.
+- Fixed Hub policy reads to use consistent snapshots while mode and registration settings are changed at runtime.
 
 ### Security
 

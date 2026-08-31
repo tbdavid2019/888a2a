@@ -75,7 +75,7 @@ func (h HubHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/hub/v1")
 	switch {
 	case r.Method == http.MethodPost && path == "/agents/register":
-		if h.Registry.policy.Mode == HubModePublic && !h.allow(w, r, "register") {
+		if h.Registry.Policy().Mode == HubModePublic && !h.allow(w, r, "register") {
 			return
 		}
 		h.register(w, r)
@@ -85,6 +85,8 @@ func (h HubHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.status(w, r)
 	case r.Method == http.MethodPost && path == "/admin/registration":
 		h.setRegistration(w, r)
+	case r.Method == http.MethodPost && path == "/admin/mode":
+		h.setMode(w, r)
 	case r.Method == http.MethodPost && path == "/admin/shutdown":
 		h.shutdown(w, r)
 	case r.Method == http.MethodPost && strings.HasPrefix(path, "/admin/agents/") && strings.HasSuffix(path, "/revoke"):
@@ -138,8 +140,37 @@ func (h HubHTTPHandler) setRegistration(w http.ResponseWriter, r *http.Request) 
 		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "enabled is required")
 		return
 	}
-	h.Registry.SetRegistrationEnabled(*input.Enabled)
+	if err := h.Registry.SetRegistrationEnabledContext(r.Context(), *input.Enabled); err != nil {
+		writeHubError(w, http.StatusServiceUnavailable, "POLICY_UNAVAILABLE", "Hub registration policy is unavailable")
+		return
+	}
 	writeHubJSON(w, http.StatusOK, map[string]any{"registrationEnabled": *input.Enabled})
+}
+
+func (h HubHTTPHandler) setMode(w http.ResponseWriter, r *http.Request) {
+	if !h.Registry.AuthorizeOperator(bearerToken(r.Header.Get("Authorization"))) {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub operator credentials are required")
+		return
+	}
+	var input struct {
+		Mode string `json:"mode"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&input); err != nil || strings.TrimSpace(input.Mode) == "" {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "mode is required")
+		return
+	}
+	if err := h.Registry.SetModeContext(r.Context(), HubMode(strings.TrimSpace(input.Mode))); err != nil {
+		status := http.StatusBadRequest
+		code := "INVALID_ARGUMENT"
+		if strings.Contains(err.Error(), "persist") {
+			status = http.StatusServiceUnavailable
+			code = "POLICY_UNAVAILABLE"
+		}
+		writeHubError(w, status, code, err.Error())
+		return
+	}
+	policy := h.Registry.Policy()
+	writeHubJSON(w, http.StatusOK, map[string]any{"mode": policy.Mode, "registrationEnabled": policy.RegistrationEnabled})
 }
 
 func (h HubHTTPHandler) revoke(w http.ResponseWriter, r *http.Request, agentID string) {
@@ -176,7 +207,8 @@ func (h HubHTTPHandler) cancelTask(w http.ResponseWriter, r *http.Request, taskI
 		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "task ID is invalid or Hub mailbox is unavailable")
 		return
 	}
-	if err := h.Mailbox.Cancel(r.Context(), h.Registry.policy.HubID, taskID, time.Now().UTC()); err != nil {
+	policy := h.Registry.Policy()
+	if err := h.Mailbox.Cancel(r.Context(), policy.HubID, taskID, time.Now().UTC()); err != nil {
 		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "Hub task not found or already acknowledged")
 		return
 	}
@@ -215,7 +247,8 @@ func (h HubHTTPHandler) sendPeerTask(w http.ResponseWriter, r *http.Request, tar
 		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
 		return
 	}
-	if h.Registry.policy.Mode == HubModePublic && !h.allow(w, r, "task") {
+	policy := h.Registry.Policy()
+	if policy.Mode == HubModePublic && !h.allow(w, r, "task") {
 		return
 	}
 	if target, exists := h.Registry.LookupView(targetAgentID); !exists {
@@ -238,24 +271,24 @@ func (h HubHTTPHandler) sendPeerTask(w http.ResponseWriter, r *http.Request, tar
 	if input.ContextID == "" {
 		input.ContextID = uuid.NewString()
 	}
-	if existing, found, err := h.Mailbox.Find(r.Context(), h.Registry.policy.HubID, targetAgentID, caller.AgentID, input.IdempotencyKey); err != nil {
+	if existing, found, err := h.Mailbox.Find(r.Context(), policy.HubID, targetAgentID, caller.AgentID, input.IdempotencyKey); err != nil {
 		writeHubError(w, http.StatusServiceUnavailable, "HUB_MAILBOX_UNAVAILABLE", "Hub mailbox lookup failed")
 		return
 	} else if found {
 		writeHubJSON(w, http.StatusOK, HubInboxEnqueueResult{Item: existing, Duplicate: true})
 		return
 	}
-	pending, err := h.Mailbox.PendingCount(r.Context(), h.Registry.policy.HubID)
+	pending, err := h.Mailbox.PendingCount(r.Context(), policy.HubID)
 	if err != nil {
 		writeHubError(w, http.StatusServiceUnavailable, "HUB_MAILBOX_UNAVAILABLE", "Hub mailbox capacity is unavailable")
 		return
 	}
-	if int32(pending) >= h.Registry.policy.MaxConcurrentTasks {
+	if int32(pending) >= policy.MaxConcurrentTasks {
 		writeHubError(w, http.StatusTooManyRequests, "CONCURRENCY_LIMIT", "Hub task concurrency limit reached")
 		return
 	}
 	result, err := h.Mailbox.Enqueue(r.Context(), HubInboxItem{
-		HubID: h.Registry.policy.HubID, TargetAgentID: targetAgentID, RequesterAgentID: caller.AgentID,
+		HubID: policy.HubID, TargetAgentID: targetAgentID, RequesterAgentID: caller.AgentID,
 		TaskID: uuid.NewString(), ContextID: input.ContextID, IdempotencyKey: input.IdempotencyKey, Message: input.Message,
 	})
 	if err != nil {
@@ -270,7 +303,7 @@ func (h HubHTTPHandler) card(w http.ResponseWriter, r *http.Request, agentID str
 		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "agent id is invalid")
 		return
 	}
-	if h.Registry.policy.Mode != HubModePublic {
+	if h.Registry.Policy().Mode != HubModePublic {
 		if _, ok := h.authenticateAgent(r); !ok {
 			writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
 			return
@@ -319,7 +352,7 @@ func (h HubHTTPHandler) lookup(w http.ResponseWriter, r *http.Request, agentID s
 		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "agent id is invalid")
 		return
 	}
-	if h.Registry.policy.Mode != HubModePublic {
+	if h.Registry.Policy().Mode != HubModePublic {
 		if _, ok := h.authenticateAgent(r); !ok {
 			writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
 			return
@@ -352,7 +385,7 @@ func (h HubHTTPHandler) pollInbox(w http.ResponseWriter, r *http.Request, agentI
 			return
 		}
 	}
-	items, err := h.Mailbox.Poll(r.Context(), h.Registry.policy.HubID, agentID, after, 100)
+	items, err := h.Mailbox.Poll(r.Context(), h.Registry.Policy().HubID, agentID, after, 100)
 	if err != nil {
 		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", err.Error())
 		return
@@ -370,7 +403,7 @@ func (h HubHTTPHandler) ackInbox(w http.ResponseWriter, r *http.Request, agentID
 		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are invalid")
 		return
 	}
-	if err := h.Mailbox.Acknowledge(r.Context(), h.Registry.policy.HubID, agentID, sequence); err != nil {
+	if err := h.Mailbox.Acknowledge(r.Context(), h.Registry.Policy().HubID, agentID, sequence); err != nil {
 		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "Hub inbox item not found")
 		return
 	}
@@ -415,32 +448,35 @@ func (h HubHTTPHandler) register(w http.ResponseWriter, r *http.Request) {
 		writeHubError(w, status, code, err.Error())
 		return
 	}
+	policy := h.Registry.Policy()
 	writeHubJSON(w, http.StatusOK, map[string]any{
 		"identity": identity,
-		"policy":   map[string]any{"hubId": h.Registry.policy.HubID, "mode": h.Registry.policy.Mode},
+		"policy":   map[string]any{"hubId": policy.HubID, "mode": policy.Mode},
 	})
 }
 
 func (h HubHTTPHandler) list(w http.ResponseWriter, r *http.Request) {
-	if h.Registry.policy.Mode != HubModePublic {
+	policy := h.Registry.Policy()
+	if policy.Mode != HubModePublic {
 		if _, ok := h.authenticateAgent(r); !ok && !h.Registry.AuthorizeOperator(bearerToken(r.Header.Get("Authorization"))) {
 			writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
 			return
 		}
 	}
-	writeHubJSON(w, http.StatusOK, map[string]any{"hubId": h.Registry.policy.HubID, "agents": h.Registry.ListViews()})
+	writeHubJSON(w, http.StatusOK, map[string]any{"hubId": policy.HubID, "agents": h.Registry.ListViews()})
 }
 
 func (h HubHTTPHandler) status(w http.ResponseWriter, _ *http.Request) {
+	policy := h.Registry.Policy()
 	writeHubJSON(w, http.StatusOK, map[string]any{
-		"hubId": h.Registry.policy.HubID, "mode": h.Registry.policy.Mode,
-		"registrationEnabled":    h.Registry.policy.RegistrationEnabled,
-		"registrationTTLSeconds": h.Registry.policy.RegistrationTTL,
-		"peerLeaseSeconds":       h.Registry.policy.PeerLeaseSeconds,
-		"maxRegisteredAgents":    h.Registry.policy.MaxRegisteredAgents,
-		"maxTasksPerMinute":      h.Registry.policy.MaxTasksPerMinute,
-		"maxConcurrentTasks":     h.Registry.policy.MaxConcurrentTasks,
-		"maxPayloadBytes":        h.Registry.policy.MaxPayloadBytes,
+		"hubId": policy.HubID, "mode": policy.Mode,
+		"registrationEnabled":    policy.RegistrationEnabled,
+		"registrationTTLSeconds": policy.RegistrationTTL,
+		"peerLeaseSeconds":       policy.PeerLeaseSeconds,
+		"maxRegisteredAgents":    policy.MaxRegisteredAgents,
+		"maxTasksPerMinute":      policy.MaxTasksPerMinute,
+		"maxConcurrentTasks":     policy.MaxConcurrentTasks,
+		"maxPayloadBytes":        policy.MaxPayloadBytes,
 	})
 }
 

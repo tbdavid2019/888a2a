@@ -86,6 +86,21 @@ func (s *Store) GetHub(ctx context.Context, hubID string) (*HubMessage, error) {
 	return &hub, nil
 }
 
+// UpdateHubPolicy persists operator-controlled Hub mode and registration
+// state without changing the bootstrap-token hash or safety limits.
+func (s *Store) UpdateHubPolicy(ctx context.Context, hubID, mode string, registrationEnabled, publicConfirmed bool) error {
+	result, err := s.GetDB().ExecContext(ctx, `UPDATE a2a888_hub
+		SET mode=$2, registration_enabled=$3, public_confirmed=$4, updated_at=now()
+		WHERE hub_id=$1`, hubID, mode, registrationEnabled, publicConfirmed)
+	if err != nil {
+		return err
+	}
+	if count, _ := result.RowsAffected(); count != 1 {
+		return errors.New("Hub policy not found")
+	}
+	return nil
+}
+
 func (s *Store) CreateHubAgent(ctx context.Context, agent *HubAgentMessage) error {
 	if agent == nil {
 		return errors.New("Hub Agent is required")

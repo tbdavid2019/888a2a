@@ -6,6 +6,13 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type HubStatus = {
   hubId: string;
@@ -44,6 +51,7 @@ export function SettingsHubPage() {
   const [status, setStatus] = useState<HubStatus | null>(null);
   const [peers, setPeers] = useState<HubPeer[]>([]);
   const [operatorToken, setOperatorToken] = useState("");
+  const [selectedMode, setSelectedMode] = useState<HubStatus["mode"]>("public");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -55,6 +63,7 @@ export function SettingsHubPage() {
       try {
         const hubStatus = await hubRequest<HubStatus>("status");
         setStatus(hubStatus);
+        setSelectedMode(hubStatus.mode);
         const list = await hubRequest<{ agents: HubPeer[] }>("agents", {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
@@ -83,6 +92,26 @@ export function SettingsHubPage() {
         method: "POST",
         headers: { Authorization: `Bearer ${operatorToken}` },
         body: JSON.stringify({ enabled }),
+      });
+      await load(operatorToken);
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : t("settings.hub.action-failed")
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function setMode() {
+    if (!status || selectedMode === status.mode) return;
+    setBusy(true);
+    setError("");
+    try {
+      await hubRequest("admin/mode", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${operatorToken}` },
+        body: JSON.stringify({ mode: selectedMode }),
       });
       await load(operatorToken);
     } catch (cause) {
@@ -207,6 +236,52 @@ export function SettingsHubPage() {
                   ? t("settings.hub.disable-registration")
                   : t("settings.hub.enable-registration")}
               </Button>
+            </div>
+            <div className="flex flex-col gap-2 border-t border-border pt-3">
+              <label
+                className="text-sm font-medium text-main"
+                htmlFor="hub-mode-select"
+              >
+                {t("settings.hub.mode-select-label")}
+              </label>
+              <p className="text-xs text-control-light">
+                {t("settings.hub.mode-select-hint")}
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                <Select
+                  value={selectedMode}
+                  onValueChange={(value) => {
+                    if (value) setSelectedMode(value as HubStatus["mode"]);
+                  }}
+                  disabled={!operatorToken || busy}
+                >
+                  <SelectTrigger id="hub-mode-select" className="sm:w-56">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="closed">
+                      {t("settings.hub.mode-closed")}
+                    </SelectItem>
+                    <SelectItem value="open">
+                      {t("settings.hub.mode-open")}
+                    </SelectItem>
+                    <SelectItem value="public">
+                      {t("settings.hub.mode-public")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  disabled={
+                    !operatorToken || busy || selectedMode === status.mode
+                  }
+                  onClick={() => void setMode()}
+                >
+                  {busy
+                    ? t("settings.hub.applying-mode")
+                    : t("settings.hub.apply-mode")}
+                </Button>
+              </div>
             </div>
           </div>
           <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3">

@@ -12,6 +12,14 @@
 Hub 註冊；設定為 `open` 則要求 bootstrap Token。未設定 TLS、入口限流與 operator
 Token 前，請勿直接將預設設定暴露到網際網路。
 
+## 從後台切換模式
+
+具備權限的 Hub 操作者可開啟「設定 → Agent Hub」，輸入操作者 Token，選擇
+`closed`、`open` 或 `public`，再按「套用模式」。變更會立即生效，並寫入 Hub
+政策資料表，因此 Manager 重啟後仍會保留選擇的模式。只有在 Manager 啟動前已設定
+`A2A888_HUB_BOOTSTRAP_TOKEN` 時，才能切換至 `open`。操作者仍可單獨停用或重新啟用
+註冊，不會改變 Hub 模式。
+
 ## 私有 open Hub
 
 適合由自己管理、只提供給指定機器加入的 Hub。

@@ -70,6 +70,10 @@ func (p hubStorePersistence) RevokeHubAgent(ctx context.Context, hubID, agentID,
 	return p.store.RevokeHubAgent(ctx, hubID, agentID, reason, now)
 }
 
+func (p hubStorePersistence) UpdateHubPolicy(ctx context.Context, hubID, mode string, registrationEnabled, publicConfirmed bool) error {
+	return p.store.UpdateHubPolicy(ctx, hubID, mode, registrationEnabled, publicConfirmed)
+}
+
 func (p hubStorePersistence) Enqueue(ctx context.Context, item a2agateway.HubInboxItem) (a2agateway.HubInboxEnqueueResult, error) {
 	stored, duplicate, err := p.store.CreateHubInboxItem(ctx, &store.HubInboxMessage{
 		HubID: item.HubID, TargetAgentID: item.TargetAgentID, RequesterAgentID: item.RequesterAgentID,

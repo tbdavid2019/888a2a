@@ -136,6 +136,18 @@ func NewServer(ctx context.Context, profile *config.Profile) (*Server, error) {
 	if profile.HubConfigError != nil {
 		return nil, errors.Wrap(profile.HubConfigError, "invalid Hub configuration")
 	}
+	// The environment provides the initial policy. Once an operator changes
+	// mode or registration from the Hub settings page, the persisted policy is
+	// authoritative so a Manager restart does not silently undo that change.
+	persistedHub, err := stores.GetHub(ctx, hubPolicy.HubID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load persisted Hub policy")
+	}
+	if persistedHub != nil {
+		hubPolicy.Mode = a2agateway.HubMode(persistedHub.Mode)
+		hubPolicy.RegistrationEnabled = persistedHub.RegistrationEnabled
+		hubPolicy.PublicConfirmed = persistedHub.PublicConfirmed
+	}
 	bootstrapHash := sha256.Sum256([]byte(profile.Hub.BootstrapToken))
 	if err := stores.UpsertHub(ctx, &store.HubMessage{
 		HubID: hubPolicy.HubID, Mode: string(hubPolicy.Mode), BootstrapTokenHash: hex.EncodeToString(bootstrapHash[:]),

@@ -104,6 +104,12 @@ type HubPersistence interface {
 	RevokeHubAgent(context.Context, string, string, string, time.Time) error
 }
 
+// HubPolicyPersistence stores operator changes to the live Hub policy. It is
+// optional so the registry remains usable without a database in unit tests.
+type HubPolicyPersistence interface {
+	UpdateHubPolicy(context.Context, string, string, bool, bool) error
+}
+
 // HubRegistry is the correctness-first registry implementation. Persistence
 // is added by the Manager store; the registry deliberately keeps token hashes
 // and no plaintext credentials.
@@ -127,6 +133,16 @@ func (r *HubRegistry) MaxTasksPerMinute() int {
 	return int(r.policy.MaxTasksPerMinute)
 }
 
+// Policy returns a consistent snapshot of the current Hub policy.
+func (r *HubRegistry) Policy() HubPolicy {
+	if r == nil {
+		return HubPolicy{}
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.policy
+}
+
 func (r *HubRegistry) SetOperatorToken(token string) {
 	if r == nil {
 		return
@@ -146,12 +162,58 @@ func (r *HubRegistry) AuthorizeOperator(token string) bool {
 }
 
 func (r *HubRegistry) SetRegistrationEnabled(enabled bool) {
+	_ = r.SetRegistrationEnabledContext(context.Background(), enabled)
+}
+
+// SetRegistrationEnabledContext updates registration and persists it when the
+// Manager supplied a policy persistence adapter.
+func (r *HubRegistry) SetRegistrationEnabledContext(ctx context.Context, enabled bool) error {
 	if r == nil {
-		return
+		return errors.New("Hub registry is required")
 	}
 	r.mu.Lock()
+	defer r.mu.Unlock()
+	previous := r.policy.RegistrationEnabled
 	r.policy.RegistrationEnabled = enabled
-	r.mu.Unlock()
+	if persistence, ok := r.persistence.(HubPolicyPersistence); ok {
+		if err := persistence.UpdateHubPolicy(ctx, r.policy.HubID, string(r.policy.Mode), enabled, r.policy.PublicConfirmed); err != nil {
+			r.policy.RegistrationEnabled = previous
+			return fmt.Errorf("persist Hub registration policy: %w", err)
+		}
+	}
+	return nil
+}
+
+// SetModeContext changes the enrollment mode and persists it when supported.
+// Open mode is allowed only when a bootstrap token was configured at startup.
+func (r *HubRegistry) SetModeContext(ctx context.Context, mode HubMode) error {
+	if r == nil {
+		return errors.New("Hub registry is required")
+	}
+	parsed, err := ParseHubMode(string(mode))
+	if err != nil {
+		return err
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if parsed == HubModeOpen && r.matchesHash("", r.bootstrapHash) {
+		return errors.New("open Hub mode requires a configured bootstrap token")
+	}
+	if parsed == HubModePublic && !r.policy.PublicConfirmed {
+		return errors.New("public Hub mode requires explicit confirmation")
+	}
+	previousMode := r.policy.Mode
+	previousRegistration := r.policy.RegistrationEnabled
+	r.policy.Mode = parsed
+	r.policy.RegistrationEnabled = parsed != HubModeClosed
+	if persistence, ok := r.persistence.(HubPolicyPersistence); ok {
+		if err := persistence.UpdateHubPolicy(ctx, r.policy.HubID, string(parsed), r.policy.RegistrationEnabled, r.policy.PublicConfirmed); err != nil {
+			r.policy.Mode = previousMode
+			r.policy.RegistrationEnabled = previousRegistration
+			return fmt.Errorf("persist Hub mode: %w", err)
+		}
+	}
+	return nil
 }
 
 func NewHubRegistry(policy HubPolicy, bootstrapToken string, now func() time.Time) (*HubRegistry, error) {
@@ -204,6 +266,8 @@ func (r *HubRegistry) RegisterContext(ctx context.Context, bootstrapToken string
 	if r == nil {
 		return IssuedAgentIdentity{}, errors.New("Hub registry is required")
 	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if !r.policy.RegistrationEnabled {
 		return IssuedAgentIdentity{}, ErrHubRegistrationDisabled
 	}
@@ -215,8 +279,6 @@ func (r *HubRegistry) RegisterContext(ctx context.Context, bootstrapToken string
 	}
 	now := r.now()
 	registrationHash := hashHubSecretHex(declaration.RegistrationIdempotencyKey)
-	r.mu.Lock()
-	defer r.mu.Unlock()
 	r.reconcileLocked(now)
 	if existingID, ok := r.byRegistration[registrationHash]; ok {
 		existing := r.agents[existingID]

@@ -237,6 +237,57 @@ func TestHubHTTPOperatorCanDisableRegistrationAndRevokePeer(t *testing.T) {
 	}
 }
 
+func TestHubHTTPOperatorCanChangeMode(t *testing.T) {
+	policy := DefaultHubPolicy()
+	policy.Mode = HubModePublic
+	policy.HubID = "hub-mode-switch"
+	policy.PublicConfirmed = true
+	policy.RegistrationEnabled = true
+	registry, err := NewHubRegistry(policy, "bootstrap-token", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	registry.SetOperatorToken("operator-token")
+	handler := HubHTTPHandler{Registry: registry}
+
+	changeMode := func(mode string) *httptest.ResponseRecorder {
+		recorder := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/hub/v1/admin/mode", strings.NewReader(`{"mode":"`+mode+`"}`))
+		req.Header.Set("Authorization", "Bearer operator-token")
+		handler.ServeHTTP(recorder, req)
+		return recorder
+	}
+
+	if response := changeMode("closed"); response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"mode":"closed"`) {
+		t.Fatalf("closed mode status=%d body=%s", response.Code, response.Body.String())
+	}
+	if response := changeMode("open"); response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"mode":"open"`) {
+		t.Fatalf("open mode status=%d body=%s", response.Code, response.Body.String())
+	}
+	if response := changeMode("public"); response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"mode":"public"`) {
+		t.Fatalf("public mode status=%d body=%s", response.Code, response.Body.String())
+	}
+
+	status := httptest.NewRecorder()
+	handler.ServeHTTP(status, httptest.NewRequest(http.MethodGet, "/hub/v1/status", nil))
+	if status.Code != http.StatusOK || !strings.Contains(status.Body.String(), `"mode":"public"`) {
+		t.Fatalf("status code=%d body=%s", status.Code, status.Body.String())
+	}
+}
+
+func TestHubHTTPOperatorCannotChangeModeWithoutCredentials(t *testing.T) {
+	registry, err := NewHubRegistry(DefaultHubPolicy(), "bootstrap-token", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/hub/v1/admin/mode", strings.NewReader(`{"mode":"closed"}`))
+	HubHTTPHandler{Registry: registry}.ServeHTTP(response, req)
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
 func TestHubHTTPEnforcesPendingTaskConcurrency(t *testing.T) {
 	policy := DefaultHubPolicy()
 	policy.Mode = HubModePublic

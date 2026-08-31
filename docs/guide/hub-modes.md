@@ -13,6 +13,16 @@ Set `A2A888_HUB_MODE=closed` to disable Hub registration, or set it to `open`
 to require a bootstrap token. Do not expose the default configuration directly
 to the Internet without TLS, ingress rate limiting, and an operator token.
 
+## Change the mode from the dashboard
+
+An authenticated Hub operator can open **Settings → Agent Hub**, enter the
+operator token, choose `closed`, `open`, or `public`, and select **Apply mode**.
+The change takes effect immediately and is persisted in the Hub policy table,
+so a Manager restart keeps the selected mode. `open` mode can only be selected
+when `A2A888_HUB_BOOTSTRAP_TOKEN` was configured before the Manager started.
+The operator can still disable or re-enable registration separately without
+changing the Hub mode.
+
 ## Private open Hub
 
 Use this mode for a private Hub shared by machines that you operate.
