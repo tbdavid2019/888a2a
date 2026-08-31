@@ -18,6 +18,7 @@
 
 - Fixed Hub settings translations so runtime i18next resolves `settings.hub.*` instead of rendering translation keys in the UI.
 - Fixed Hub policy reads to use consistent snapshots while mode and registration settings are changed at runtime.
+- Fixed `closed` Hub mode so the registration control cannot re-enable public enrollment while the Hub is closed.
 
 ### Security
 
@@ -28,6 +29,7 @@
 - Verified GitHub Actions run [33352546656](https://github.com/tbdavid2019/888a2a/actions/runs/33352546656) passed the backend, frontend, naming, test, and production build gates.
 - Verified on `david@10.9.0.11` with S3 unset: authenticated upload and download returned 200 with matching SHA-256 content; the object remained downloadable after recreating the Manager container, with the persistent `objectdata` volume mounted at `/data/objects`.
 - Synced the object-storage tenant-boundary requirement into the main organization-tenancy specification and archived the completed OpenSpec change.
+- Verified on `david@10.9.0.11`: operator mode changes `public → closed → public` returned 200; `closed:false` remained after recreating Manager, then the Hub was restored to `public:true`.
 
 ## [2026-08-28]
 

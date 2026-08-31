@@ -261,6 +261,13 @@ func TestHubHTTPOperatorCanChangeMode(t *testing.T) {
 	if response := changeMode("closed"); response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"mode":"closed"`) {
 		t.Fatalf("closed mode status=%d body=%s", response.Code, response.Body.String())
 	}
+	registration := httptest.NewRecorder()
+	registrationRequest := httptest.NewRequest(http.MethodPost, "/hub/v1/admin/registration", strings.NewReader(`{"enabled":true}`))
+	registrationRequest.Header.Set("Authorization", "Bearer operator-token")
+	handler.ServeHTTP(registration, registrationRequest)
+	if registration.Code != http.StatusBadRequest {
+		t.Fatalf("closed registration status=%d body=%s", registration.Code, registration.Body.String())
+	}
 	if response := changeMode("open"); response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"mode":"open"`) {
 		t.Fatalf("open mode status=%d body=%s", response.Code, response.Body.String())
 	}

@@ -173,6 +173,9 @@ func (r *HubRegistry) SetRegistrationEnabledContext(ctx context.Context, enabled
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if enabled && r.policy.Mode == HubModeClosed {
+		return errors.New("closed Hub mode cannot enable registration")
+	}
 	previous := r.policy.RegistrationEnabled
 	r.policy.RegistrationEnabled = enabled
 	if persistence, ok := r.persistence.(HubPolicyPersistence); ok {
@@ -268,7 +271,7 @@ func (r *HubRegistry) RegisterContext(ctx context.Context, bootstrapToken string
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if !r.policy.RegistrationEnabled {
+	if r.policy.Mode == HubModeClosed || !r.policy.RegistrationEnabled {
 		return IssuedAgentIdentity{}, ErrHubRegistrationDisabled
 	}
 	if err := declaration.Validate(); err != nil {

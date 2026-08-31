@@ -141,6 +141,10 @@ func (h HubHTTPHandler) setRegistration(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err := h.Registry.SetRegistrationEnabledContext(r.Context(), *input.Enabled); err != nil {
+		if strings.Contains(err.Error(), "closed Hub mode") {
+			writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", err.Error())
+			return
+		}
 		writeHubError(w, http.StatusServiceUnavailable, "POLICY_UNAVAILABLE", "Hub registration policy is unavailable")
 		return
 	}
