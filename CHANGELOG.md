@@ -19,6 +19,7 @@
 ### Fixed
 
 - Fixed default phone guidance and input affordances to use Taiwan E.164 examples beginning with `+886`, including telephone keyboard and autocomplete hints.
+- Fixed the Traditional Chinese Taiwan navigation labels to use local terms such as 一般設定、存取控制、身分提供者、稽核日誌 and 推播傳送.
 - Fixed Hub settings translations so runtime i18next resolves `settings.hub.*` instead of rendering translation keys in the UI.
 - Fixed Hub policy reads to use consistent snapshots while mode and registration settings are changed at runtime.
 - Fixed `closed` Hub mode so the registration control cannot re-enable public enrollment while the Hub is closed.
