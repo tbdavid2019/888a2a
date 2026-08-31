@@ -113,7 +113,7 @@ function useSettingsMenuItems(): MenuItem[] {
         canViewUsers && {
           to: "/settings/memberships",
           icon: UserCog,
-          label: "Organization members",
+          label: t("sidebar.settings-memberships"),
         },
         canViewRoles && {
           to: "/settings/roles",

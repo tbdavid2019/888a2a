@@ -559,6 +559,9 @@ export function UserListPage() {
               >
                 <Input
                   id="create-phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
                   value={phone}
                   placeholder={t("user.field-phone-placeholder")}
                   onChange={(e) => setPhone(e.target.value)}
@@ -643,6 +646,9 @@ export function UserListPage() {
               <FieldRow label={t("user.field-phone")} htmlFor="edit-phone">
                 <Input
                   id="edit-phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
                   value={editPhone}
                   onChange={(e) => {
                     setEditPhone(e.target.value);

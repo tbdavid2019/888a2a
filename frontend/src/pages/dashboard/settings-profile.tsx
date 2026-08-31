@@ -432,6 +432,9 @@ export function SettingsProfilePage() {
             </Field>
             <Field label={t("user.field-phone")}>
               <Input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
                 value={form.phone}
                 placeholder={t("user.field-phone-placeholder")}
                 onChange={(e) => set("phone", e.target.value)}
