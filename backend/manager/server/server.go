@@ -196,7 +196,8 @@ func NewServer(ctx context.Context, profile *config.Profile) (*Server, error) {
 	s.auditInterceptor = auditInterceptor
 
 	configureEchoRouters(s.echoServer, profile, s.store)
-	registerHubRoutes(s.echoServer, s.hubRegistry, hubStorePersistence{store: s.store}, s.Shutdown)
+	apiAuth := auth.New(s.store, secret, s.stateCfg.TokenExpireCache, profile)
+	registerHubRoutes(s.echoServer, s.hubRegistry, hubStorePersistence{store: s.store}, s.Shutdown, hubBrowserAuthorizer(apiAuth, s.store))
 
 	for _, route := range s.echoServer.Router().Routes() {
 		fmt.Printf("Path: %s, Method: %s\n", route.Path, route.Method)

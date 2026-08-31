@@ -20,10 +20,11 @@ const maxHubRegistrationBody = MaxHubAgentCardBytes + 16*1024
 // HubHTTPHandler exposes enrollment and peer lifecycle endpoints for external
 // Agents. It does not expose provider credentials or native runtime sessions.
 type HubHTTPHandler struct {
-	Registry *HubRegistry
-	Mailbox  HubMailbox
-	Rate     *HubRateLimiter
-	Shutdown func(context.Context) error
+	Registry         *HubRegistry
+	Mailbox          HubMailbox
+	Rate             *HubRateLimiter
+	Shutdown         func(context.Context) error
+	AuthorizeBrowser func(*http.Request) bool
 }
 
 type HubRateLimiter struct {
@@ -129,7 +130,7 @@ func (h HubHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HubHTTPHandler) setRegistration(w http.ResponseWriter, r *http.Request) {
-	if !h.Registry.AuthorizeOperator(bearerToken(r.Header.Get("Authorization"))) {
+	if !h.authorizeOperator(r) {
 		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub operator credentials are required")
 		return
 	}
@@ -152,7 +153,7 @@ func (h HubHTTPHandler) setRegistration(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h HubHTTPHandler) setMode(w http.ResponseWriter, r *http.Request) {
-	if !h.Registry.AuthorizeOperator(bearerToken(r.Header.Get("Authorization"))) {
+	if !h.authorizeOperator(r) {
 		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub operator credentials are required")
 		return
 	}
@@ -178,7 +179,7 @@ func (h HubHTTPHandler) setMode(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HubHTTPHandler) revoke(w http.ResponseWriter, r *http.Request, agentID string) {
-	if !h.Registry.AuthorizeOperator(bearerToken(r.Header.Get("Authorization"))) {
+		if !h.authorizeOperator(r) {
 		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub operator credentials are required")
 		return
 	}
@@ -203,7 +204,7 @@ func (h HubHTTPHandler) revoke(w http.ResponseWriter, r *http.Request, agentID s
 }
 
 func (h HubHTTPHandler) cancelTask(w http.ResponseWriter, r *http.Request, taskID string) {
-	if !h.Registry.AuthorizeOperator(bearerToken(r.Header.Get("Authorization"))) {
+	if !h.authorizeOperator(r) {
 		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub operator credentials are required")
 		return
 	}
@@ -220,7 +221,7 @@ func (h HubHTTPHandler) cancelTask(w http.ResponseWriter, r *http.Request, taskI
 }
 
 func (h HubHTTPHandler) shutdown(w http.ResponseWriter, r *http.Request) {
-	if !h.Registry.AuthorizeOperator(bearerToken(r.Header.Get("Authorization"))) {
+	if !h.authorizeOperator(r) {
 		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub operator credentials are required")
 		return
 	}
@@ -462,7 +463,7 @@ func (h HubHTTPHandler) register(w http.ResponseWriter, r *http.Request) {
 func (h HubHTTPHandler) list(w http.ResponseWriter, r *http.Request) {
 	policy := h.Registry.Policy()
 	if policy.Mode != HubModePublic {
-		if _, ok := h.authenticateAgent(r); !ok && !h.Registry.AuthorizeOperator(bearerToken(r.Header.Get("Authorization"))) {
+		if _, ok := h.authenticateAgent(r); !ok && !h.authorizeOperator(r) {
 			writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
 			return
 		}
@@ -526,6 +527,13 @@ func (h HubHTTPHandler) authenticateAgent(r *http.Request) (*RegisteredAgent, bo
 	}
 	agent, err := h.Registry.Authenticate(agentID, token)
 	return agent, err == nil
+}
+
+func (h HubHTTPHandler) authorizeOperator(r *http.Request) bool {
+	if h.Registry.AuthorizeOperator(bearerToken(r.Header.Get("Authorization"))) {
+		return true
+	}
+	return h.AuthorizeBrowser != nil && h.AuthorizeBrowser(r)
 }
 
 func bearerToken(header string) string {

@@ -295,6 +295,27 @@ func TestHubHTTPOperatorCannotChangeModeWithoutCredentials(t *testing.T) {
 	}
 }
 
+func TestHubHTTPAuthenticatedBrowserOperatorCanChangeMode(t *testing.T) {
+	policy := DefaultHubPolicy()
+	policy.HubID = "hub-browser-mode"
+	registry, err := NewHubRegistry(policy, "bootstrap-token", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := HubHTTPHandler{
+		Registry: registry,
+		AuthorizeBrowser: func(*http.Request) bool {
+			return true
+		},
+	}
+	response := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/hub/v1/admin/mode", strings.NewReader(`{"mode":"closed"}`))
+	handler.ServeHTTP(response, req)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"mode":"closed"`) {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
 func TestHubHTTPEnforcesPendingTaskConcurrency(t *testing.T) {
 	policy := DefaultHubPolicy()
 	policy.Mode = HubModePublic

@@ -5,7 +5,6 @@ import { SettingsPage } from "@/components/settings-page";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -50,23 +49,20 @@ export function SettingsHubPage() {
   const { t } = useTranslation();
   const [status, setStatus] = useState<HubStatus | null>(null);
   const [peers, setPeers] = useState<HubPeer[]>([]);
-  const [operatorToken, setOperatorToken] = useState("");
   const [selectedMode, setSelectedMode] = useState<HubStatus["mode"]>("public");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(
-    async (token: string) => {
+    async () => {
       setLoading(true);
       setError("");
       try {
         const hubStatus = await hubRequest<HubStatus>("status");
         setStatus(hubStatus);
         setSelectedMode(hubStatus.mode);
-        const list = await hubRequest<{ agents: HubPeer[] }>("agents", {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        });
+        const list = await hubRequest<{ agents: HubPeer[] }>("agents");
         setPeers(list.agents ?? []);
       } catch (cause) {
         setPeers([]);
@@ -81,7 +77,7 @@ export function SettingsHubPage() {
   );
 
   useEffect(() => {
-    void load("");
+    void load();
   }, [load]);
 
   async function setRegistration(enabled: boolean) {
@@ -90,10 +86,9 @@ export function SettingsHubPage() {
     try {
       await hubRequest("admin/registration", {
         method: "POST",
-        headers: { Authorization: `Bearer ${operatorToken}` },
         body: JSON.stringify({ enabled }),
       });
-      await load(operatorToken);
+      await load();
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : t("settings.hub.action-failed")
@@ -110,10 +105,9 @@ export function SettingsHubPage() {
     try {
       await hubRequest("admin/mode", {
         method: "POST",
-        headers: { Authorization: `Bearer ${operatorToken}` },
         body: JSON.stringify({ mode: selectedMode }),
       });
-      await load(operatorToken);
+      await load();
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : t("settings.hub.action-failed")
@@ -129,10 +123,9 @@ export function SettingsHubPage() {
     try {
       await hubRequest(`admin/agents/${encodeURIComponent(agentId)}/revoke`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${operatorToken}` },
         body: JSON.stringify({ reason: "Revoked by Hub operator" }),
       });
-      await load(operatorToken);
+      await load();
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : t("settings.hub.action-failed")
@@ -149,7 +142,7 @@ export function SettingsHubPage() {
       actions={
         <Button
           variant="outline"
-          onClick={() => void load(operatorToken)}
+          onClick={() => void load()}
           disabled={loading}
         >
           <RefreshCw className="size-4" />
@@ -210,24 +203,17 @@ export function SettingsHubPage() {
             <p className="text-sm text-control-light">
               {t("settings.hub.operator-note")}
             </p>
-            <Input
-              type="password"
-              value={operatorToken}
-              onChange={(event) => setOperatorToken(event.target.value)}
-              placeholder={t("settings.hub.operator-placeholder")}
-              autoComplete="off"
-            />
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
-                disabled={!operatorToken || busy}
-                onClick={() => void load(operatorToken)}
+                disabled={busy}
+                onClick={() => void load()}
               >
                 {t("settings.hub.load-peers")}
               </Button>
               <Button
                 variant="outline"
-                disabled={!operatorToken || busy}
+                disabled={busy || status.mode === "closed"}
                 onClick={() =>
                   void setRegistration(!status.registrationEnabled)
                 }
@@ -253,7 +239,7 @@ export function SettingsHubPage() {
                   onValueChange={(value) => {
                     if (value) setSelectedMode(value as HubStatus["mode"]);
                   }}
-                  disabled={!operatorToken || busy}
+                  disabled={busy}
                 >
                   <SelectTrigger id="hub-mode-select" className="sm:w-56">
                     <SelectValue />
@@ -273,7 +259,7 @@ export function SettingsHubPage() {
                 <Button
                   variant="outline"
                   disabled={
-                    !operatorToken || busy || selectedMode === status.mode
+                    busy || selectedMode === status.mode
                   }
                   onClick={() => void setMode()}
                 >
@@ -281,6 +267,37 @@ export function SettingsHubPage() {
                     ? t("settings.hub.applying-mode")
                     : t("settings.hub.apply-mode")}
                 </Button>
+              </div>
+              <div className="mt-2 flex flex-col gap-2 rounded-md border border-border bg-background p-3 text-xs">
+                <p className="font-medium text-main">
+                  {t("settings.hub.mode-guide-title")}
+                </p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-main">
+                      {t("settings.hub.mode-closed")}
+                    </p>
+                    <p className="mt-1 text-control-light">
+                      {t("settings.hub.mode-closed-description")}
+                    </p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-main">
+                      {t("settings.hub.mode-open")}
+                    </p>
+                    <p className="mt-1 text-control-light">
+                      {t("settings.hub.mode-open-description")}
+                    </p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-main">
+                      {t("settings.hub.mode-public")}
+                    </p>
+                    <p className="mt-1 text-control-light">
+                      {t("settings.hub.mode-public-description")}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -309,7 +326,7 @@ export function SettingsHubPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    disabled={!operatorToken || busy}
+                    disabled={busy}
                     onClick={() => void revoke(peer.agentId)}
                     aria-label={t("settings.hub.revoke")}
                   >

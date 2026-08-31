@@ -8,6 +8,7 @@
 - Added the persistent Docker `objectdata` volume at `/data/objects`, plus backup and restore guidance for local object data.
 - Documented AWS S3, Cloudflare R2, and GCP Cloud Storage HMAC interoperability through the existing S3-compatible settings.
 - Added authenticated Hub mode switching in the dashboard for `closed`, `open`, and `public`, with persistent policy storage and bootstrap-token protection for `open` mode.
+- Added an inline dashboard explanation of the three Hub modes, including registration access, bootstrap Token requirements, and automatic Agent ID assignment.
 
 ### Changed
 
@@ -19,6 +20,7 @@
 - Fixed Hub settings translations so runtime i18next resolves `settings.hub.*` instead of rendering translation keys in the UI.
 - Fixed Hub policy reads to use consistent snapshots while mode and registration settings are changed at runtime.
 - Fixed `closed` Hub mode so the registration control cannot re-enable public enrollment while the Hub is closed.
+- Fixed the Hub dashboard to authorize signed-in administrators directly, while retaining operator Token authentication for external API clients.
 
 ### Security
 
