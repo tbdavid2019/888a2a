@@ -55,22 +55,22 @@ export function SettingsHubPage() {
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const hubStatus = await hubRequest<HubStatus>("status");
-        setStatus(hubStatus);
-        setSelectedMode(hubStatus.mode);
-        const list = await hubRequest<{ agents: HubPeer[] }>("agents");
-        setPeers(list.agents ?? []);
-      } catch (cause) {
-        setPeers([]);
-        setError(
-          cause instanceof Error ? cause.message : t("settings.hub.load-failed")
-        );
-      } finally {
-        setLoading(false);
-      }
+    setLoading(true);
+    setError("");
+    try {
+      const hubStatus = await hubRequest<HubStatus>("status");
+      setStatus(hubStatus);
+      setSelectedMode(hubStatus.mode);
+      const list = await hubRequest<{ agents: HubPeer[] }>("agents");
+      setPeers(list.agents ?? []);
+    } catch (cause) {
+      setPeers([]);
+      setError(
+        cause instanceof Error ? cause.message : t("settings.hub.load-failed")
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [t]);
 
   useEffect(() => {
