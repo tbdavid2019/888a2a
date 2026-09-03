@@ -16,8 +16,12 @@ import (
 )
 
 func registerHubRoutes(e *echo.Echo, registry *a2agateway.HubRegistry, mailbox a2agateway.HubMailbox, shutdown func(context.Context) error, authorizeBrowser func(*http.Request) bool) {
+	var groupStore a2agateway.HubGroupStore
+	if gs, ok := mailbox.(a2agateway.HubGroupStore); ok {
+		groupStore = gs
+	}
 	e.Any("/hub/v1/*", echo.WrapHandler(a2agateway.HubHTTPHandler{
-		Registry: registry, Mailbox: mailbox, Rate: a2agateway.NewHubRateLimiter(registry.MaxTasksPerMinute(), time.Minute),
+		Registry: registry, Mailbox: mailbox, Groups: groupStore, Rate: a2agateway.NewHubRateLimiter(registry.MaxTasksPerMinute(), time.Minute),
 		Shutdown: shutdown, AuthorizeBrowser: authorizeBrowser,
 	}))
 }

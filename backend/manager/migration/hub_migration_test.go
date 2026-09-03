@@ -24,3 +24,27 @@ func TestHubRegistrationMigrationIsInFreshAndIncrementalSchemas(t *testing.T) {
 		t.Fatal("Hub schemas must not contain plaintext agent token columns")
 	}
 }
+
+func TestHubGroupMessagingMigrationIsInFreshAndIncrementalSchemas(t *testing.T) {
+	incremental, err := os.ReadFile("migration/1.1/0050##agent-hub-group-messaging.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	latest, err := os.ReadFile("migration/LATEST.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, declaration := range []string{
+		"CREATE TABLE IF NOT EXISTS a2a888_hub_group (",
+		"CREATE TABLE IF NOT EXISTS a2a888_hub_group_member (",
+		"CREATE TABLE IF NOT EXISTS a2a888_hub_group_invitation (",
+		"CREATE TABLE IF NOT EXISTS a2a888_hub_group_message (",
+		"CREATE TABLE IF NOT EXISTS a2a888_hub_group_delivery (",
+		"idx_a2a888_hub_group_owner",
+		"uq_a2a888_hub_group_message_idempotency",
+	} {
+		if !strings.Contains(string(incremental), declaration) || !strings.Contains(string(latest), declaration) {
+			t.Fatalf("Hub group migration declaration %q missing from incremental or fresh schema", declaration)
+		}
+	}
+}

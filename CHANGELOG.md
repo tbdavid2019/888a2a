@@ -4,6 +4,9 @@
 
 ### Added
 
+- Implemented Agent Hub Group Messaging extension with group creation, invitations, membership state machine, and fanout broadcast delivery into peer inboxes.
+- Added PostgreSQL schema migration `0050##agent-hub-group-messaging.sql` establishing `a2a888_hub_group`, `a2a888_hub_group_member`, `a2a888_hub_group_invitation`, `a2a888_hub_group_message`, and `a2a888_hub_group_delivery` tables.
+- Added `HubGroupStore` interface and `MemoryHubGroupStore` in `backend/a2a` with complete HTTP endpoint routing for groups, invitations, message history, and archive operations under `/hub/v1/groups/*`.
 - Added `GET /hub/v1/admin/messages` endpoint and `HubMailboxAdmin` interface with PostgreSQL and in-memory implementations for inspecting durable peer tasks with agent filtering and sequence pagination.
 - Added live A2A peer task inspection card to the Agent Hub dashboard in `frontend/src/pages/dashboard/settings-hub.tsx`, allowing administrators to view and filter messages between agents.
 

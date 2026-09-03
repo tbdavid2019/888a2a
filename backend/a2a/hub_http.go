@@ -22,6 +22,7 @@ const maxHubRegistrationBody = MaxHubAgentCardBytes + 16*1024
 type HubHTTPHandler struct {
 	Registry         *HubRegistry
 	Mailbox          HubMailbox
+	Groups           HubGroupStore
 	Rate             *HubRateLimiter
 	Shutdown         func(context.Context) error
 	AuthorizeBrowser func(*http.Request) bool
@@ -138,6 +139,51 @@ func (h HubHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.ackInbox(w, r, parts[0], sequence)
+	case r.Method == http.MethodPost && path == "/groups":
+		h.createGroup(w, r)
+	case r.Method == http.MethodGet && path == "/groups":
+		h.listGroups(w, r)
+	case r.Method == http.MethodGet && path == "/groups/invitations":
+		h.listInvitations(w, r)
+	case r.Method == http.MethodPost && strings.HasPrefix(path, "/groups/invitations/") && strings.HasSuffix(path, "/accept"):
+		invIDStr := strings.TrimSuffix(strings.TrimPrefix(path, "/groups/invitations/"), "/accept")
+		id, err := strconv.ParseUint(invIDStr, 10, 64)
+		if err != nil {
+			writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "invitation ID is invalid")
+			return
+		}
+		h.acceptInvitation(w, r, id)
+	case r.Method == http.MethodPost && strings.HasPrefix(path, "/groups/invitations/") && strings.HasSuffix(path, "/decline"):
+		invIDStr := strings.TrimSuffix(strings.TrimPrefix(path, "/groups/invitations/"), "/decline")
+		id, err := strconv.ParseUint(invIDStr, 10, 64)
+		if err != nil {
+			writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "invitation ID is invalid")
+			return
+		}
+		h.declineInvitation(w, r, id)
+	case r.Method == http.MethodPost && strings.HasPrefix(path, "/groups/invitations/") && strings.HasSuffix(path, "/revoke"):
+		invIDStr := strings.TrimSuffix(strings.TrimPrefix(path, "/groups/invitations/"), "/revoke")
+		id, err := strconv.ParseUint(invIDStr, 10, 64)
+		if err != nil {
+			writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "invitation ID is invalid")
+			return
+		}
+		h.revokeInvitation(w, r, id)
+	case r.Method == http.MethodPost && strings.HasPrefix(path, "/groups/") && strings.HasSuffix(path, "/archive"):
+		groupID := strings.TrimSuffix(strings.TrimPrefix(path, "/groups/"), "/archive")
+		h.archiveGroup(w, r, groupID)
+	case r.Method == http.MethodPost && strings.HasPrefix(path, "/groups/") && strings.HasSuffix(path, "/invitations"):
+		groupID := strings.TrimSuffix(strings.TrimPrefix(path, "/groups/"), "/invitations")
+		h.createInvitation(w, r, groupID)
+	case r.Method == http.MethodPost && strings.HasPrefix(path, "/groups/") && strings.HasSuffix(path, "/messages"):
+		groupID := strings.TrimSuffix(strings.TrimPrefix(path, "/groups/"), "/messages")
+		h.sendGroupMessage(w, r, groupID)
+	case r.Method == http.MethodGet && strings.HasPrefix(path, "/groups/") && strings.HasSuffix(path, "/messages"):
+		groupID := strings.TrimSuffix(strings.TrimPrefix(path, "/groups/"), "/messages")
+		h.listGroupMessages(w, r, groupID)
+	case r.Method == http.MethodGet && strings.HasPrefix(path, "/groups/") && strings.Count(path, "/") == 2:
+		groupID := strings.TrimPrefix(path, "/groups/")
+		h.getGroup(w, r, groupID)
 	default:
 		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "Hub route not found")
 	}
@@ -603,4 +649,328 @@ func writeHubJSON(w http.ResponseWriter, status int, value any) {
 
 func writeHubError(w http.ResponseWriter, status int, code, message string) {
 	writeHubJSON(w, status, map[string]any{"error": map[string]string{"code": code, "message": message}})
+}
+
+func (h HubHTTPHandler) createGroup(w http.ResponseWriter, r *http.Request) {
+	if h.Groups == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "GROUPS_UNAVAILABLE", "Hub group store is unavailable")
+		return
+	}
+	agent, ok := h.authenticateAgent(r)
+	if !ok {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+		return
+	}
+	if !h.allow(w, r, "createGroup") {
+		return
+	}
+	var input HubCreateGroupInput
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16*1024)).Decode(&input); err != nil {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "request body is invalid")
+		return
+	}
+	if err := ValidateCreateGroup(input); err != nil {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", err.Error())
+		return
+	}
+	policy := h.Registry.Policy()
+	group, err := h.Groups.CreateGroup(r.Context(), HubGroup{
+		HubID:        policy.HubID,
+		Name:         input.Name,
+		OwnerAgentID: agent.AgentID,
+		State:        HubGroupStateActive,
+		CreatedAt:    time.Now().UTC(),
+	})
+	if err != nil {
+		writeHubError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to create group")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, group)
+}
+
+func (h HubHTTPHandler) listGroups(w http.ResponseWriter, r *http.Request) {
+	if h.Groups == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "GROUPS_UNAVAILABLE", "Hub group store is unavailable")
+		return
+	}
+	agent, ok := h.authenticateAgent(r)
+	if !ok {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+		return
+	}
+	groups, err := h.Groups.ListGroups(r.Context(), agent.AgentID)
+	if err != nil {
+		writeHubError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to list groups")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"groups": groups})
+}
+
+func (h HubHTTPHandler) getGroup(w http.ResponseWriter, r *http.Request, groupID string) {
+	if h.Groups == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "GROUPS_UNAVAILABLE", "Hub group store is unavailable")
+		return
+	}
+	agent, ok := h.authenticateAgent(r)
+	if !ok {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+		return
+	}
+	member, err := h.Groups.FindMember(r.Context(), groupID, agent.AgentID)
+	if err != nil || !member.IsActive() {
+		writeHubError(w, http.StatusForbidden, "PERMISSION_DENIED", "caller is not an active member of group")
+		return
+	}
+	group, err := h.Groups.FindGroup(r.Context(), groupID)
+	if err != nil {
+		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "group not found")
+		return
+	}
+	members, err := h.Groups.ListMembers(r.Context(), groupID)
+	if err != nil {
+		writeHubError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to list group members")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"group": group, "members": members})
+}
+
+func (h HubHTTPHandler) archiveGroup(w http.ResponseWriter, r *http.Request, groupID string) {
+	if h.Groups == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "GROUPS_UNAVAILABLE", "Hub group store is unavailable")
+		return
+	}
+	agent, ok := h.authenticateAgent(r)
+	if !ok {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+		return
+	}
+	member, err := h.Groups.FindMember(r.Context(), groupID, agent.AgentID)
+	if err != nil || member.Role != HubGroupRoleOwner {
+		writeHubError(w, http.StatusForbidden, "PERMISSION_DENIED", "only owner can archive group")
+		return
+	}
+	if err := h.Groups.ArchiveGroup(r.Context(), groupID, time.Now().UTC()); err != nil {
+		writeHubError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to archive group")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"groupId": groupID, "state": "ARCHIVED"})
+}
+
+func (h HubHTTPHandler) createInvitation(w http.ResponseWriter, r *http.Request, groupID string) {
+	if h.Groups == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "GROUPS_UNAVAILABLE", "Hub group store is unavailable")
+		return
+	}
+	agent, ok := h.authenticateAgent(r)
+	if !ok {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+		return
+	}
+	member, err := h.Groups.FindMember(r.Context(), groupID, agent.AgentID)
+	if err != nil || !member.CanManageMembers() {
+		writeHubError(w, http.StatusForbidden, "PERMISSION_DENIED", "caller cannot invite members")
+		return
+	}
+	var input HubInviteMemberInput
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16*1024)).Decode(&input); err != nil || strings.TrimSpace(input.InviteeAgentID) == "" {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "inviteeAgentId is required")
+		return
+	}
+	if _, ok := h.Registry.LookupView(input.InviteeAgentID); !ok {
+		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "invitee Agent not found")
+		return
+	}
+	policy := h.Registry.Policy()
+	now := time.Now().UTC()
+	inv, err := h.Groups.CreateInvitation(r.Context(), HubGroupInvitation{
+		HubID:          policy.HubID,
+		GroupID:        groupID,
+		InviterAgentID: agent.AgentID,
+		InviteeAgentID: strings.TrimSpace(input.InviteeAgentID),
+		State:          HubInvitationPending,
+		CreatedAt:      now,
+		ExpiresAt:      now.Add(24 * time.Hour),
+	})
+	if err != nil {
+		writeHubError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to create invitation")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"invitation": inv})
+}
+
+func (h HubHTTPHandler) listInvitations(w http.ResponseWriter, r *http.Request) {
+	if h.Groups == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "GROUPS_UNAVAILABLE", "Hub group store is unavailable")
+		return
+	}
+	agent, ok := h.authenticateAgent(r)
+	if !ok {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+		return
+	}
+	invs, err := h.Groups.ListInvitations(r.Context(), agent.AgentID)
+	if err != nil {
+		writeHubError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to list invitations")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"invitations": invs})
+}
+
+func (h HubHTTPHandler) acceptInvitation(w http.ResponseWriter, r *http.Request, id uint64) {
+	if h.Groups == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "GROUPS_UNAVAILABLE", "Hub group store is unavailable")
+		return
+	}
+	agent, ok := h.authenticateAgent(r)
+	if !ok {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+		return
+	}
+	member, err := h.Groups.AcceptInvitation(r.Context(), id, agent.AgentID, time.Now().UTC())
+	if err != nil {
+		if errors.Is(err, ErrHubInvitationNotFound) {
+			writeHubError(w, http.StatusNotFound, "NOT_FOUND", "invitation not found")
+			return
+		}
+		writeHubError(w, http.StatusBadRequest, "INVALID_STATE", "invitation cannot be accepted")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"member": member})
+}
+
+func (h HubHTTPHandler) declineInvitation(w http.ResponseWriter, r *http.Request, id uint64) {
+	if h.Groups == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "GROUPS_UNAVAILABLE", "Hub group store is unavailable")
+		return
+	}
+	agent, ok := h.authenticateAgent(r)
+	if !ok {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+		return
+	}
+	if err := h.Groups.DeclineInvitation(r.Context(), id, agent.AgentID, time.Now().UTC()); err != nil {
+		if errors.Is(err, ErrHubInvitationNotFound) {
+			writeHubError(w, http.StatusNotFound, "NOT_FOUND", "invitation not found")
+			return
+		}
+		writeHubError(w, http.StatusBadRequest, "INVALID_STATE", "invitation cannot be declined")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"status": "DECLINED"})
+}
+
+func (h HubHTTPHandler) revokeInvitation(w http.ResponseWriter, r *http.Request, id uint64) {
+	if h.Groups == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "GROUPS_UNAVAILABLE", "Hub group store is unavailable")
+		return
+	}
+	agent, ok := h.authenticateAgent(r)
+	if !ok {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+		return
+	}
+	if err := h.Groups.RevokeInvitation(r.Context(), id, agent.AgentID, time.Now().UTC()); err != nil {
+		if errors.Is(err, ErrHubInvitationNotFound) {
+			writeHubError(w, http.StatusNotFound, "NOT_FOUND", "invitation not found")
+			return
+		}
+		writeHubError(w, http.StatusBadRequest, "INVALID_STATE", "invitation cannot be revoked")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"status": "REVOKED"})
+}
+
+func deliveryOutcome(duplicate bool) string {
+	if duplicate {
+		return "DUPLICATE"
+	}
+	return "DELIVERED"
+}
+
+func (h HubHTTPHandler) sendGroupMessage(w http.ResponseWriter, r *http.Request, groupID string) {
+	if h.Groups == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "GROUPS_UNAVAILABLE", "Hub group store is unavailable")
+		return
+	}
+	agent, ok := h.authenticateAgent(r)
+	if !ok {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+		return
+	}
+	if !h.allow(w, r, "sendGroupMessage") {
+		return
+	}
+	policy := h.Registry.Policy()
+	limit := policy.MaxPayloadBytes
+	if limit <= 0 {
+		limit = 1024 * 1024
+	}
+	var input HubGroupMessageInput
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, limit+1024)).Decode(&input); err != nil {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "request body is invalid")
+		return
+	}
+	if err := ValidateGroupMessage(input, limit); err != nil {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", err.Error())
+		return
+	}
+	msg, duplicate, err := h.Groups.SendGroupMessage(r.Context(), HubGroupMessage{
+		HubID:          policy.HubID,
+		GroupID:        groupID,
+		SenderAgentID:  agent.AgentID,
+		ContextID:      input.ContextID,
+		IdempotencyKey: input.IdempotencyKey,
+		Message:        input.Message,
+		CreatedAt:      time.Now().UTC(),
+	}, int(policy.MaxConcurrentTasks))
+	if err != nil {
+		if errors.Is(err, ErrHubGroupForbidden) {
+			writeHubError(w, http.StatusForbidden, "PERMISSION_DENIED", "caller is not a group member")
+			return
+		}
+		if errors.Is(err, ErrHubGroupNotFound) {
+			writeHubError(w, http.StatusNotFound, "NOT_FOUND", "group not found")
+			return
+		}
+		writeHubError(w, http.StatusBadRequest, "INVALID_STATE", err.Error())
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{
+		"outcome": deliveryOutcome(duplicate),
+		"message": msg,
+	})
+}
+
+func (h HubHTTPHandler) listGroupMessages(w http.ResponseWriter, r *http.Request, groupID string) {
+	if h.Groups == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "GROUPS_UNAVAILABLE", "Hub group store is unavailable")
+		return
+	}
+	agent, ok := h.authenticateAgent(r)
+	if !ok {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+		return
+	}
+	var afterID uint64
+	if afterParam := r.URL.Query().Get("afterId"); afterParam != "" {
+		if parsed, err := strconv.ParseUint(afterParam, 10, 64); err == nil {
+			afterID = parsed
+		}
+	}
+	limit := 50
+	if limitParam := r.URL.Query().Get("limit"); limitParam != "" {
+		if parsed, err := strconv.Atoi(limitParam); err == nil && parsed > 0 && parsed <= MaxGroupHistoryPageSize {
+			limit = parsed
+		}
+	}
+	msgs, err := h.Groups.ListGroupMessages(r.Context(), groupID, agent.AgentID, afterID, limit)
+	if err != nil {
+		if errors.Is(err, ErrHubGroupForbidden) {
+			writeHubError(w, http.StatusForbidden, "PERMISSION_DENIED", "caller is not an active group member")
+			return
+		}
+		writeHubError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to list messages")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"messages": msgs})
 }

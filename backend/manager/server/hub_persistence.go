@@ -176,3 +176,240 @@ func nullableTime(value sql.NullTime) *time.Time {
 	}
 	return &value.Time
 }
+
+func (p hubStorePersistence) CreateGroup(ctx context.Context, group a2agateway.HubGroup) (a2agateway.HubGroup, error) {
+	rec, err := p.store.CreateHubGroup(ctx, store.HubGroupRecord{
+		GroupID:      group.GroupID,
+		HubID:        group.HubID,
+		Name:         group.Name,
+		OwnerAgentID: group.OwnerAgentID,
+		CreatedAt:    group.CreatedAt,
+	})
+	if err != nil {
+		return a2agateway.HubGroup{}, err
+	}
+	return a2agateway.HubGroup{
+		GroupID:      rec.GroupID,
+		HubID:        rec.HubID,
+		Name:         rec.Name,
+		State:        a2agateway.HubGroupState(rec.State),
+		OwnerAgentID: rec.OwnerAgentID,
+		CreatedAt:    rec.CreatedAt,
+		ArchivedAt:   rec.ArchivedAt,
+	}, nil
+}
+
+func (p hubStorePersistence) FindGroup(ctx context.Context, groupID string) (a2agateway.HubGroup, error) {
+	rec, err := p.store.FindHubGroup(ctx, groupID)
+	if err != nil {
+		return a2agateway.HubGroup{}, err
+	}
+	return a2agateway.HubGroup{
+		GroupID:      rec.GroupID,
+		HubID:        rec.HubID,
+		Name:         rec.Name,
+		State:        a2agateway.HubGroupState(rec.State),
+		OwnerAgentID: rec.OwnerAgentID,
+		CreatedAt:    rec.CreatedAt,
+		ArchivedAt:   rec.ArchivedAt,
+	}, nil
+}
+
+func (p hubStorePersistence) ListGroups(ctx context.Context, agentID string) ([]a2agateway.HubGroup, error) {
+	recs, err := p.store.ListHubGroups(ctx, agentID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]a2agateway.HubGroup, 0, len(recs))
+	for _, rec := range recs {
+		out = append(out, a2agateway.HubGroup{
+			GroupID:      rec.GroupID,
+			HubID:        rec.HubID,
+			Name:         rec.Name,
+			State:        a2agateway.HubGroupState(rec.State),
+			OwnerAgentID: rec.OwnerAgentID,
+			CreatedAt:    rec.CreatedAt,
+			ArchivedAt:   rec.ArchivedAt,
+		})
+	}
+	return out, nil
+}
+
+func (p hubStorePersistence) FindMember(ctx context.Context, groupID, agentID string) (a2agateway.HubGroupMember, error) {
+	m, err := p.store.FindHubGroupMember(ctx, groupID, agentID)
+	if err != nil {
+		return a2agateway.HubGroupMember{}, err
+	}
+	return a2agateway.HubGroupMember{
+		HubID:     m.HubID,
+		GroupID:   m.GroupID,
+		AgentID:   m.AgentID,
+		Role:      a2agateway.HubGroupRole(m.Role),
+		State:     a2agateway.HubMembershipState(m.State),
+		JoinedAt:  m.JoinedAt,
+		LeftAt:    m.LeftAt,
+		RemovedAt: m.RemovedAt,
+	}, nil
+}
+
+func (p hubStorePersistence) ListMembers(ctx context.Context, groupID string) ([]a2agateway.HubGroupMember, error) {
+	recs, err := p.store.ListHubGroupMembers(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]a2agateway.HubGroupMember, 0, len(recs))
+	for _, m := range recs {
+		out = append(out, a2agateway.HubGroupMember{
+			HubID:     m.HubID,
+			GroupID:   m.GroupID,
+			AgentID:   m.AgentID,
+			Role:      a2agateway.HubGroupRole(m.Role),
+			State:     a2agateway.HubMembershipState(m.State),
+			JoinedAt:  m.JoinedAt,
+			LeftAt:    m.LeftAt,
+			RemovedAt: m.RemovedAt,
+		})
+	}
+	return out, nil
+}
+
+func (p hubStorePersistence) CreateInvitation(ctx context.Context, inv a2agateway.HubGroupInvitation) (a2agateway.HubGroupInvitation, error) {
+	rec, err := p.store.CreateHubGroupInvitation(ctx, store.HubGroupInvitationRecord{
+		HubID:          inv.HubID,
+		GroupID:        inv.GroupID,
+		InviterAgentID: inv.InviterAgentID,
+		InviteeAgentID: inv.InviteeAgentID,
+		CreatedAt:      inv.CreatedAt,
+		ExpiresAt:      inv.ExpiresAt,
+	})
+	if err != nil {
+		return a2agateway.HubGroupInvitation{}, err
+	}
+	inv.ID = rec.ID
+	inv.State = a2agateway.HubInvitationState(rec.State)
+	return inv, nil
+}
+
+func (p hubStorePersistence) FindInvitation(ctx context.Context, id uint64) (a2agateway.HubGroupInvitation, error) {
+	rec, err := p.store.FindHubGroupInvitation(ctx, id)
+	if err != nil {
+		return a2agateway.HubGroupInvitation{}, err
+	}
+	return a2agateway.HubGroupInvitation{
+		ID:             rec.ID,
+		HubID:          rec.HubID,
+		GroupID:        rec.GroupID,
+		InviterAgentID: rec.InviterAgentID,
+		InviteeAgentID: rec.InviteeAgentID,
+		State:          a2agateway.HubInvitationState(rec.State),
+		CreatedAt:      rec.CreatedAt,
+		ExpiresAt:      rec.ExpiresAt,
+		RespondedAt:    rec.RespondedAt,
+	}, nil
+}
+
+func (p hubStorePersistence) ListInvitations(ctx context.Context, inviteeAgentID string) ([]a2agateway.HubGroupInvitation, error) {
+	recs, err := p.store.ListHubGroupInvitations(ctx, inviteeAgentID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]a2agateway.HubGroupInvitation, 0, len(recs))
+	for _, rec := range recs {
+		out = append(out, a2agateway.HubGroupInvitation{
+			ID:             rec.ID,
+			HubID:          rec.HubID,
+			GroupID:        rec.GroupID,
+			InviterAgentID: rec.InviterAgentID,
+			InviteeAgentID: rec.InviteeAgentID,
+			State:          a2agateway.HubInvitationState(rec.State),
+			CreatedAt:      rec.CreatedAt,
+			ExpiresAt:      rec.ExpiresAt,
+			RespondedAt:    rec.RespondedAt,
+		})
+	}
+	return out, nil
+}
+
+func (p hubStorePersistence) AcceptInvitation(ctx context.Context, id uint64, agentID string, at time.Time) (a2agateway.HubGroupMember, error) {
+	m, err := p.store.AcceptHubGroupInvitation(ctx, id, agentID, at)
+	if err != nil {
+		return a2agateway.HubGroupMember{}, err
+	}
+	return a2agateway.HubGroupMember{
+		HubID:    m.HubID,
+		GroupID:  m.GroupID,
+		AgentID:  m.AgentID,
+		Role:     a2agateway.HubGroupRole(m.Role),
+		State:    a2agateway.HubMembershipState(m.State),
+		JoinedAt: m.JoinedAt,
+	}, nil
+}
+
+func (p hubStorePersistence) DeclineInvitation(ctx context.Context, id uint64, agentID string, at time.Time) error {
+	return p.store.DeclineHubGroupInvitation(ctx, id, agentID, at)
+}
+
+func (p hubStorePersistence) RevokeInvitation(ctx context.Context, id uint64, inviterID string, at time.Time) error {
+	return p.store.RevokeHubGroupInvitation(ctx, id, inviterID, at)
+}
+
+func (p hubStorePersistence) SendGroupMessage(ctx context.Context, message a2agateway.HubGroupMessage, maxFanout int) (a2agateway.HubGroupMessage, bool, error) {
+	rec, dup, err := p.store.SendHubGroupMessage(ctx, store.HubGroupMessageRecord{
+		HubID:          message.HubID,
+		GroupID:        message.GroupID,
+		SenderAgentID:  message.SenderAgentID,
+		ContextID:      message.ContextID,
+		IdempotencyKey: message.IdempotencyKey,
+		Message:        message.Message,
+		CreatedAt:      message.CreatedAt,
+	}, maxFanout)
+	if err != nil {
+		return a2agateway.HubGroupMessage{}, false, err
+	}
+	deliveries := make([]a2agateway.HubGroupDeliverySummary, 0, len(rec.Deliveries))
+	for _, d := range rec.Deliveries {
+		deliveries = append(deliveries, a2agateway.HubGroupDeliverySummary{
+			TargetAgentID: d.TargetAgentID,
+			Sequence:      d.Sequence,
+			State:         d.State,
+		})
+	}
+	return a2agateway.HubGroupMessage{
+		ID:             rec.ID,
+		HubID:          rec.HubID,
+		GroupID:        rec.GroupID,
+		SenderAgentID:  rec.SenderAgentID,
+		ContextID:      rec.ContextID,
+		IdempotencyKey: rec.IdempotencyKey,
+		Message:        rec.Message,
+		Trust:          "UNTRUSTED_DATA",
+		CreatedAt:      rec.CreatedAt,
+		Deliveries:     deliveries,
+	}, dup, nil
+}
+
+func (p hubStorePersistence) ListGroupMessages(ctx context.Context, groupID, agentID string, afterID uint64, limit int) ([]a2agateway.HubGroupMessage, error) {
+	recs, err := p.store.ListHubGroupMessages(ctx, groupID, agentID, afterID, limit)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]a2agateway.HubGroupMessage, 0, len(recs))
+	for _, rec := range recs {
+		out = append(out, a2agateway.HubGroupMessage{
+			ID:             rec.ID,
+			HubID:          rec.HubID,
+			GroupID:        rec.GroupID,
+			SenderAgentID:  rec.SenderAgentID,
+			ContextID:      rec.ContextID,
+			IdempotencyKey: rec.IdempotencyKey,
+			Message:        rec.Message,
+			Trust:          "UNTRUSTED_DATA",
+			CreatedAt:      rec.CreatedAt,
+		})
+	}
+	return out, nil
+}
+
+func (p hubStorePersistence) ArchiveGroup(ctx context.Context, groupID string, at time.Time) error {
+	return p.store.ArchiveHubGroup(ctx, groupID, at)
+}
