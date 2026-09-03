@@ -274,7 +274,7 @@ func (s *Store) UnclaimTask(ctx context.Context, msgID uuid.UUID, agentID int) (
 // ErrTaskInvalidTransition for an invalid target status, and ErrTaskNotFound
 // when the message has no task row. On success the returned ChatMessage is
 // re-read with TaskInfo populated.
-func (s *Store) UpdateTaskStatus(ctx context.Context, msgID uuid.UUID, target int16) (*ChatMessage, error) {
+func (s *Store) UpdateTaskStatus(ctx context.Context, msgID, convID uuid.UUID, target int16) (*ChatMessage, error) {
 	if target < TaskStatusTodo || target > TaskStatusDone {
 		return nil, ErrTaskInvalidTransition
 	}
@@ -282,12 +282,12 @@ func (s *Store) UpdateTaskStatus(ctx context.Context, msgID uuid.UUID, target in
 	switch target {
 	case TaskStatusDone:
 		stmt = `UPDATE task SET status = $1, completed_at = now(), updated_at = now()
-			WHERE message_id = $2`
+			WHERE message_id = $2 AND conversation_id = $3`
 	default:
 		stmt = `UPDATE task SET status = $1, completed_at = NULL, updated_at = now()
-			WHERE message_id = $2`
+			WHERE message_id = $2 AND conversation_id = $3`
 	}
-	res, err := s.GetDB().ExecContext(ctx, stmt, target, msgID)
+	res, err := s.GetDB().ExecContext(ctx, stmt, target, msgID, convID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to update task status")
 	}
@@ -298,7 +298,14 @@ func (s *Store) UpdateTaskStatus(ctx context.Context, msgID uuid.UUID, target in
 	if rows == 0 {
 		return nil, ErrTaskNotFound
 	}
-	return s.GetTaskMessage(ctx, msgID)
+	msg, err := s.GetTaskMessage(ctx, msgID)
+	if err != nil {
+		return nil, err
+	}
+	if msg.ConversationID != convID {
+		return nil, ErrTaskNotFound
+	}
+	return msg, nil
 }
 
 // AssignTask assigns a task to a channel member (user or agent). A user

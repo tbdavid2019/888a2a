@@ -120,13 +120,17 @@ func (s *MachineService) RefreshMachineToken(ctx context.Context, req *connect.R
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, errors.Errorf("failed to generate refresh token, error: %v", err))
 		}
+		newFingerprint := req.Msg.Fingerprint
+		if newFingerprint == "" {
+			newFingerprint = stored.Fingerprint
+		}
 		if err := s.store.CreateMachineToken(ctx, &store.MachineTokenMessage{
 			MachineID:   principal.ID,
 			TokenHash:   hashToken(newRefreshToken),
 			TokenType:   storepb.MachineTokenType_MACHINE_REFRESH,
 			TokenFamily: stored.Family,
 			State:       storepb.MachineTokenState_MACHINE_TOKEN_ACTIVE,
-			Fingerprint: req.Msg.Fingerprint,
+			Fingerprint: newFingerprint,
 			ExpiresAt:   time.Now().Add(machineRefreshTokenDuration),
 		}); err != nil {
 			return nil, connect.NewError(connect.CodeInternal, errors.Errorf("failed to store new refresh token, error: %v", err))

@@ -631,8 +631,11 @@ func (s *CommandService) AckProcessedVersion(ctx context.Context, req *connect.R
 	// missing/empty command_id (e.g. an ack outside a session) is ignored.
 	if req.Msg.CommandId != "" {
 		if cid, parseErr := uuid.Parse(req.Msg.CommandId); parseErr == nil {
-			if linkErr := s.store.LinkCommandConversation(ctx, cid, convUUID); linkErr != nil {
-				slog.Warn("failed to link command to conversation", "commandID", req.Msg.CommandId, "conversationID", convUUID, "error", linkErr)
+			cmd, err := s.store.GetCommand(ctx, cid)
+			if err == nil && cmd != nil && cmd.AgentID == agent.ID {
+				if linkErr := s.store.LinkCommandConversation(ctx, cid, convUUID); linkErr != nil {
+					slog.Warn("failed to link command to conversation", "commandID", req.Msg.CommandId, "conversationID", convUUID, "error", linkErr)
+				}
 			}
 		}
 	}

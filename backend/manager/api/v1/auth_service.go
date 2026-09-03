@@ -450,6 +450,9 @@ func (s *AuthService) getOrCreateUserWithIDP(ctx context.Context, request *v1pb.
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.Wrapf(err, "failed to create user, error"))
 	}
+	if err := s.store.EnsureDefaultOrganizationMembership(ctx, newUser.ID, "MEMBER"); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.Wrap(err, "failed to create default organization membership"))
+	}
 	if userInfo.HasGroups {
 		// Sync user groups with the identity provider.
 		// The userInfo.Groups is the groups that the user belongs to in the identity provider.

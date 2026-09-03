@@ -22,11 +22,16 @@ var parser = cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cr
 // the expression is invalid or the timezone cannot be loaded. tz may be empty
 // (treated as UTC).
 func Validate(cronExpr, tz string) error {
-	if _, err := parser.Parse(cronExpr); err != nil {
+	sched, err := parser.Parse(cronExpr)
+	if err != nil {
 		return errors.Wrapf(err, "invalid cron expression %q", cronExpr)
 	}
-	if _, err := loadLocation(tz); err != nil {
+	loc, err := loadLocation(tz)
+	if err != nil {
 		return err
+	}
+	if next := sched.Next(time.Now().In(loc)); next.IsZero() {
+		return errors.Errorf("cron expression %q has no valid fire times", cronExpr)
 	}
 	return nil
 }
@@ -43,7 +48,11 @@ func NextFire(cronExpr, tz string, from time.Time) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, errors.Wrapf(err, "invalid cron expression %q", cronExpr)
 	}
-	return sched.Next(from.In(loc)), nil
+	next := sched.Next(from.In(loc))
+	if next.IsZero() {
+		return time.Time{}, errors.Errorf("cron expression %q has no valid fire times", cronExpr)
+	}
+	return next, nil
 }
 
 // loadLocation loads an IANA timezone name, treating "" as UTC. Returns an

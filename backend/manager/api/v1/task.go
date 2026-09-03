@@ -277,7 +277,7 @@ func (s *CommandService) UpdateTaskStatus(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("status must not be unspecified"))
 	}
 
-	msg, err := s.store.UpdateTaskStatus(ctx, msgID, target)
+	msg, err := s.store.UpdateTaskStatus(ctx, msgID, convID, target)
 	if err != nil {
 		switch {
 		case errors.Is(err, store.ErrTaskInvalidTransition):

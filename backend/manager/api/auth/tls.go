@@ -5,9 +5,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
 	"encoding/pem"
 	"log/slog"
 	"math/big"
@@ -80,8 +82,8 @@ func loadOrGenerateCert(certDir string, hosts []string) (tls.Certificate, error)
 		return tls.Certificate{}, errs.Wrapf(err, "failed to generate server certificate")
 	}
 
-	caFingerprint := sha256Hex(caCert.Raw)
-	slog.Info("CA fingerprint", "sha256", caFingerprint)
+	serverFingerprint := sha256Hex(serverCert.Certificate[0])
+	slog.Info("Server fingerprint", "sha256", serverFingerprint)
 	slog.Info("Save this fingerprint for agent verification (or use --insecure)")
 
 	return serverCert, nil
@@ -209,19 +211,8 @@ func generateServerCert(certDir string, caCert *x509.Certificate, caKey *ecdsa.P
 }
 
 func sha256Hex(data []byte) string {
-	h := new(big.Int).SetBytes(data)
-	return formatBigIntToHex(h)
-}
-
-func formatBigIntToHex(n *big.Int) string {
-	return formatHex(n.Text(16))
-}
-
-func formatHex(s string) string {
-	if len(s)%2 != 0 {
-		s = "0" + s
-	}
-	return s
+	h := sha256.Sum256(data)
+	return hex.EncodeToString(h[:])
 }
 
 type ManagerVerifier struct {

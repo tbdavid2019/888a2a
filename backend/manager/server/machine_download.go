@@ -88,10 +88,14 @@ func externalManagerURL(c *echo.Context, stores *store.Store) (string, error) {
 		return url, nil
 	}
 	scheme := "http"
-	if proto := c.Request().Header.Get("X-Forwarded-Proto"); proto != "" {
+	if proto := strings.ToLower(c.Request().Header.Get("X-Forwarded-Proto")); proto == "https" || proto == "http" {
 		scheme = proto
 	} else if c.Request().TLS != nil {
 		scheme = "https"
 	}
-	return scheme + "://" + c.Request().Host, nil
+	host := c.Request().Host
+	if strings.ContainsAny(host, " \t\r\n\"'`$\\") {
+		return "", errors.New("invalid host header")
+	}
+	return scheme + "://" + host, nil
 }

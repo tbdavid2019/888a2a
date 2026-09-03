@@ -195,13 +195,17 @@ func (s *AgentService) RefreshAgentToken(ctx context.Context, req *connect.Reque
 	}
 
 	newTokenHash := hashToken(newRefreshToken)
+	newFingerprint := req.Msg.Fingerprint
+	if newFingerprint == "" {
+		newFingerprint = stored.Fingerprint
+	}
 	if err := s.store.CreateAgentToken(ctx, &store.AgentTokenMessage{
 		AgentID:     principal.ID,
 		TokenHash:   newTokenHash,
 		TokenType:   storepb.AgentTokenType_REFRESH,
 		TokenFamily: stored.Family,
 		State:       storepb.AgentTokenState_ACTIVE,
-		Fingerprint: req.Msg.Fingerprint,
+		Fingerprint: newFingerprint,
 		ExpiresAt:   time.Now().Add(refreshTokenDuration),
 	}); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.Errorf("failed to store new refresh token, error: %v", err))

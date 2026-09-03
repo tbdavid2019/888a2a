@@ -1,5 +1,22 @@
 # Changelog
 
+## [2026-09-03]
+
+### Security
+
+- Enforced mandatory hardware fingerprint validation during machine and agent refresh token exchanges in `validateRefreshToken`, preventing token theft and stripping of hardware bindings during token rotation.
+- Added strict multi-tenant `organization_id` scoping to global chat message searches and file CTEs in `SearchChatMessages`, eliminating cross-tenant chat history and attachment metadata leakage.
+- Transitioned approved durable approval requests to the terminal `EXECUTED` state upon execution in `approval.NewChecker`, preventing infinite reuse and replay of authorized high-risk tool operations.
+- Enforced `conversation_id` scoping in `UpdateTaskStatus` database updates and message re-reads, eliminating cross-conversation task status mutation and private message exfiltration.
+- Enforced command ownership verification (`cmd.AgentID == agent.ID`) in `AckProcessedVersion` before linking commands to conversations, preventing unauthorized cross-agent command eavesdropping and steering.
+- Implemented cryptographic `crypto/sha256` hashing in TLS certificate verification and aligned self-signed certificate logging with server leaf certificate fingerprints in `api/auth/tls.go`.
+
+### Fixed
+
+- Added default organization membership creation in `getOrCreateUserWithIDP`, preventing HTTP 403 "organization access denied" lockout for newly provisioned SSO / IDP users.
+- Prevented infinite scheduler fire loops by rejecting calendar-impossible cron expressions returning zero time in `schedule.Validate` and `schedule.NextFire`.
+- Fixed literal placeholder replacement for `__LAELIA_MANAGER_URL__` in `install.ps1.tmpl` and `install.sh.tmpl`, and sanitized `Host` and `X-Forwarded-Proto` header handling in `externalManagerURL`.
+
 ## [2026-08-31]
 
 ### Added

@@ -78,7 +78,7 @@ func validateRefreshToken(
 	if time.Now().After(stored.ExpiresAt) {
 		return refreshPrincipal{}, refreshStoredToken{}, connect.NewError(connect.CodeUnauthenticated, errors.New("refresh token expired"))
 	}
-	if fingerprint != "" && stored.Fingerprint != "" && fingerprint != stored.Fingerprint {
+	if stored.Fingerprint != "" && fingerprint != stored.Fingerprint {
 		return refreshPrincipal{}, refreshStoredToken{}, connect.NewError(connect.CodePermissionDenied, errors.New("fingerprint mismatch, possible token theft detected"))
 	}
 

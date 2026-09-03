@@ -27,7 +27,7 @@ $ManagerUrl = if ($env:A2A888_MANAGER_URL) {
 } elseif ($LegacyMgrUrl) {
   $LegacyMgrUrl.TrimEnd('/')
 } else {
-  '__' + $LegacyPrefix + 'MANAGER_URL__'
+  '__LAELIA_MANAGER_URL__'
 }
 $BinaryName = '888a2a-machine.exe'
 $LegacyBinaryName = ('lae' + 'lia-machine.exe')

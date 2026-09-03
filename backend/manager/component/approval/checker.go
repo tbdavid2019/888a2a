@@ -62,6 +62,7 @@ func NewChecker(approvalStore *store.ApprovalStore, binding store.ApprovalBindin
 			return a2a.ApprovalCheckResult{Decision: a2a.DecisionDeny, Reason: result.Reason}, err
 		}
 		if result.Decision == store.ApprovalWaitAllow {
+			_, _ = approvalStore.ApplyTransition(ctx, nil, binding.OrganizationID, request.Name, binding.ExecutingAgentID, "approved action executed", nil, store.ApprovalTransitionExecute, time.Now())
 			return a2a.ApprovalCheckResult{Decision: a2a.DecisionAllow, Reason: result.Reason}, nil
 		}
 		return a2a.ApprovalCheckResult{Decision: a2a.DecisionDeny, Reason: result.Reason}, nil

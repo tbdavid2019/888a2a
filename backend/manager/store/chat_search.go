@@ -86,8 +86,10 @@ func (s *Store) SearchChatMessages(ctx context.Context, caller ChatSearchCaller,
 
 	tokens := tokenizeSearchQuery(opts.Query)
 
-	args := []any{}
-	var conds []string
+	tenantID := tenantIDFromContext(ctx)
+	args := []any{tenantID}
+	tenantIdx := 1
+	conds := []string{fmt.Sprintf("cm.organization_id = $%d", tenantIdx), fmt.Sprintf("c.organization_id = $%d", tenantIdx)}
 	var convFileCond, convMsgCond string
 
 	if opts.ConversationID.Valid {
@@ -151,7 +153,7 @@ func (s *Store) SearchChatMessages(ctx context.Context, caller ChatSearchCaller,
 			attTFParts = append(attTFParts, fmt.Sprintf("COALESCE(sum(chat_occurrences(mf.original_name, $%d)), 0)", rawIdxs[i]))
 		}
 		fileMatch := "(" + strings.Join(fileMatchParts, " OR ") + ")"
-		fileConds := []string{fileMatch}
+		fileConds := []string{fileMatch, fmt.Sprintf("f.organization_id = $%d", tenantIdx)}
 		if convFileCond != "" {
 			fileConds = append([]string{convFileCond}, fileConds...)
 		}
