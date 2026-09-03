@@ -55,9 +55,10 @@ func (l *HubRateLimiter) Allow(key string, now time.Time) bool {
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	entry := l.entries[key]
-	if entry.started.IsZero() || now.Sub(entry.started) >= l.window {
+	entry, exists := l.entries[key]
+	if !exists || entry.started.IsZero() || now.Sub(entry.started) >= l.window {
 		l.entries[key] = hubRateEntry{started: now, count: 1}
+		l.cleanupLocked(now)
 		return true
 	}
 	if entry.count >= l.limit {
@@ -66,6 +67,17 @@ func (l *HubRateLimiter) Allow(key string, now time.Time) bool {
 	entry.count++
 	l.entries[key] = entry
 	return true
+}
+
+func (l *HubRateLimiter) cleanupLocked(now time.Time) {
+	if len(l.entries) <= 1024 {
+		return
+	}
+	for k, v := range l.entries {
+		if now.Sub(v.started) >= l.window {
+			delete(l.entries, k)
+		}
+	}
 }
 
 func (h HubHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +191,7 @@ func (h HubHTTPHandler) setMode(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h HubHTTPHandler) revoke(w http.ResponseWriter, r *http.Request, agentID string) {
-		if !h.authorizeOperator(r) {
+	if !h.authorizeOperator(r) {
 		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub operator credentials are required")
 		return
 	}
@@ -269,6 +281,10 @@ func (h HubHTTPHandler) sendPeerTask(w http.ResponseWriter, r *http.Request, tar
 		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "contextId, idempotencyKey, and message are required")
 		return
 	}
+	if strings.HasPrefix(strings.TrimSpace(input.IdempotencyKey), "group:") {
+		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "idempotency key must not use reserved 'group:' prefix")
+		return
+	}
 	if len([]byte(input.Message)) > MaxBridgeInputBytes {
 		writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "message exceeds the Hub payload limit")
 		return
@@ -319,10 +335,11 @@ func (h HubHTTPHandler) card(w http.ResponseWriter, r *http.Request, agentID str
 		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "Hub Agent not found")
 		return
 	}
-	base := "http://" + r.Host
-	if r.TLS != nil {
-		base = "https://" + r.Host
+	proto := "http"
+	if r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") {
+		proto = "https"
 	}
+	base := proto + "://" + r.Host
 	card := standarda2a.AgentCard{
 		Name:        view.DisplayName,
 		Description: "Hub peer " + view.AgentID + ". Automatic execution is disabled for Hub enrollment.",

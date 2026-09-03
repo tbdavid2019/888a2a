@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -401,5 +402,100 @@ func TestHubHTTPRejectsCrossHubPeerCredentials(t *testing.T) {
 	secondHub.ServeHTTP(rec, req)
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("cross-Hub request status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestHubRateLimiterEvictsExpiredEntries(t *testing.T) {
+	limiter := NewHubRateLimiter(10, time.Minute)
+	now := time.Now().UTC()
+	for i := 0; i < 1100; i++ {
+		limiter.Allow(fmt.Sprintf("ip-%d", i), now)
+	}
+	if len(limiter.entries) < 1100 {
+		t.Fatalf("expected at least 1100 entries before expiry, got %d", len(limiter.entries))
+	}
+	future := now.Add(2 * time.Minute)
+	limiter.Allow("new-ip", future)
+	if len(limiter.entries) > 1024 {
+		t.Fatalf("expected entries to be cleaned up below 1025, got %d", len(limiter.entries))
+	}
+}
+
+func TestHubHTTPRejectsGroupPrefixInDirectTask(t *testing.T) {
+	policy := DefaultHubPolicy()
+	policy.Mode = HubModePublic
+	policy.HubID = "hub-test"
+	policy.PublicConfirmed = true
+	policy.RegistrationEnabled = true
+	registry, err := NewHubRegistry(policy, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := HubHTTPHandler{Registry: registry, Mailbox: NewMemoryHubMailbox()}
+	regBody, _ := json.Marshal(validAgentDeclaration("sender-peer"))
+	regRec := httptest.NewRecorder()
+	handler.ServeHTTP(regRec, httptest.NewRequest(http.MethodPost, "/hub/v1/agents/register", bytes.NewReader(regBody)))
+	var sender struct {
+		Identity IssuedAgentIdentity `json:"identity"`
+	}
+	_ = json.Unmarshal(regRec.Body.Bytes(), &sender)
+
+	tgtBody, _ := json.Marshal(validAgentDeclaration("target-peer"))
+	tgtRec := httptest.NewRecorder()
+	handler.ServeHTTP(tgtRec, httptest.NewRequest(http.MethodPost, "/hub/v1/agents/register", bytes.NewReader(tgtBody)))
+	var target struct {
+		Identity IssuedAgentIdentity `json:"identity"`
+	}
+	_ = json.Unmarshal(tgtRec.Body.Bytes(), &target)
+
+	// Heartbeat target so it is online
+	hbReq := httptest.NewRequest(http.MethodPost, "/hub/v1/agents/"+target.Identity.AgentID+"/heartbeat", nil)
+	hbReq.Header.Set("X-Agent-ID", target.Identity.AgentID)
+	hbReq.Header.Set("Authorization", "Bearer "+target.Identity.AgentToken)
+	hbRec := httptest.NewRecorder()
+	handler.ServeHTTP(hbRec, hbReq)
+	if hbRec.Code != http.StatusOK {
+		t.Fatalf("target heartbeat failed: status=%d body=%s", hbRec.Code, hbRec.Body.String())
+	}
+
+	taskPayload := `{"contextId":"c1","idempotencyKey":"group:grp-1:msg-1","message":"hello"}`
+	taskReq := httptest.NewRequest(http.MethodPost, "/hub/v1/agents/"+target.Identity.AgentID+"/tasks", strings.NewReader(taskPayload))
+	taskReq.Header.Set("X-Agent-ID", sender.Identity.AgentID)
+	taskReq.Header.Set("Authorization", "Bearer "+sender.Identity.AgentToken)
+	taskRec := httptest.NewRecorder()
+	handler.ServeHTTP(taskRec, taskReq)
+	if taskRec.Code != http.StatusBadRequest || !strings.Contains(taskRec.Body.String(), "group:") {
+		t.Fatalf("expected 400 for reserved group: prefix, got code=%d body=%s", taskRec.Code, taskRec.Body.String())
+	}
+}
+
+func TestHubHTTPCardRespectsForwardedProto(t *testing.T) {
+	policy := DefaultHubPolicy()
+	policy.Mode = HubModePublic
+	policy.HubID = "hub-test"
+	policy.PublicConfirmed = true
+	policy.RegistrationEnabled = true
+	registry, err := NewHubRegistry(policy, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := HubHTTPHandler{Registry: registry}
+	regBody, _ := json.Marshal(validAgentDeclaration("proto-peer"))
+	regRec := httptest.NewRecorder()
+	handler.ServeHTTP(regRec, httptest.NewRequest(http.MethodPost, "/hub/v1/agents/register", bytes.NewReader(regBody)))
+	var reg struct {
+		Identity IssuedAgentIdentity `json:"identity"`
+	}
+	_ = json.Unmarshal(regRec.Body.Bytes(), &reg)
+
+	req := httptest.NewRequest(http.MethodGet, "/hub/v1/agents/"+reg.Identity.AgentID+"/agent-card.json", nil)
+	req.Header.Set("X-Forwarded-Proto", "https")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("card status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "https://") {
+		t.Fatalf("expected card to use https, got %s", rec.Body.String())
 	}
 }

@@ -10,6 +10,9 @@
 - Enforced `conversation_id` scoping in `UpdateTaskStatus` database updates and message re-reads, eliminating cross-conversation task status mutation and private message exfiltration.
 - Enforced command ownership verification (`cmd.AgentID == agent.ID`) in `AckProcessedVersion` before linking commands to conversations, preventing unauthorized cross-agent command eavesdropping and steering.
 - Implemented cryptographic `crypto/sha256` hashing in TLS certificate verification and aligned self-signed certificate logging with server leaf certificate fingerprints in `api/auth/tls.go`.
+- Added expired entry eviction to `HubRateLimiter` in `backend/a2a/hub_http.go` to prevent unbounded memory growth from IP spraying.
+- Disallowed reserved `group:` idempotency key prefix for peer tasks in `backend/a2a/hub_http.go` to prevent namespace collisions with group messaging.
+- Honored `X-Forwarded-Proto` in Hub agent card URL resolution in `backend/a2a/hub_http.go` for reverse proxies terminating TLS.
 
 ### Fixed
 
