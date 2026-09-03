@@ -28,6 +28,9 @@
 
 ### Fixed
 
+- Fixed PostgreSQL syntax error in `AcceptHubGroupInvitation` by removing `FOR UPDATE` from aggregate `count(*)` query.
+- Fixed in-memory group message state appending in `MemoryHubGroupStore.SendGroupMessage` to ensure deliveries are populated before appending to history.
+- Added missing frontend locale keys `settings.hub.all-agents`, `settings.hub.messages-title`, and `settings.hub.no-messages` in `en-US.json` and `zh-CN.json`.
 - Added default organization membership creation in `getOrCreateUserWithIDP`, preventing HTTP 403 "organization access denied" lockout for newly provisioned SSO / IDP users.
 - Prevented infinite scheduler fire loops by rejecting calendar-impossible cron expressions returning zero time in `schedule.Validate` and `schedule.NextFire`.
 - Fixed literal placeholder replacement for `__LAELIA_MANAGER_URL__` in `install.ps1.tmpl` and `install.sh.tmpl`, and sanitized `Host` and `X-Forwarded-Proto` header handling in `externalManagerURL`.

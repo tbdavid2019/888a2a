@@ -12,11 +12,14 @@ import (
 	"github.com/google/uuid"
 )
 
+const MaxGroupMembers = 32
+
 var (
 	ErrHubGroupNotFound      = errors.New("Hub group not found")
 	ErrHubGroupForbidden     = errors.New("operation not permitted for group")
 	ErrHubGroupInvalidState  = errors.New("group state does not allow operation")
 	ErrHubInvitationNotFound = errors.New("group invitation not found")
+	ErrHubGroupLimit         = errors.New("group member limit reached")
 )
 
 type HubGroupRecord struct {
@@ -218,8 +221,8 @@ func (s *Store) CreateHubGroupInvitation(ctx context.Context, inv HubGroupInvita
 	if err := s.GetDB().QueryRowContext(ctx, `SELECT count(*) FROM a2a888_hub_group_member WHERE group_id = $1 AND state = 'ACTIVE'`, inv.GroupID).Scan(&count); err != nil {
 		return HubGroupInvitationRecord{}, err
 	}
-	if count >= 32 {
-		return HubGroupInvitationRecord{}, errors.New("group member limit reached")
+	if count >= MaxGroupMembers {
+		return HubGroupInvitationRecord{}, ErrHubGroupLimit
 	}
 	if inv.CreatedAt.IsZero() {
 		inv.CreatedAt = time.Now().UTC()
@@ -308,11 +311,11 @@ FROM a2a888_hub_group_invitation WHERE id = $1 FOR UPDATE`, id).Scan(
 	}
 
 	var memberCount int
-	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM a2a888_hub_group_member WHERE group_id = $1 AND state = 'ACTIVE' FOR UPDATE`, inv.GroupID).Scan(&memberCount); err != nil {
+	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM a2a888_hub_group_member WHERE group_id = $1 AND state = 'ACTIVE'`, inv.GroupID).Scan(&memberCount); err != nil {
 		return HubGroupMemberRecord{}, err
 	}
-	if memberCount >= 32 {
-		return HubGroupMemberRecord{}, ErrHubGroupInvalidState
+	if memberCount >= MaxGroupMembers {
+		return HubGroupMemberRecord{}, ErrHubGroupLimit
 	}
 
 	_, err = tx.ExecContext(ctx, `

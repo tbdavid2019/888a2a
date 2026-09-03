@@ -298,7 +298,6 @@ func (s *MemoryHubGroupStore) SendGroupMessage(ctx context.Context, msg HubGroup
 		msg.CreatedAt = time.Now().UTC()
 	}
 	msg.Trust = "UNTRUSTED_DATA"
-	s.messages = append(s.messages, msg)
 	mailbox := s.mailbox
 	s.mu.Unlock()
 
@@ -327,14 +326,11 @@ func (s *MemoryHubGroupStore) SendGroupMessage(ctx context.Context, msg HubGroup
 			State:         "PENDING",
 		})
 	}
+
 	s.mu.Lock()
-	for i := range s.messages {
-		if s.messages[i].ID == msg.ID {
-			s.messages[i].Deliveries = msg.Deliveries
-			break
-		}
-	}
+	s.messages = append(s.messages, msg)
 	s.mu.Unlock()
+
 	return msg, false, nil
 }
 

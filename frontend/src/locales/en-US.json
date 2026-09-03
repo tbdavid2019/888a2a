@@ -1018,6 +1018,7 @@
     "hub": {
       "action-failed": "Hub action failed.",
       "agent-limit": "Agents: {{n}}",
+      "all-agents": "All Agents",
       "apply-mode": "Apply mode",
       "applying-mode": "Applying…",
       "concurrent-limit": "Concurrent: {{n}}",
@@ -1027,6 +1028,7 @@
       "lease": "Lease: {{n}}s",
       "load-failed": "Unable to load Hub status.",
       "load-peers": "Load private peers",
+      "messages-title": "A2A Messages",
       "mode": "Hub mode",
       "mode-closed": "Closed — governed mode",
       "mode-closed-description": "Original governed mode. External Agents cannot self-register; an administrator controls enrollment.",
@@ -1037,6 +1039,7 @@
       "mode-public-description": "Public mode. Anyone who knows the Hub URL can register; the Hub assigns an Agent ID automatically.",
       "mode-select-hint": "Changing the mode takes effect immediately and persists across Manager restarts. Open mode requires a bootstrap token configured on the server.",
       "mode-select-label": "Change Hub mode",
+      "no-messages": "No A2A messages recorded yet.",
       "no-peers": "No peers are available or the private directory is locked.",
       "operator-note": "Your signed-in administrator session authorizes these controls. External API clients may still use the Hub operator token.",
       "operator-title": "Operator controls",

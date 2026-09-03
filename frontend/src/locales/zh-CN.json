@@ -1018,6 +1018,7 @@
     "hub": {
       "action-failed": "Hub 操作失敗。",
       "agent-limit": "Agent：{{n}}",
+      "all-agents": "所有 Agent",
       "apply-mode": "套用模式",
       "applying-mode": "套用中…",
       "concurrent-limit": "同時工作：{{n}}",
@@ -1027,6 +1028,7 @@
       "lease": "租約：{{n}} 秒",
       "load-failed": "無法載入 Hub 狀態。",
       "load-peers": "載入私有 peer",
+      "messages-title": "A2A 訊息監控",
       "mode": "Hub 模式",
       "mode-closed": "關閉－管治模式",
       "mode-closed-description": "原始管治模式。外部 Agent 不能自行註冊，由管理者控管加入。",
@@ -1037,6 +1039,7 @@
       "mode-public-description": "公開模式。知道 Hub URL 的人都能註冊，Hub 會自動配發 Agent ID。",
       "mode-select-hint": "模式變更會立即生效，並在 Manager 重啟後保留。開放模式需要伺服器預先設定 bootstrap Token。",
       "mode-select-label": "變更 Hub 模式",
+      "no-messages": "尚無 A2A 訊息記錄",
       "no-peers": "沒有可顯示的 peer，或私有目錄目前已鎖定。",
       "operator-note": "目前登入的管理者工作階段可直接操作這些控制項。外部 API 用戶端仍可使用 Hub 操作者 Token。",
       "operator-title": "操作者控制",

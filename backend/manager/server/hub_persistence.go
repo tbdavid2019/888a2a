@@ -283,6 +283,9 @@ func (p hubStorePersistence) CreateInvitation(ctx context.Context, inv a2agatewa
 		ExpiresAt:      inv.ExpiresAt,
 	})
 	if err != nil {
+		if errors.Is(err, store.ErrHubGroupLimit) {
+			return a2agateway.HubGroupInvitation{}, a2agateway.ErrHubGroupLimit
+		}
 		return a2agateway.HubGroupInvitation{}, err
 	}
 	inv.ID = rec.ID
@@ -333,6 +336,9 @@ func (p hubStorePersistence) ListInvitations(ctx context.Context, inviteeAgentID
 func (p hubStorePersistence) AcceptInvitation(ctx context.Context, id uint64, agentID string, at time.Time) (a2agateway.HubGroupMember, error) {
 	m, err := p.store.AcceptHubGroupInvitation(ctx, id, agentID, at)
 	if err != nil {
+		if errors.Is(err, store.ErrHubGroupLimit) {
+			return a2agateway.HubGroupMember{}, a2agateway.ErrHubGroupLimit
+		}
 		return a2agateway.HubGroupMember{}, err
 	}
 	return a2agateway.HubGroupMember{
