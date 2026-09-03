@@ -144,3 +144,65 @@ func (m *MemoryHubMailbox) Cancel(_ context.Context, hubID, taskID string, now t
 	}
 	return ErrHubInboxNotFound
 }
+
+// HubInboxAdminItem represents an inbox item inspected by a Hub administrator.
+type HubInboxAdminItem struct {
+	Sequence         uint64     `json:"sequence"`
+	HubID            string     `json:"hubId"`
+	TargetAgentID    string     `json:"targetAgentId"`
+	RequesterAgentID string     `json:"requesterAgentId"`
+	TaskID           string     `json:"taskId"`
+	ContextID        string     `json:"contextId"`
+	IdempotencyKey   string     `json:"idempotencyKey"`
+	Message          string     `json:"message"`
+	State            string     `json:"state"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	AcknowledgedAt   *time.Time `json:"acknowledgedAt,omitempty"`
+}
+
+// HubMailboxAdmin provides operator inspection capabilities over peer messages.
+type HubMailboxAdmin interface {
+	ListMessagesAdmin(ctx context.Context, hubID, agentID string, beforeSequence uint64, limit int) ([]HubInboxAdminItem, error)
+}
+
+func (m *MemoryHubMailbox) ListMessagesAdmin(_ context.Context, hubID, agentID string, beforeSequence uint64, limit int) ([]HubInboxAdminItem, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	out := make([]HubInboxAdminItem, 0, limit)
+	for i := len(m.items) - 1; i >= 0; i-- {
+		item := m.items[i]
+		if hubID != "" && item.HubID != hubID {
+			continue
+		}
+		if beforeSequence > 0 && item.Sequence >= beforeSequence {
+			continue
+		}
+		if agentID != "" && item.TargetAgentID != agentID && item.RequesterAgentID != agentID {
+			continue
+		}
+		state := "PENDING"
+		if item.AcknowledgedAt != nil {
+			state = "ACKNOWLEDGED"
+		}
+		out = append(out, HubInboxAdminItem{
+			Sequence:         item.Sequence,
+			HubID:            item.HubID,
+			TargetAgentID:    item.TargetAgentID,
+			RequesterAgentID: item.RequesterAgentID,
+			TaskID:           item.TaskID,
+			ContextID:        item.ContextID,
+			IdempotencyKey:   item.IdempotencyKey,
+			Message:          item.Message,
+			State:            state,
+			CreatedAt:        item.CreatedAt,
+			AcknowledgedAt:   item.AcknowledgedAt,
+		})
+		if len(out) >= limit {
+			break
+		}
+	}
+	return out, nil
+}

@@ -1,4 +1,4 @@
-import { RefreshCw, ShieldAlert, UserX } from "lucide-react";
+import { MessageSquare, RefreshCw, ShieldAlert, UserX } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsPage } from "@/components/settings-page";
@@ -30,6 +30,20 @@ type HubPeer = {
   state: string;
 };
 
+type HubMessage = {
+  sequence: number;
+  hubId: string;
+  targetAgentId: string;
+  requesterAgentId: string;
+  taskId: string;
+  contextId: string;
+  idempotencyKey: string;
+  message: string;
+  state: string;
+  createdAt: string;
+  acknowledgedAt?: string;
+};
+
 async function hubRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/hub/v1/${path}`, {
     ...init,
@@ -53,6 +67,27 @@ export function SettingsHubPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [messages, setMessages] = useState<HubMessage[]>([]);
+  const [agentFilter, setAgentFilter] = useState<string>("all");
+  const [loadingMessages, setLoadingMessages] = useState(false);
+
+  const loadMessages = useCallback(async (filter?: string) => {
+    setLoadingMessages(true);
+    try {
+      const q =
+        filter && filter !== "all"
+          ? `?agentId=${encodeURIComponent(filter)}`
+          : "";
+      const res = await hubRequest<{ items: HubMessage[] }>(
+        `admin/messages${q}`
+      );
+      setMessages(res.items ?? []);
+    } catch {
+      setMessages([]);
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,6 +98,7 @@ export function SettingsHubPage() {
       setSelectedMode(hubStatus.mode);
       const list = await hubRequest<{ agents: HubPeer[] }>("agents");
       setPeers(list.agents ?? []);
+      await loadMessages(agentFilter);
     } catch (cause) {
       setPeers([]);
       setError(
@@ -71,7 +107,7 @@ export function SettingsHubPage() {
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, loadMessages, agentFilter]);
 
   useEffect(() => {
     void load();
@@ -329,6 +365,102 @@ export function SettingsHubPage() {
                   </Button>
                 </div>
               ))
+            )}
+          </div>
+          <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="size-4 text-main" />
+                <h2 className="font-medium text-main">
+                  {t("settings.hub.messages-title", "A2A 訊息監控")}
+                </h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={agentFilter}
+                  onValueChange={(val) => {
+                    const next = val ?? "all";
+                    setAgentFilter(next);
+                    void loadMessages(next);
+                  }}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue
+                      placeholder={t("settings.hub.all-agents", "所有 Agent")}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      {t("settings.hub.all-agents", "所有 Agent")}
+                    </SelectItem>
+                    {peers.map((peer) => (
+                      <SelectItem key={peer.agentId} value={peer.agentId}>
+                        {peer.displayName || peer.agentId}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={loadingMessages}
+                  onClick={() => void loadMessages(agentFilter)}
+                >
+                  <RefreshCw
+                    className={`size-3.5 ${loadingMessages ? "animate-spin" : ""}`}
+                  />
+                </Button>
+              </div>
+            </div>
+            {messages.length === 0 ? (
+              <p className="text-sm text-control-light">
+                {t("settings.hub.no-messages", "尚無 A2A 訊息記錄")}
+              </p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {messages.map((item) => (
+                  <div
+                    key={item.sequence}
+                    className="flex flex-col gap-2 rounded-md border border-border bg-background p-3 text-xs"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="secondary"
+                          className="font-mono text-[10px]"
+                        >
+                          #{item.sequence}
+                        </Badge>
+                        <Badge
+                          variant={
+                            item.state === "ACKNOWLEDGED"
+                              ? "success"
+                              : item.state === "PENDING"
+                                ? "warning"
+                                : "secondary"
+                          }
+                          className="text-[10px]"
+                        >
+                          {item.state}
+                        </Badge>
+                        <span className="font-medium text-main">
+                          {item.requesterAgentId} → {item.targetAgentId}
+                        </span>
+                      </div>
+                      <span className="text-control-light">
+                        {new Date(item.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="text-control-light font-mono text-[11px] truncate">
+                      Task: {item.taskId} · Ctx: {item.contextId} · Key:{" "}
+                      {item.idempotencyKey}
+                    </div>
+                    <pre className="rounded bg-muted p-2 font-mono text-xs text-main whitespace-pre-wrap break-all max-h-32 overflow-auto">
+                      {item.message}
+                    </pre>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>

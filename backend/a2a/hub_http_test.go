@@ -499,3 +499,52 @@ func TestHubHTTPCardRespectsForwardedProto(t *testing.T) {
 		t.Fatalf("expected card to use https, got %s", rec.Body.String())
 	}
 }
+
+func TestHubHTTPAdminListMessages(t *testing.T) {
+	policy := DefaultHubPolicy()
+	policy.Mode = HubModePublic
+	policy.HubID = "hub-test"
+	policy.PublicConfirmed = true
+	policy.RegistrationEnabled = true
+	registry, err := NewHubRegistry(policy, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	registry.SetOperatorToken("super-secret-operator")
+	mailbox := NewMemoryHubMailbox()
+	handler := HubHTTPHandler{Registry: registry, Mailbox: mailbox}
+
+	// 1. Unauthorized access without token
+	unauthReq := httptest.NewRequest(http.MethodGet, "/hub/v1/admin/messages", nil)
+	unauthRec := httptest.NewRecorder()
+	handler.ServeHTTP(unauthRec, unauthReq)
+	if unauthRec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthorized admin access, got %d", unauthRec.Code)
+	}
+
+	// 2. Authorized access with operator token
+	authReq := httptest.NewRequest(http.MethodGet, "/hub/v1/admin/messages", nil)
+	authReq.Header.Set("Authorization", "Bearer super-secret-operator")
+	authRec := httptest.NewRecorder()
+	handler.ServeHTTP(authRec, authReq)
+	if authRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for operator token, got %d body=%s", authRec.Code, authRec.Body.String())
+	}
+
+	// 3. Enqueue item and verify listing
+	_, _ = mailbox.Enqueue(context.Background(), HubInboxItem{
+		HubID: policy.HubID, TargetAgentID: "target-1", RequesterAgentID: "sender-1",
+		TaskID: "task-123", ContextID: "ctx-123", IdempotencyKey: "key-123",
+		Message: "test admin message body",
+	})
+	listReq := httptest.NewRequest(http.MethodGet, "/hub/v1/admin/messages?agentId=target-1", nil)
+	listReq.Header.Set("Authorization", "Bearer super-secret-operator")
+	listRec := httptest.NewRecorder()
+	handler.ServeHTTP(listRec, listReq)
+	if listRec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", listRec.Code)
+	}
+	if !strings.Contains(listRec.Body.String(), "test admin message body") || !strings.Contains(listRec.Body.String(), "task-123") {
+		t.Fatalf("expected message body in admin list, got %s", listRec.Body.String())
+	}
+}

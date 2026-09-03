@@ -106,6 +106,8 @@ func (h HubHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.revoke(w, r, strings.TrimSuffix(strings.TrimPrefix(path, "/admin/agents/"), "/revoke"))
 	case r.Method == http.MethodPost && strings.HasPrefix(path, "/admin/tasks/") && strings.HasSuffix(path, "/cancel"):
 		h.cancelTask(w, r, strings.TrimSuffix(strings.TrimPrefix(path, "/admin/tasks/"), "/cancel"))
+	case r.Method == http.MethodGet && path == "/admin/messages":
+		h.listMessages(w, r)
 	case r.Method == http.MethodGet && strings.HasPrefix(path, "/agents/") && strings.Count(path, "/") == 2:
 		h.lookup(w, r, strings.TrimPrefix(path, "/agents/"))
 	case r.Method == http.MethodGet && strings.HasPrefix(path, "/agents/") && strings.HasSuffix(path, "/agent-card.json"):
@@ -230,6 +232,38 @@ func (h HubHTTPHandler) cancelTask(w http.ResponseWriter, r *http.Request, taskI
 		return
 	}
 	writeHubJSON(w, http.StatusOK, map[string]any{"taskId": taskID, "state": "CANCELED"})
+}
+
+func (h HubHTTPHandler) listMessages(w http.ResponseWriter, r *http.Request) {
+	if !h.authorizeOperator(r) {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub operator credentials are required")
+		return
+	}
+	adminMailbox, ok := h.Mailbox.(HubMailboxAdmin)
+	if !ok || h.Mailbox == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "HUB_MAILBOX_UNAVAILABLE", "Hub admin mailbox is unavailable")
+		return
+	}
+	agentID := strings.TrimSpace(r.URL.Query().Get("agentId"))
+	limit := 50
+	if limitParam := r.URL.Query().Get("limit"); limitParam != "" {
+		if parsed, err := strconv.Atoi(limitParam); err == nil && parsed > 0 && parsed <= 200 {
+			limit = parsed
+		}
+	}
+	var beforeSequence uint64
+	if seqParam := r.URL.Query().Get("beforeSequence"); seqParam != "" {
+		if parsed, err := strconv.ParseUint(seqParam, 10, 64); err == nil {
+			beforeSequence = parsed
+		}
+	}
+	policy := h.Registry.Policy()
+	items, err := adminMailbox.ListMessagesAdmin(r.Context(), policy.HubID, agentID, beforeSequence, limit)
+	if err != nil {
+		writeHubError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to list messages")
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"items": items})
 }
 
 func (h HubHTTPHandler) shutdown(w http.ResponseWriter, r *http.Request) {

@@ -120,6 +120,41 @@ func (p hubStorePersistence) Cancel(ctx context.Context, hubID, taskID string, n
 	return p.store.CancelHubInbox(ctx, hubID, taskID, now)
 }
 
+func (p hubStorePersistence) ListMessagesAdmin(ctx context.Context, hubID, agentID string, beforeSequence uint64, limit int) ([]a2agateway.HubInboxAdminItem, error) {
+	items, err := p.store.ListHubInboxAdmin(ctx, hubID, agentID, beforeSequence, limit)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]a2agateway.HubInboxAdminItem, 0, len(items))
+	for _, item := range items {
+		var acknowledgedAt *time.Time
+		if item.AcknowledgedAt.Valid {
+			acknowledgedAt = &item.AcknowledgedAt.Time
+		}
+		state := item.State
+		if state == "" {
+			state = "PENDING"
+			if acknowledgedAt != nil {
+				state = "ACKNOWLEDGED"
+			}
+		}
+		out = append(out, a2agateway.HubInboxAdminItem{
+			Sequence:         item.Sequence,
+			HubID:            item.HubID,
+			TargetAgentID:    item.TargetAgentID,
+			RequesterAgentID: item.RequesterAgentID,
+			TaskID:           item.TaskID,
+			ContextID:        item.ContextID,
+			IdempotencyKey:   item.IdempotencyKey,
+			Message:          item.Message,
+			State:            state,
+			CreatedAt:        item.CreatedAt,
+			AcknowledgedAt:   acknowledgedAt,
+		})
+	}
+	return out, nil
+}
+
 func convertHubInboxItem(item *store.HubInboxMessage) a2agateway.HubInboxItem {
 	if item == nil {
 		return a2agateway.HubInboxItem{}

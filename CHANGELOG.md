@@ -2,6 +2,11 @@
 
 ## [2026-09-03]
 
+### Added
+
+- Added `GET /hub/v1/admin/messages` endpoint and `HubMailboxAdmin` interface with PostgreSQL and in-memory implementations for inspecting durable peer tasks with agent filtering and sequence pagination.
+- Added live A2A peer task inspection card to the Agent Hub dashboard in `frontend/src/pages/dashboard/settings-hub.tsx`, allowing administrators to view and filter messages between agents.
+
 ### Security
 
 - Enforced mandatory hardware fingerprint validation during machine and agent refresh token exchanges in `validateRefreshToken`, preventing token theft and stripping of hardware bindings during token rotation.

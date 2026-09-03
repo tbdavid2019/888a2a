@@ -20,6 +20,7 @@ type HubInboxMessage struct {
 	Message          string
 	CreatedAt        time.Time
 	AcknowledgedAt   sql.NullTime
+	State            string
 }
 
 func (s *Store) FindHubInboxItem(ctx context.Context, hubID, targetAgentID, requesterAgentID, idempotencyKey string) (*HubInboxMessage, error) {
@@ -114,4 +115,30 @@ func (s *Store) CancelHubInbox(ctx context.Context, hubID, taskID string, now ti
 		return errors.New("Hub inbox task not found or already acknowledged")
 	}
 	return nil
+}
+
+func (s *Store) ListHubInboxAdmin(ctx context.Context, hubID, agentID string, beforeSequence uint64, limit int) ([]*HubInboxMessage, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	query := `SELECT sequence, hub_id, target_agent_id, requester_agent_id, task_id, context_id, idempotency_key, message, created_at, acknowledged_at, state
+		FROM a2a888_hub_inbox
+		WHERE hub_id = $1
+		  AND ($2 = 0 OR sequence < $2)
+		  AND ($3 = '' OR requester_agent_id = $3 OR target_agent_id = $3)
+		ORDER BY sequence DESC LIMIT $4`
+	rows, err := s.GetDB().QueryContext(ctx, query, hubID, beforeSequence, agentID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*HubInboxMessage
+	for rows.Next() {
+		item := new(HubInboxMessage)
+		if err := rows.Scan(&item.Sequence, &item.HubID, &item.TargetAgentID, &item.RequesterAgentID, &item.TaskID, &item.ContextID, &item.IdempotencyKey, &item.Message, &item.CreatedAt, &item.AcknowledgedAt, &item.State); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
 }
