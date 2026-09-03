@@ -139,51 +139,48 @@ func (h HubHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.ackInbox(w, r, parts[0], sequence)
-	case r.Method == http.MethodPost && path == "/groups":
-		h.createGroup(w, r)
-	case r.Method == http.MethodGet && path == "/groups":
-		h.listGroups(w, r)
-	case r.Method == http.MethodGet && path == "/groups/invitations":
-		h.listInvitations(w, r)
-	case r.Method == http.MethodPost && strings.HasPrefix(path, "/groups/invitations/") && strings.HasSuffix(path, "/accept"):
-		invIDStr := strings.TrimSuffix(strings.TrimPrefix(path, "/groups/invitations/"), "/accept")
-		id, err := strconv.ParseUint(invIDStr, 10, 64)
-		if err != nil {
-			writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "invitation ID is invalid")
-			return
+	case strings.HasPrefix(path, "/groups"):
+		segments := strings.Split(strings.Trim(path, "/"), "/")
+		switch {
+		case len(segments) == 1 && r.Method == http.MethodPost:
+			h.createGroup(w, r)
+		case len(segments) == 1 && r.Method == http.MethodGet:
+			h.listGroups(w, r)
+		case len(segments) == 2 && segments[1] == "invitations" && r.Method == http.MethodGet:
+			h.listInvitations(w, r)
+		case len(segments) == 2 && segments[1] != "invitations" && r.Method == http.MethodGet:
+			h.getGroup(w, r, segments[1])
+		case len(segments) == 3 && segments[2] == "archive" && r.Method == http.MethodPost:
+			h.archiveGroup(w, r, segments[1])
+		case len(segments) == 3 && segments[2] == "leave" && r.Method == http.MethodPost:
+			h.leaveGroup(w, r, segments[1])
+		case len(segments) == 3 && segments[2] == "invitations" && r.Method == http.MethodPost:
+			h.createInvitation(w, r, segments[1])
+		case len(segments) == 3 && segments[2] == "messages" && r.Method == http.MethodPost:
+			h.sendGroupMessage(w, r, segments[1])
+		case len(segments) == 3 && segments[2] == "messages" && r.Method == http.MethodGet:
+			h.listGroupMessages(w, r, segments[1])
+		case len(segments) == 4 && segments[1] == "invitations":
+			id, err := strconv.ParseUint(segments[2], 10, 64)
+			if err != nil {
+				writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "invitation ID is invalid")
+				return
+			}
+			switch {
+			case segments[3] == "accept" && r.Method == http.MethodPost:
+				h.acceptInvitation(w, r, id)
+			case segments[3] == "decline" && r.Method == http.MethodPost:
+				h.declineInvitation(w, r, id)
+			case segments[3] == "revoke" && r.Method == http.MethodPost:
+				h.revokeInvitation(w, r, id)
+			default:
+				writeHubError(w, http.StatusNotFound, "NOT_FOUND", "Hub route not found")
+			}
+		case len(segments) == 5 && segments[2] == "members" && segments[4] == "remove" && r.Method == http.MethodPost:
+			h.removeMember(w, r, segments[1], segments[3])
+		default:
+			writeHubError(w, http.StatusNotFound, "NOT_FOUND", "Hub route not found")
 		}
-		h.acceptInvitation(w, r, id)
-	case r.Method == http.MethodPost && strings.HasPrefix(path, "/groups/invitations/") && strings.HasSuffix(path, "/decline"):
-		invIDStr := strings.TrimSuffix(strings.TrimPrefix(path, "/groups/invitations/"), "/decline")
-		id, err := strconv.ParseUint(invIDStr, 10, 64)
-		if err != nil {
-			writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "invitation ID is invalid")
-			return
-		}
-		h.declineInvitation(w, r, id)
-	case r.Method == http.MethodPost && strings.HasPrefix(path, "/groups/invitations/") && strings.HasSuffix(path, "/revoke"):
-		invIDStr := strings.TrimSuffix(strings.TrimPrefix(path, "/groups/invitations/"), "/revoke")
-		id, err := strconv.ParseUint(invIDStr, 10, 64)
-		if err != nil {
-			writeHubError(w, http.StatusBadRequest, "INVALID_ARGUMENT", "invitation ID is invalid")
-			return
-		}
-		h.revokeInvitation(w, r, id)
-	case r.Method == http.MethodPost && strings.HasPrefix(path, "/groups/") && strings.HasSuffix(path, "/archive"):
-		groupID := strings.TrimSuffix(strings.TrimPrefix(path, "/groups/"), "/archive")
-		h.archiveGroup(w, r, groupID)
-	case r.Method == http.MethodPost && strings.HasPrefix(path, "/groups/") && strings.HasSuffix(path, "/invitations"):
-		groupID := strings.TrimSuffix(strings.TrimPrefix(path, "/groups/"), "/invitations")
-		h.createInvitation(w, r, groupID)
-	case r.Method == http.MethodPost && strings.HasPrefix(path, "/groups/") && strings.HasSuffix(path, "/messages"):
-		groupID := strings.TrimSuffix(strings.TrimPrefix(path, "/groups/"), "/messages")
-		h.sendGroupMessage(w, r, groupID)
-	case r.Method == http.MethodGet && strings.HasPrefix(path, "/groups/") && strings.HasSuffix(path, "/messages"):
-		groupID := strings.TrimSuffix(strings.TrimPrefix(path, "/groups/"), "/messages")
-		h.listGroupMessages(w, r, groupID)
-	case r.Method == http.MethodGet && strings.HasPrefix(path, "/groups/") && strings.Count(path, "/") == 2:
-		groupID := strings.TrimPrefix(path, "/groups/")
-		h.getGroup(w, r, groupID)
 	default:
 		writeHubError(w, http.StatusNotFound, "NOT_FOUND", "Hub route not found")
 	}
@@ -792,6 +789,10 @@ func (h HubHTTPHandler) createInvitation(w http.ResponseWriter, r *http.Request,
 		ExpiresAt:      now.Add(24 * time.Hour),
 	})
 	if err != nil {
+		if errors.Is(err, ErrHubGroupLimit) {
+			writeHubError(w, http.StatusConflict, "GROUP_LIMIT_REACHED", "group active member limit reached")
+			return
+		}
 		writeHubError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to create invitation")
 		return
 	}
@@ -830,6 +831,10 @@ func (h HubHTTPHandler) acceptInvitation(w http.ResponseWriter, r *http.Request,
 	if err != nil {
 		if errors.Is(err, ErrHubInvitationNotFound) {
 			writeHubError(w, http.StatusNotFound, "NOT_FOUND", "invitation not found")
+			return
+		}
+		if errors.Is(err, ErrHubGroupLimit) {
+			writeHubError(w, http.StatusConflict, "GROUP_LIMIT_REACHED", "group active member limit reached")
 			return
 		}
 		writeHubError(w, http.StatusBadRequest, "INVALID_STATE", "invitation cannot be accepted")
@@ -878,6 +883,56 @@ func (h HubHTTPHandler) revokeInvitation(w http.ResponseWriter, r *http.Request,
 		return
 	}
 	writeHubJSON(w, http.StatusOK, map[string]any{"status": "REVOKED"})
+}
+
+func (h HubHTTPHandler) leaveGroup(w http.ResponseWriter, r *http.Request, groupID string) {
+	if h.Groups == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "GROUPS_UNAVAILABLE", "Hub group store is unavailable")
+		return
+	}
+	agent, ok := h.authenticateAgent(r)
+	if !ok {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+		return
+	}
+	if err := h.Groups.LeaveGroup(r.Context(), groupID, agent.AgentID, time.Now().UTC()); err != nil {
+		if errors.Is(err, ErrHubGroupForbidden) {
+			writeHubError(w, http.StatusForbidden, "PERMISSION_DENIED", "group owner cannot leave group without archiving")
+			return
+		}
+		if errors.Is(err, ErrHubGroupNotFound) {
+			writeHubError(w, http.StatusNotFound, "NOT_FOUND", "group or member not found")
+			return
+		}
+		writeHubError(w, http.StatusBadRequest, "INVALID_STATE", err.Error())
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"groupId": groupID, "status": "LEFT"})
+}
+
+func (h HubHTTPHandler) removeMember(w http.ResponseWriter, r *http.Request, groupID, targetAgentID string) {
+	if h.Groups == nil {
+		writeHubError(w, http.StatusServiceUnavailable, "GROUPS_UNAVAILABLE", "Hub group store is unavailable")
+		return
+	}
+	agent, ok := h.authenticateAgent(r)
+	if !ok {
+		writeHubError(w, http.StatusUnauthorized, "UNAUTHENTICATED", "Hub Agent credentials are required")
+		return
+	}
+	if err := h.Groups.RemoveMember(r.Context(), groupID, agent.AgentID, targetAgentID, time.Now().UTC()); err != nil {
+		if errors.Is(err, ErrHubGroupForbidden) {
+			writeHubError(w, http.StatusForbidden, "PERMISSION_DENIED", "permission denied to remove member")
+			return
+		}
+		if errors.Is(err, ErrHubGroupNotFound) {
+			writeHubError(w, http.StatusNotFound, "NOT_FOUND", "group or member not found")
+			return
+		}
+		writeHubError(w, http.StatusBadRequest, "INVALID_STATE", err.Error())
+		return
+	}
+	writeHubJSON(w, http.StatusOK, map[string]any{"groupId": groupID, "targetAgentId": targetAgentID, "status": "REMOVED"})
 }
 
 func deliveryOutcome(duplicate bool) string {

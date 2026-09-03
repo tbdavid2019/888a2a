@@ -126,7 +126,17 @@ func TestHubGroupLifecycleAndBroadcast(t *testing.T) {
 		t.Fatalf("unexpected inbox message: %s", inboxItems[0].Message)
 	}
 
-	// 8. Agent 1 archives the group
+	// 8. Agent 2 leaves the group
+	leaveReq := httptest.NewRequest(http.MethodPost, "/hub/v1/groups/"+createdGroup.GroupID+"/leave", nil)
+	leaveReq.Header.Set("X-Agent-ID", agent2ID)
+	leaveReq.Header.Set("Authorization", "Bearer "+token2)
+	leaveRec := httptest.NewRecorder()
+	handler.ServeHTTP(leaveRec, leaveReq)
+	if leaveRec.Code != http.StatusOK {
+		t.Fatalf("leave group failed: %d body=%s", leaveRec.Code, leaveRec.Body.String())
+	}
+
+	// 9. Agent 1 archives the group
 	archiveReq := httptest.NewRequest(http.MethodPost, "/hub/v1/groups/"+createdGroup.GroupID+"/archive", nil)
 	archiveReq.Header.Set("X-Agent-ID", agent1ID)
 	archiveReq.Header.Set("Authorization", "Bearer "+token1)
@@ -134,5 +144,36 @@ func TestHubGroupLifecycleAndBroadcast(t *testing.T) {
 	handler.ServeHTTP(archiveRec, archiveReq)
 	if archiveRec.Code != http.StatusOK {
 		t.Fatalf("archive group failed: %d body=%s", archiveRec.Code, archiveRec.Body.String())
+	}
+}
+
+func TestHubGroupEnforcesMaxMembersLimit(t *testing.T) {
+	hubID := "hub-limit-test"
+	mailbox := NewMemoryHubMailbox()
+	groupStore := NewMemoryHubGroupStore(mailbox)
+
+	// Create group
+	group, err := groupStore.CreateGroup(context.Background(), HubGroup{
+		HubID: hubID, Name: "Limit Group", OwnerAgentID: "owner",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Add 31 members to reach MaxGroupMembers (32 total including owner)
+	for i := 1; i <= 31; i++ {
+		agentID := "agent-" + string(rune('A'+i))
+		groupStore.members[group.GroupID] = append(groupStore.members[group.GroupID], HubGroupMember{
+			HubID: hubID, GroupID: group.GroupID, AgentID: agentID,
+			Role: HubGroupRoleMember, State: HubMembershipActive,
+		})
+	}
+
+	// Attempting to invite a 33rd member must fail with ErrHubGroupLimit
+	_, err = groupStore.CreateInvitation(context.Background(), HubGroupInvitation{
+		HubID: hubID, GroupID: group.GroupID, InviterAgentID: "owner", InviteeAgentID: "agent-overflow",
+	})
+	if err != ErrHubGroupLimit {
+		t.Fatalf("expected ErrHubGroupLimit, got %v", err)
 	}
 }

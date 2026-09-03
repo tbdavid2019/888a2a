@@ -21,6 +21,10 @@
 - Added expired entry eviction to `HubRateLimiter` in `backend/a2a/hub_http.go` to prevent unbounded memory growth from IP spraying.
 - Disallowed reserved `group:` idempotency key prefix for peer tasks in `backend/a2a/hub_http.go` to prevent namespace collisions with group messaging.
 - Honored `X-Forwarded-Proto` in Hub agent card URL resolution in `backend/a2a/hub_http.go` for reverse proxies terminating TLS.
+- Decoupled mailbox fanout delivery from `MemoryHubGroupStore.mu` lock to eliminate nested lock acquisition and prevent deadlocks and lock contention during broadcast.
+- Enforced active member limit (`MaxGroupMembers = 32`) on group invitation creation and acceptance in both memory and PostgreSQL stores to defend against fanout DoS.
+- Enforced strict role verification and group active checks for member removal, leaving, and invitation acceptance.
+- Refactored `/hub/v1/groups/*` route matching to strict path segment parsing, eliminating ambiguous substring matching and path traversal edge cases.
 
 ### Fixed
 

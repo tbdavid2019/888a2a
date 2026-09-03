@@ -180,4 +180,8 @@ type HubGroupStore interface {
 	SendGroupMessage(ctx context.Context, message HubGroupMessage, maxFanout int) (HubGroupMessage, bool, error)
 	ListGroupMessages(ctx context.Context, groupID, agentID string, afterID uint64, limit int) ([]HubGroupMessage, error)
 	ArchiveGroup(ctx context.Context, groupID string, at time.Time) error
+	LeaveGroup(ctx context.Context, groupID, agentID string, at time.Time) error
+	RemoveMember(ctx context.Context, groupID, agentID, targetAgentID string, at time.Time) error
 }
+
+var ErrHubGroupLimit = errors.New("group member limit reached")

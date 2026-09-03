@@ -214,6 +214,13 @@ ORDER BY joined_at ASC`, groupID)
 }
 
 func (s *Store) CreateHubGroupInvitation(ctx context.Context, inv HubGroupInvitationRecord) (HubGroupInvitationRecord, error) {
+	var count int
+	if err := s.GetDB().QueryRowContext(ctx, `SELECT count(*) FROM a2a888_hub_group_member WHERE group_id = $1 AND state = 'ACTIVE'`, inv.GroupID).Scan(&count); err != nil {
+		return HubGroupInvitationRecord{}, err
+	}
+	if count >= 32 {
+		return HubGroupInvitationRecord{}, errors.New("group member limit reached")
+	}
 	if inv.CreatedAt.IsZero() {
 		inv.CreatedAt = time.Now().UTC()
 	}
@@ -292,6 +299,19 @@ FROM a2a888_hub_group_invitation WHERE id = $1 FOR UPDATE`, id).Scan(
 		return HubGroupMemberRecord{}, err
 	}
 	if inv.InviteeAgentID != agentID || inv.State != "PENDING" || !inv.ExpiresAt.After(at) {
+		return HubGroupMemberRecord{}, ErrHubGroupInvalidState
+	}
+
+	var groupState string
+	if err := tx.QueryRowContext(ctx, `SELECT state FROM a2a888_hub_group WHERE group_id = $1 FOR UPDATE`, inv.GroupID).Scan(&groupState); err != nil || groupState != "ACTIVE" {
+		return HubGroupMemberRecord{}, ErrHubGroupInvalidState
+	}
+
+	var memberCount int
+	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM a2a888_hub_group_member WHERE group_id = $1 AND state = 'ACTIVE' FOR UPDATE`, inv.GroupID).Scan(&memberCount); err != nil {
+		return HubGroupMemberRecord{}, err
+	}
+	if memberCount >= 32 {
 		return HubGroupMemberRecord{}, ErrHubGroupInvalidState
 	}
 
@@ -510,4 +530,41 @@ WHERE group_id = $1 AND state = 'ACTIVE'`, groupID, at)
 		return ErrHubGroupNotFound
 	}
 	return nil
+}
+
+func (s *Store) LeaveHubGroup(ctx context.Context, groupID, agentID string, at time.Time) error {
+	var role string
+	err := s.GetDB().QueryRowContext(ctx, `SELECT role FROM a2a888_hub_group_member WHERE group_id = $1 AND agent_id = $2 AND state = 'ACTIVE'`, groupID, agentID).Scan(&role)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrHubGroupNotFound
+		}
+		return err
+	}
+	if role == "OWNER" {
+		return ErrHubGroupForbidden
+	}
+	_, err = s.GetDB().ExecContext(ctx, `UPDATE a2a888_hub_group_member SET state = 'LEFT', left_at = $3 WHERE group_id = $1 AND agent_id = $2`, groupID, agentID, at)
+	return err
+}
+
+func (s *Store) RemoveHubGroupMember(ctx context.Context, groupID, agentID, targetAgentID string, at time.Time) error {
+	var requesterRole string
+	err := s.GetDB().QueryRowContext(ctx, `SELECT role FROM a2a888_hub_group_member WHERE group_id = $1 AND agent_id = $2 AND state = 'ACTIVE'`, groupID, agentID).Scan(&requesterRole)
+	if err != nil || (requesterRole != "OWNER" && requesterRole != "ADMIN") {
+		return ErrHubGroupForbidden
+	}
+	var targetRole string
+	err = s.GetDB().QueryRowContext(ctx, `SELECT role FROM a2a888_hub_group_member WHERE group_id = $1 AND agent_id = $2 AND state = 'ACTIVE'`, groupID, targetAgentID).Scan(&targetRole)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrHubGroupNotFound
+		}
+		return err
+	}
+	if targetRole == "OWNER" {
+		return ErrHubGroupForbidden
+	}
+	_, err = s.GetDB().ExecContext(ctx, `UPDATE a2a888_hub_group_member SET state = 'REMOVED', removed_at = $3 WHERE group_id = $1 AND agent_id = $2`, groupID, targetAgentID, at)
+	return err
 }

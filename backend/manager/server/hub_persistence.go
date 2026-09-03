@@ -413,3 +413,11 @@ func (p hubStorePersistence) ListGroupMessages(ctx context.Context, groupID, age
 func (p hubStorePersistence) ArchiveGroup(ctx context.Context, groupID string, at time.Time) error {
 	return p.store.ArchiveHubGroup(ctx, groupID, at)
 }
+
+func (p hubStorePersistence) LeaveGroup(ctx context.Context, groupID, agentID string, at time.Time) error {
+	return p.store.LeaveHubGroup(ctx, groupID, agentID, at)
+}
+
+func (p hubStorePersistence) RemoveMember(ctx context.Context, groupID, agentID, targetAgentID string, at time.Time) error {
+	return p.store.RemoveHubGroupMember(ctx, groupID, agentID, targetAgentID, at)
+}

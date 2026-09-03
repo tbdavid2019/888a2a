@@ -122,6 +122,19 @@ func (s *MemoryHubGroupStore) ListMembers(_ context.Context, groupID string) ([]
 func (s *MemoryHubGroupStore) CreateInvitation(_ context.Context, inv HubGroupInvitation) (HubGroupInvitation, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	group, exists := s.groups[inv.GroupID]
+	if !exists || group.State != HubGroupStateActive {
+		return HubGroupInvitation{}, ErrHubGroupInvalidState
+	}
+	activeCount := 0
+	for _, m := range s.members[inv.GroupID] {
+		if m.State == HubMembershipActive {
+			activeCount++
+		}
+	}
+	if activeCount >= MaxGroupMembers {
+		return HubGroupInvitation{}, ErrHubGroupLimit
+	}
 	inv.ID = s.nextInvID
 	s.nextInvID++
 	if inv.State == "" {
@@ -176,6 +189,19 @@ func (s *MemoryHubGroupStore) AcceptInvitation(_ context.Context, id uint64, age
 	}
 	if target.InviteeAgentID != agentID || target.State != HubInvitationPending || !target.ExpiresAt.After(at) {
 		return HubGroupMember{}, ErrHubGroupInvalidState
+	}
+	group, exists := s.groups[target.GroupID]
+	if !exists || group.State != HubGroupStateActive {
+		return HubGroupMember{}, ErrHubGroupInvalidState
+	}
+	activeCount := 0
+	for _, m := range s.members[target.GroupID] {
+		if m.State == HubMembershipActive {
+			activeCount++
+		}
+	}
+	if activeCount >= MaxGroupMembers {
+		return HubGroupMember{}, ErrHubGroupLimit
 	}
 	target.State = HubInvitationAccepted
 	target.RespondedAt = &at
@@ -235,15 +261,16 @@ func (s *MemoryHubGroupStore) RevokeInvitation(_ context.Context, id uint64, inv
 
 func (s *MemoryHubGroupStore) SendGroupMessage(ctx context.Context, msg HubGroupMessage, maxFanout int) (HubGroupMessage, bool, error) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	// Check duplicate
 	for _, existing := range s.messages {
 		if existing.GroupID == msg.GroupID && existing.SenderAgentID == msg.SenderAgentID && existing.IdempotencyKey == msg.IdempotencyKey {
+			s.mu.Unlock()
 			return existing, true, nil
 		}
 	}
 	group, exists := s.groups[msg.GroupID]
 	if !exists || group.State != HubGroupStateActive {
+		s.mu.Unlock()
 		return HubGroupMessage{}, false, ErrHubGroupNotFound
 	}
 	members := s.members[msg.GroupID]
@@ -258,9 +285,11 @@ func (s *MemoryHubGroupStore) SendGroupMessage(ctx context.Context, msg HubGroup
 		}
 	}
 	if !isSenderMember {
+		s.mu.Unlock()
 		return HubGroupMessage{}, false, ErrHubGroupForbidden
 	}
 	if len(recipients) == 0 || (maxFanout > 0 && len(recipients) > maxFanout) {
+		s.mu.Unlock()
 		return HubGroupMessage{}, false, ErrHubGroupInvalidState
 	}
 	msg.ID = s.nextMsgID
@@ -269,14 +298,17 @@ func (s *MemoryHubGroupStore) SendGroupMessage(ctx context.Context, msg HubGroup
 		msg.CreatedAt = time.Now().UTC()
 	}
 	msg.Trust = "UNTRUSTED_DATA"
-	msg.Deliveries = make([]HubGroupDeliverySummary, 0, len(recipients))
+	s.messages = append(s.messages, msg)
+	mailbox := s.mailbox
+	s.mu.Unlock()
 
+	msg.Deliveries = make([]HubGroupDeliverySummary, 0, len(recipients))
 	for _, recipient := range recipients {
 		seq := uint64(0)
-		if s.mailbox != nil {
+		if mailbox != nil {
 			taskID := fmt.Sprintf("grp-%d-%s", msg.ID, recipient.AgentID)
 			internalKey := "group:" + msg.GroupID + ":" + msg.IdempotencyKey
-			res, err := s.mailbox.Enqueue(ctx, HubInboxItem{
+			res, err := mailbox.Enqueue(ctx, HubInboxItem{
 				HubID:            msg.HubID,
 				TargetAgentID:    recipient.AgentID,
 				RequesterAgentID: msg.SenderAgentID,
@@ -295,7 +327,14 @@ func (s *MemoryHubGroupStore) SendGroupMessage(ctx context.Context, msg HubGroup
 			State:         "PENDING",
 		})
 	}
-	s.messages = append(s.messages, msg)
+	s.mu.Lock()
+	for i := range s.messages {
+		if s.messages[i].ID == msg.ID {
+			s.messages[i].Deliveries = msg.Deliveries
+			break
+		}
+	}
+	s.mu.Unlock()
 	return msg, false, nil
 }
 
@@ -338,5 +377,50 @@ func (s *MemoryHubGroupStore) ArchiveGroup(_ context.Context, groupID string, at
 	group.State = HubGroupStateArchived
 	group.ArchivedAt = &at
 	s.groups[groupID] = group
+	return nil
+}
+
+func (s *MemoryHubGroupStore) LeaveGroup(_ context.Context, groupID, agentID string, at time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	members := s.members[groupID]
+	for i := range members {
+		if members[i].AgentID == agentID && members[i].State == HubMembershipActive {
+			if members[i].Role == HubGroupRoleOwner {
+				return ErrHubGroupForbidden
+			}
+			members[i].State = HubMembershipLeft
+			members[i].LeftAt = &at
+			return nil
+		}
+	}
+	return ErrHubGroupNotFound
+}
+
+func (s *MemoryHubGroupStore) RemoveMember(_ context.Context, groupID, agentID, targetAgentID string, at time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	members := s.members[groupID]
+	var requester *HubGroupMember
+	var target *HubGroupMember
+	for i := range members {
+		if members[i].AgentID == agentID && members[i].State == HubMembershipActive {
+			requester = &members[i]
+		}
+		if members[i].AgentID == targetAgentID && members[i].State == HubMembershipActive {
+			target = &members[i]
+		}
+	}
+	if requester == nil || !requester.CanManageMembers() {
+		return ErrHubGroupForbidden
+	}
+	if target == nil {
+		return ErrHubGroupNotFound
+	}
+	if target.Role == HubGroupRoleOwner {
+		return ErrHubGroupForbidden
+	}
+	target.State = HubMembershipRemoved
+	target.RemovedAt = &at
 	return nil
 }
