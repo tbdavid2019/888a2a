@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # 888a2a Manager multi-stage container build: frontend + embedded machines -> manager
-FROM node:24.12.0-slim AS frontend
+FROM node:24.22.1-slim AS frontend
 WORKDIR /frontend-build
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 RUN npm i -g pnpm@11.10.0 && pnpm i --frozen-lockfile
