@@ -30,6 +30,14 @@ func pgrepToken(t *testing.T, token string) bool {
 	return false
 }
 
+func TestMain(m *testing.M) {
+	if os.Getenv("LAELIA_TEST_WORKER_SLEEP") == "1" {
+		time.Sleep(5 * time.Minute)
+		os.Exit(0)
+	}
+	os.Exit(m.Run())
+}
+
 // TestStopDoesNotOrphanWorker is a regression test for the shutdown race where
 // `laelia-machine stop` could stop the supervisor (daemon) while watchWorker
 // respawned a fresh `run` worker in the gap between stopWorker and
@@ -44,24 +52,26 @@ func TestStopDoesNotOrphanWorker(t *testing.T) {
 	if _, err := exec.LookPath("pgrep"); err != nil {
 		t.Skip("pgrep not available")
 	}
-	sleepPath, err := exec.LookPath("sleep")
-	if err != nil {
-		t.Skip("sleep not available")
-	}
+
+	selfExe, err := os.Executable()
+	require.NoError(t, err)
 
 	tmp := t.TempDir()
 	t.Setenv(home.EnvDir, tmp) // isolate the supervisor addr file + logs
+	t.Setenv("LAELIA_TEST_WORKER_SLEEP", "1")
 
-	// A uniquely-named symlink to sleep is the worker executable: its argv[0]
-	// carries the token, so pgrep -f token matches only this supervisor's
-	// worker and nothing else in the test process.
+	// Symlink the test binary itself rather than /bin/sleep: on Ubuntu 24.04+
+	// (coreutils-from-uutils), /bin/sleep is a multicall binary that checks
+	// basename(argv[0]) and immediately exits with code 1 when invoked via a
+	// symlink named "laelia-test-worker-*". Re-invoking the Go test binary with
+	// LAELIA_TEST_WORKER_SLEEP=1 gives a real process whose argv carries token.
 	token := "laelia-test-worker-" + filepath.Base(tmp)
 	workerExe := filepath.Join(tmp, token)
-	require.NoError(t, os.Symlink(sleepPath, workerExe))
+	require.NoError(t, os.Symlink(selfExe, workerExe))
 
 	const iterations = 10
 	for i := 0; i < iterations; i++ {
-		sup, err := New(workerExe, []string{"300"}, []string{"daemon"}, false)
+		sup, err := New(workerExe, []string{token}, []string{"daemon"}, false)
 		require.NoError(t, err, "iter %d: New", i)
 
 		ctx, cancel := context.WithCancel(context.Background())
