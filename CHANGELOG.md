@@ -1,5 +1,12 @@
 # Changelog
 
+## [2026-11-12]
+
+### Security
+
+- Updated the manager frontend build image and machine runtime image to Node.js 24.22.3, which includes the latest Node.js security fixes.
+
+
 ## [2026-10-22]
 
 ### Security
